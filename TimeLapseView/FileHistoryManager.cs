@@ -27,6 +27,9 @@ namespace TimeLapseView {
 			}
 		}
 
+		// Temp variable for storing file history
+		public List<string> FileHistory = new List<string>();
+
 		public void GetCommitsHistory() {
 			using (var repo = new Repository(repositoryPath)) {
 
@@ -43,6 +46,7 @@ namespace TimeLapseView {
 					var blob = (Blob) commit[filePath].Target;
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
 						//Console.WriteLine(reader.ReadToEnd());
+						FileHistory.Add(reader.ReadToEnd());
 					}
 				}
 			}

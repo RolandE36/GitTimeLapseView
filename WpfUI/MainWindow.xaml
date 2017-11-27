@@ -1,0 +1,45 @@
+﻿<Window x:Class="WpfUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfUI"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*"></ColumnDefinition>
+			<ColumnDefinition Width="30"></ColumnDefinition>
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="auto"></RowDefinition>
+			<RowDefinition Height="*"></RowDefinition>
+		</Grid.RowDefinitions>
+
+		
+		<Slider 
+			TickPlacement="BottomRight" 
+			IsSnapToTickEnabled="True" 
+			Name="slHistoy"
+			ValueChanged="slHistoyValueChanged"
+			Grid.Column="0" 
+			Grid.Row="0" 
+		/>
+		<TextBox 
+			Text="{Binding ElementName=slHistoy, Path=Value, UpdateSourceTrigger=PropertyChanged}" 
+			DockPanel.Dock="Right" 
+			Grid.Column="1" 
+			Grid.Row="0" />
+
+		<TextBox 
+				Name="tbCode" Text="" 
+				AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" 
+				HorizontalScrollBarVisibility="Auto" 
+				VerticalScrollBarVisibility="Visible" 
+				Grid.Column="0"
+				Grid.Row="1"
+				Grid.ColumnSpan="2"
+			/>
+	</Grid>
+</Window>
