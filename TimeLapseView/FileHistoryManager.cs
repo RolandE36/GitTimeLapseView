@@ -1,4 +1,7 @@
-﻿using LibGit2Sharp;
+﻿using DiffPlex;
+using DiffPlex.DiffBuilder;
+using DiffPlex.DiffBuilder.Model;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,12 +32,11 @@ namespace TimeLapseView {
 
 		// Temp variable for storing file history
 		public List<string> FileHistory = new List<string>();
+		public List<DiffPaneModel> FileHistoryDiff = new List<DiffPaneModel>();
+		public List<Commit> Commits = new List<Commit>();
 
 		public void GetCommitsHistory() {
 			using (var repo = new Repository(repositoryPath)) {
-
-				Console.WriteLine(repo.Commits.Count());
-
 				// Get all commits with file.
 				// Target.Id not equal to parent one mean that file was updated.
 				var commits = repo.Commits.Where(c => c.Parents.Count() >= 1 && c.Tree[filePath] != null &&
@@ -44,11 +46,20 @@ namespace TimeLapseView {
 				foreach (var commit in commits) {
 					// Get file text from commit
 					var blob = (Blob) commit[filePath].Target;
+					// TODO: probably use commit.Encoding
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-						//Console.WriteLine(reader.ReadToEnd());
 						FileHistory.Add(reader.ReadToEnd());
+						Commits.Add(commit);
 					}
 				}
+
+				// Compare code
+				var diffBuilder = new InlineDiffBuilder(new Differ());
+				FileHistoryDiff.Add(diffBuilder.BuildDiffModel("", FileHistory[0]));
+				for (int i = FileHistory.Count-1; i >= 1; i--) {
+					FileHistoryDiff.Add(diffBuilder.BuildDiffModel(FileHistory[i], FileHistory[i-1]));
+				}
+				FileHistoryDiff.Reverse();
 			}
 		}
 	}
