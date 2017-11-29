@@ -1,5 +1,4 @@
-﻿using DiffPlex.DiffBuilder.Model;
-using ICSharpCode.AvalonEdit.Highlighting;
+﻿using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Rendering;
 using System;
 using System.Collections.Generic;
@@ -34,20 +33,20 @@ namespace WpfUI {
 
 			manager = new FileHistoryManager(@"C:\git\ok-booking\OkBooking\BAL\ExchangeManager.cs");
 			manager.GetCommitsHistory();
-			slHistoy.Maximum = manager.FileHistory.Count;
-			slHistoy.Value = manager.FileHistory.Count;
+			slHistoy.Maximum = manager.Snapshots.Count;
+			slHistoy.Value = manager.Snapshots.Count;
 			slHistoy.Minimum = 1;
-			tbCode.Text = manager.FileHistory[0];
+			tbCode.Text = manager.Snapshots[0].File;
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
 			int index = (int) (slHistoy.Maximum - slHistoy.Value);
 
-			var ttt = new DiffLineBackgroundRenderer(manager.FileHistoryDiff[index]);
+			var ttt = new DiffLineBackgroundRenderer(manager.Snapshots[index]);
 			tbCode.TextArea.TextView.BackgroundRenderers.Clear();// TODO:
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(ttt);
-			tbCode.Text = manager.FileHistory[index];
-			//lblDetails.Content = manager.Commits[index].
+			tbCode.Text = manager.Snapshots[index].File;
+			lblDetails.Content = manager.Snapshots[index].Commit.Description;
 		}
 	}
 
@@ -61,7 +60,7 @@ namespace WpfUI {
 		static SolidColorBrush headerBackground;
 		static SolidColorBrush emptyBackground;
 
-		DiffPaneModel host;
+		Snapshot host;
 
 		static DiffLineBackgroundRenderer() {
 			removedBackground = new SolidColorBrush(Color.FromRgb(0xff, 0xdd, 0xdd)); removedBackground.Freeze();
@@ -73,7 +72,7 @@ namespace WpfUI {
 			pen = new Pen(blackBrush, 0.0);
 		}
 
-		public DiffLineBackgroundRenderer(DiffPaneModel host) {
+		public DiffLineBackgroundRenderer(Snapshot host) {
 			this.host = host;
 		}
 
@@ -87,21 +86,16 @@ namespace WpfUI {
 				// NB: This lookup to fetch the doc line number isn't great, we could
 				// probably do it once then just increment.
 				var linenum = v.FirstDocumentLine.LineNumber - 1;
-				if (linenum >= host.Lines.Count(e => e.Type != ChangeType.Deleted)) continue;
-
-				var diffLine = host.Lines.Where(e => e.Type != ChangeType.Deleted).ToList()[linenum];
-
-				//if (diffLine.Style == DiffLineStyle.Context) continue;
+				if (linenum >= host.Lines.Count) continue;
 
 				var brush = default(Brush);
 				
-				switch (diffLine.Type) {
-					case ChangeType.Modified:
-					case ChangeType.Inserted:
-					case ChangeType.Imaginary:
+				switch (host.Lines[linenum].State) {
+					case LineState.Modified:
+					case LineState.Inserted:
 						brush = addedBackground;
 						break;
-					case ChangeType.Unchanged:
+					case LineState.Unchanged:
 					default:
 						brush = emptyBackground;
 						break;

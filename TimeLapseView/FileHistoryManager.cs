@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public class FileHistoryManager {
+		public List<Snapshot> Snapshots = new List<Snapshot>();
+
 		private string repositoryPath;
 		private string filePath;
 
@@ -30,12 +32,9 @@ namespace TimeLapseView {
 			}
 		}
 
-		// Temp variable for storing file history
-		public List<string> FileHistory = new List<string>();
-		public List<DiffPaneModel> FileHistoryDiff = new List<DiffPaneModel>();
-		public List<Commit> Commits = new List<Commit>();
-
 		public void GetCommitsHistory() {
+			var diffBuilder = new InlineDiffBuilder(new Differ()); // TODO: probably static
+
 			using (var repo = new Repository(repositoryPath)) {
 				// Get all commits with file.
 				// Target.Id not equal to parent one mean that file was updated.
@@ -48,18 +47,39 @@ namespace TimeLapseView {
 					var blob = (Blob) commit[filePath].Target;
 					// TODO: probably use commit.Encoding
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-						FileHistory.Add(reader.ReadToEnd());
-						Commits.Add(commit);
+						//FileHistory.Add(reader.ReadToEnd());
+						//Commits.Add(commit);
+						Snapshots.Add(new Snapshot() {
+							File = reader.ReadToEnd(),
+							Commit = new Commit() {
+								Author = commit.Author.Name,
+								Description = commit.Message,
+								Date = commit.Author.When
+							}
+						});
+
+						var count = Snapshots.Count - 1;
+						if (count > 1) {
+							var diff = diffBuilder.BuildDiffModel(Snapshots[count].File, Snapshots[count - 1].File);
+							foreach (var line in diff.Lines.Where(l => l.Type != ChangeType.Deleted)) {
+								var diffLine = new CodeLine();
+								switch (line.Type) {
+									case ChangeType.Modified:
+										diffLine.State = LineState.Modified;
+										break;
+									case ChangeType.Inserted:
+										diffLine.State = LineState.Inserted;
+										break;
+									default:
+										diffLine.State = LineState.Unchanged;
+										break;
+								}
+
+								Snapshots[count - 1].Lines.Add(diffLine);
+							}
+						}
 					}
 				}
-
-				// Compare code
-				var diffBuilder = new InlineDiffBuilder(new Differ());
-				FileHistoryDiff.Add(diffBuilder.BuildDiffModel("", FileHistory[0]));
-				for (int i = FileHistory.Count-1; i >= 1; i--) {
-					FileHistoryDiff.Add(diffBuilder.BuildDiffModel(FileHistory[i], FileHistory[i-1]));
-				}
-				FileHistoryDiff.Reverse();
 			}
 		}
 	}
