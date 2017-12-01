@@ -19,6 +19,8 @@ namespace TimeLapseView {
 
 	public class CodeLine {
 		public LineState State;
+		public int ParentLineNumber;
+		public int SequenceBegining;
 	}
 
 	public enum LineState {
