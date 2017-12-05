@@ -29,6 +29,8 @@ namespace TimeLapseView {
 			if (dir != null) {
 				repositoryPath = dir.FullName;
 				filePath = file.Replace(repositoryPath + "\\", "");
+			} else {
+				throw new Exception($"Git repository wasn't found.");
 			}
 		}
 

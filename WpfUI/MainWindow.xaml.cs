@@ -16,6 +16,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using TimeLapseView;
 using ICSharpCode.AvalonEdit.Document;
+using Microsoft.Win32;
 
 namespace WpfUI {
 	/// <summary>
@@ -30,13 +31,6 @@ namespace WpfUI {
 
 		protected override void OnInitialized(EventArgs e) {
 			base.OnInitialized(e);
-
-			manager = new FileHistoryManager(@"C:\git\ok-booking\OkBooking\BAL\ExchangeManager.cs");
-			manager.GetCommitsHistory();
-			slHistoy.Maximum = manager.Snapshots.Count;
-			slHistoy.Value = manager.Snapshots.Count;
-			slHistoy.Minimum = 1;
-			tbCode.Text = manager.Snapshots[0].File;
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
@@ -47,6 +41,27 @@ namespace WpfUI {
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(ttt);
 			tbCode.Text = manager.Snapshots[index].File;
 			lblDetails.Content = manager.Snapshots[index].Commit.Description;
+		}
+
+		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
+			OpenFileDialog openFileDialog = new OpenFileDialog();
+			openFileDialog.Multiselect = false;
+			openFileDialog.RestoreDirectory = true;
+			if (openFileDialog.ShowDialog() == true) {
+				try {
+					var filename = openFileDialog.FileNames.FirstOrDefault();
+					lblFilePath.Content = filename;
+
+					manager = new FileHistoryManager(filename);
+					manager.GetCommitsHistory();
+					slHistoy.Maximum = manager.Snapshots.Count;
+					slHistoy.Value = manager.Snapshots.Count;
+					slHistoy.Minimum = 1;
+					tbCode.Text = manager.Snapshots[0].File;
+				} catch (Exception ex) {
+					MessageBox.Show("Oops! Something went wrong.");
+				}
+			}
 		}
 	}
 }
