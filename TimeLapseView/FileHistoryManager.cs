@@ -13,6 +13,15 @@ namespace TimeLapseView {
 	public class FileHistoryManager {
 		public List<Snapshot> Snapshots = new List<Snapshot>();
 
+		// TODO: Probably move to separate class
+		public Snapshot CurrentSnapshot {
+			get {
+				return Snapshots[CurrentSnapshotIndex];
+			}
+		}
+		public int CurrentSnapshotIndex;
+		public int SelectedSnapshotIndex = -1;
+
 		private string repositoryPath;
 		private string filePath;
 

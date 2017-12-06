@@ -36,7 +36,8 @@ namespace WpfUI {
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
 			int index = (int) (slHistoy.Maximum - slHistoy.Value);
 
-			var ttt = new TimeLapseLineBackgroundRenderer(manager.Snapshots[index], (int)slHistoy.Value+1, manager.Snapshots.Count);
+			manager.CurrentSnapshotIndex = index;
+			var ttt = new TimeLapseLineBackgroundRenderer(manager, (int)slHistoy.Value+1, manager.Snapshots.Count);
 			tbCode.TextArea.TextView.BackgroundRenderers.Clear();// TODO:
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(ttt);
 			tbCode.Text = manager.Snapshots[index].File;
@@ -61,6 +62,23 @@ namespace WpfUI {
 				} catch (Exception ex) {
 					MessageBox.Show("Oops! Something went wrong.");
 				}
+			}
+		}
+
+		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
+			try {
+				if (manager.SelectedSnapshotIndex == manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceBegining) {
+					manager.SelectedSnapshotIndex = -1;
+					int index = (int)(slHistoy.Maximum - slHistoy.Value);
+					lblDetails.Content = manager.Snapshots[index].Commit.Description;
+				} else {
+					manager.SelectedSnapshotIndex = manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceBegining;
+					lblDetails.Content = manager.Snapshots[manager.SelectedSnapshotIndex].Commit.Description;
+				}
+				
+				tbCode.TextArea.TextView.Redraw();
+			} catch (Exception ex) {
+
 			}
 		}
 	}
