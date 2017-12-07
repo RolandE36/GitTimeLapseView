@@ -45,11 +45,13 @@ namespace WpfUI {
 
 				var brush = default(Brush);
 
-				if (host.SelectedSnapshotIndex != -1 && host.CurrentSnapshot.Lines[linenum].SequenceBegining == host.SelectedSnapshotIndex) {
+				if (host.SelectedSnapshotIndex != -1 &&
+					// TODO: Select only one line ---- linenum == host.SelectedLine 
+					host.CurrentSnapshot.Lines[linenum].SequenceStart == host.SelectedSnapshotIndex) {
 					brush = selectedBackground;
 				} else {
 					// TODO: Move brush creation to separate class using percentage values (current, max, step)
-					var lineSnapshotsNumber = revisionsCount - host.CurrentSnapshot.Lines[linenum].SequenceBegining;
+					var lineSnapshotsNumber = revisionsCount - host.CurrentSnapshot.Lines[linenum].SequenceStart;
 					var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / revision) / 100;
 					var byteColor = Convert.ToByte(255 - (60 + 180 * lineLifeTimePercent));
 

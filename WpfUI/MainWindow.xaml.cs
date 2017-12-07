@@ -67,15 +67,23 @@ namespace WpfUI {
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
 			try {
-				if (manager.SelectedSnapshotIndex == manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceBegining) {
+				if (manager.SelectedSnapshotIndex == manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart) {
 					manager.SelectedSnapshotIndex = -1;
+					manager.SelectedLine = -1;
 					int index = (int)(slHistoy.Maximum - slHistoy.Value);
 					lblDetails.Content = manager.Snapshots[index].Commit.Description;
+
+					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
-					manager.SelectedSnapshotIndex = manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceBegining;
+					manager.SelectedSnapshotIndex = manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
+					manager.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 					lblDetails.Content = manager.Snapshots[manager.SelectedSnapshotIndex].Commit.Description;
+
+					slHistoy.IsSelectionRangeEnabled = true;
+					slHistoy.SelectionStart = slHistoy.Maximum - manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
+					slHistoy.SelectionEnd = slHistoy.Maximum - manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceEnd;
 				}
-				
+
 				tbCode.TextArea.TextView.Redraw();
 			} catch (Exception ex) {
 

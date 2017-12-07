@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:WpfUI"
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
-    <Grid>
+	<Grid>
 
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="*"></ColumnDefinition>
@@ -38,12 +38,16 @@
 			Grid.ColumnSpan="2" 
 			Margin="25,0,0,0"
 		/>
-		
+
 		<Slider 
 			Name="slHistoy"
 			TickPlacement="BottomRight" 
 			IsSnapToTickEnabled="True" 
 			ValueChanged="slHistoyValueChanged"
+
+			IsSelectionRangeEnabled="True"  
+			Foreground="Blue"
+			
 			Grid.Column="0" 
 			Grid.Row="1" 
 		/>

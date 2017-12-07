@@ -21,6 +21,7 @@ namespace TimeLapseView {
 		}
 		public int CurrentSnapshotIndex;
 		public int SelectedSnapshotIndex = -1;
+		public int SelectedLine = -1;
 
 		private string repositoryPath;
 		private string filePath;
@@ -104,22 +105,24 @@ namespace TimeLapseView {
 
 				for (int i = 0; i < Snapshots.Count; i++) {
 					for (int j = 0; j < Snapshots[i].Lines.Count; j++) {
-						if (Snapshots[i].Lines[j].SequenceBegining == 0) {
-							GetLinesSequenceBegining(i, j);
+						if (Snapshots[i].Lines[j].SequenceStart == 0) {
+							GetLinesSequenceBegining(i, j, i);
 						}
 					}
 				}
 			}
 		}
 
-		private int GetLinesSequenceBegining(int snapshot, int line) {
+		private int GetLinesSequenceBegining(int snapshot, int line, int sequenceEnd) {
 			if (snapshot < Snapshots.Count - 1 && Snapshots[snapshot].Lines[line].ParentLineNumber != -1) {
-				return Snapshots[snapshot].Lines[line].SequenceBegining = GetLinesSequenceBegining(snapshot + 1, Snapshots[snapshot].Lines[line].ParentLineNumber);
+				Snapshots[snapshot].Lines[line].SequenceEnd = sequenceEnd;
+				return Snapshots[snapshot].Lines[line].SequenceStart = GetLinesSequenceBegining(snapshot + 1, Snapshots[snapshot].Lines[line].ParentLineNumber, sequenceEnd);
 			} else {
 				if (snapshot == Snapshots.Count - 1) {
 					return snapshot;
 				} else {
-					return Snapshots[snapshot].Lines[line].SequenceBegining = snapshot;
+					Snapshots[snapshot].Lines[line].SequenceEnd = sequenceEnd;
+					return Snapshots[snapshot].Lines[line].SequenceStart = snapshot;
 				}
 			}
 		}
