@@ -23,19 +23,32 @@ namespace TimeLapseView {
 		public int SelectedSnapshotIndex = -1;
 		public int SelectedLine = -1;
 
+		/// <summary>
+		/// Helper object for receiving differences between two files
+		/// </summary>
+		private static InlineDiffBuilder fileComparer = new InlineDiffBuilder(new Differ());
+
+		/// <summary>
+		/// Path to root repository directory
+		/// </summary>
 		private string repositoryPath;
+
+		/// <summary>
+		/// Path to investigated file (based on root dir path)
+		/// </summary>
 		private string filePath;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
 			if (!fileInfo.Exists) throw new FileNotFoundException($"File '{file}' not found.");
 
-			// Find repository
+			// Find repository path
 			var dir = fileInfo.Directory;
 			while (dir != null && !Repository.IsValid(dir.FullName)) {
 				dir = dir.Parent;
 			}
 
+			// Find file path inside repository
 			if (dir != null) {
 				repositoryPath = dir.FullName;
 				filePath = file.Replace(repositoryPath + "\\", "");
@@ -45,8 +58,6 @@ namespace TimeLapseView {
 		}
 
 		public void GetCommitsHistory() {
-			var diffBuilder = new InlineDiffBuilder(new Differ()); // TODO: probably static
-
 			using (var repo = new Repository(repositoryPath)) {
 				// Get all commits with file.
 				// Target.Id not equal to parent one mean that file was updated.
@@ -72,9 +83,12 @@ namespace TimeLapseView {
 
 						var count = Snapshots.Count - 1;
 						if (count > 0) {
-							var diff = diffBuilder.BuildDiffModel(Snapshots[count].File, Snapshots[count - 1].File);
+							var diff = fileComparer.BuildDiffModel(Snapshots[count].File, Snapshots[count - 1].File);
 							int parentLineNumber = -1;
-							foreach (var line in diff.Lines.Where(l => l.Type != ChangeType.Deleted)) {
+							foreach (var line in diff.Lines) {
+								
+								// TODO: Each line should have unique ID
+								// TODO: Probably line instance should be for severl snapshots. it will help for history, etc.
 								var diffLine = new CodeLine();
 								parentLineNumber++;
 								switch (line.Type) {
@@ -88,9 +102,8 @@ namespace TimeLapseView {
 										diffLine.ParentLineNumber = -1;
 										break;
 									case ChangeType.Deleted:
-										parentLineNumber++;
-										// TODO: should we add deleted?
-										break;
+										// Nothing to add. Parent line number already calculated.
+										continue;
 									default:
 										diffLine.State = LineState.Unchanged;
 										diffLine.ParentLineNumber = parentLineNumber;
@@ -103,27 +116,39 @@ namespace TimeLapseView {
 					}
 				}
 
+				// Find lifetime for all lines in all commits
 				for (int i = 0; i < Snapshots.Count; i++) {
 					for (int j = 0; j < Snapshots[i].Lines.Count; j++) {
 						if (Snapshots[i].Lines[j].SequenceStart == 0) {
-							GetLinesSequenceBegining(i, j, i);
+							MeasureLineLife(i, j, i);
 						}
 					}
 				}
 			}
 		}
 
-		private int GetLinesSequenceBegining(int snapshot, int line, int sequenceEnd) {
-			if (snapshot < Snapshots.Count - 1 && Snapshots[snapshot].Lines[line].ParentLineNumber != -1) {
-				Snapshots[snapshot].Lines[line].SequenceEnd = sequenceEnd;
-				return Snapshots[snapshot].Lines[line].SequenceStart = GetLinesSequenceBegining(snapshot + 1, Snapshots[snapshot].Lines[line].ParentLineNumber, sequenceEnd);
+		/// <summary>
+		/// Find first/last commits of line life
+		/// </summary>
+		/// <param name="snapshotIndex">Commit Index</param>
+		/// <param name="lineIndex">Line Index</param>
+		/// <param name="sequenceEnd">Last Commit Index</param>
+		/// <returns>First Commit Index</returns>
+		private int MeasureLineLife(int snapshotIndex, int lineIndex, int sequenceEnd) {
+			// Stop if we reach last commit.
+			if (snapshotIndex == Snapshots.Count - 1) {
+				return snapshotIndex;
+			}
+
+			var line = Snapshots[snapshotIndex].Lines[lineIndex];
+			if (line.State == LineState.Unchanged) {
+				// If line wasn't changed then go deeper
+				line.SequenceEnd = sequenceEnd;
+				return line.SequenceStart = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd);
 			} else {
-				if (snapshot == Snapshots.Count - 1) {
-					return snapshot;
-				} else {
-					Snapshots[snapshot].Lines[line].SequenceEnd = sequenceEnd;
-					return Snapshots[snapshot].Lines[line].SequenceStart = snapshot;
-				}
+				// In other case we found line birthdate
+				line.SequenceEnd = sequenceEnd;
+				return line.SequenceStart = snapshotIndex;
 			}
 		}
 	}
