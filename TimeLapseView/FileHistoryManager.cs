@@ -11,18 +11,6 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public class FileHistoryManager {
-		public List<Snapshot> Snapshots = new List<Snapshot>();
-
-		// TODO: Probably move to separate class
-		public Snapshot CurrentSnapshot {
-			get {
-				return Snapshots[CurrentSnapshotIndex];
-			}
-		}
-		public int CurrentSnapshotIndex;
-		public int SelectedSnapshotIndex = -1;
-		public int SelectedLine = -1;
-
 		/// <summary>
 		/// Helper object for receiving differences between two files
 		/// </summary>
@@ -37,6 +25,8 @@ namespace TimeLapseView {
 		/// Path to investigated file (based on root dir path)
 		/// </summary>
 		private string filePath;
+
+		private List<Snapshot> snapshots;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
@@ -57,7 +47,9 @@ namespace TimeLapseView {
 			}
 		}
 
-		public void GetCommitsHistory() {
+		public List<Snapshot> GetCommitsHistory() {
+			snapshots = new List<Snapshot>();
+
 			using (var repo = new Repository(repositoryPath)) {
 				// Get all commits with file.
 				// Target.Id not equal to parent one mean that file was updated.
@@ -72,7 +64,7 @@ namespace TimeLapseView {
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
 						//FileHistory.Add(reader.ReadToEnd());
 						//Commits.Add(commit);
-						Snapshots.Add(new Snapshot() {
+						snapshots.Add(new Snapshot() {
 							File = reader.ReadToEnd(),
 							Commit = new Commit() {
 								Author = commit.Author.Name,
@@ -81,9 +73,9 @@ namespace TimeLapseView {
 							}
 						});
 
-						var count = Snapshots.Count - 1;
+						var count = snapshots.Count - 1;
 						if (count > 0) {
-							var diff = fileComparer.BuildDiffModel(Snapshots[count].File, Snapshots[count - 1].File);
+							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
 							int parentLineNumber = -1;
 							foreach (var line in diff.Lines) {
 								
@@ -110,21 +102,23 @@ namespace TimeLapseView {
 										break;
 								}
 
-								Snapshots[count - 1].Lines.Add(diffLine);
+								snapshots[count - 1].Lines.Add(diffLine);
 							}
 						}
 					}
 				}
 
 				// Find lifetime for all lines in all commits
-				for (int i = 0; i < Snapshots.Count; i++) {
-					for (int j = 0; j < Snapshots[i].Lines.Count; j++) {
-						if (Snapshots[i].Lines[j].SequenceStart == 0) {
-							MeasureLineLife(i, j, i);
+				for (int i = 0; i < snapshots.Count; i++) {
+					for (int j = 0; j < snapshots[i].Lines.Count; j++) {
+						if (snapshots[i].Lines[j].SequenceStart == 0) {
+							MeasureLineLife(i, j, i, snapshots[i].Lines[j].LID);
 						}
 					}
 				}
 			}
+
+			return snapshots;
 		}
 
 		/// <summary>
@@ -133,21 +127,22 @@ namespace TimeLapseView {
 		/// <param name="snapshotIndex">Commit Index</param>
 		/// <param name="lineIndex">Line Index</param>
 		/// <param name="sequenceEnd">Last Commit Index</param>
+		/// <param name="lid">Line Life ID</param>
 		/// <returns>First Commit Index</returns>
-		private int MeasureLineLife(int snapshotIndex, int lineIndex, int sequenceEnd) {
+		private int MeasureLineLife(int snapshotIndex, int lineIndex, int sequenceEnd, int lid) {
 			// Stop if we reach last commit.
-			if (snapshotIndex == Snapshots.Count - 1) {
+			if (snapshotIndex == snapshots.Count - 1) {
 				return snapshotIndex;
 			}
 
-			var line = Snapshots[snapshotIndex].Lines[lineIndex];
+			var line = snapshots[snapshotIndex].Lines[lineIndex];
+			line.SequenceEnd = sequenceEnd;
+			line.LID = lid;
 			if (line.State == LineState.Unchanged) {
 				// If line wasn't changed then go deeper
-				line.SequenceEnd = sequenceEnd;
-				return line.SequenceStart = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd);
+				return line.SequenceStart = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd, line.LID);
 			} else {
 				// In other case we found line birthdate
-				line.SequenceEnd = sequenceEnd;
 				return line.SequenceStart = snapshotIndex;
 			}
 		}

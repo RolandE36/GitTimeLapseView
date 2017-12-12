@@ -17,6 +17,7 @@ using System.Windows.Shapes;
 using TimeLapseView;
 using ICSharpCode.AvalonEdit.Document;
 using Microsoft.Win32;
+using WpfUI.Renderer;
 
 namespace WpfUI {
 	/// <summary>
@@ -27,6 +28,8 @@ namespace WpfUI {
 			InitializeComponent();
 		}
 
+		ViewData View;
+
 		FileHistoryManager manager;
 
 		protected override void OnInitialized(EventArgs e) {
@@ -36,12 +39,15 @@ namespace WpfUI {
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
 			int index = (int) (slHistoy.Maximum - slHistoy.Value);
 
-			manager.CurrentSnapshotIndex = index;
-			var ttt = new TimeLapseLineBackgroundRenderer(manager, (int)slHistoy.Value+1, manager.Snapshots.Count);
-			tbCode.TextArea.TextView.BackgroundRenderers.Clear();// TODO:
-			tbCode.TextArea.TextView.BackgroundRenderers.Add(ttt);
-			tbCode.Text = manager.Snapshots[index].File;
-			lblDetails.Content = manager.Snapshots[index].Commit.Description;
+			View.SnapshotIndex = index;
+			var r1 = new TimeLapseLineBackgroundRenderer(View, (int)slHistoy.Value+1, View.Snapshots.Count);
+			var r2 = new SelectedLineBackgroundRenderer(View);
+			
+			tbCode.TextArea.TextView.BackgroundRenderers.Clear();// TODO: Move to form init
+			tbCode.TextArea.TextView.BackgroundRenderers.Add(r1);
+			tbCode.TextArea.TextView.BackgroundRenderers.Add(r2);
+			tbCode.Text = View.Snapshots[index].File;
+			lblDetails.Content = View.Snapshots[index].Commit.Description;
 		}
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
@@ -54,11 +60,11 @@ namespace WpfUI {
 					lblFilePath.Content = filename;
 
 					manager = new FileHistoryManager(filename);
-					manager.GetCommitsHistory();
-					slHistoy.Maximum = manager.Snapshots.Count;
-					slHistoy.Value = manager.Snapshots.Count;
+					View = new ViewData(manager.GetCommitsHistory());
+					slHistoy.Maximum = View.Snapshots.Count;
+					slHistoy.Value = View.Snapshots.Count;
 					slHistoy.Minimum = 1;
-					tbCode.Text = manager.Snapshots[0].File;
+					tbCode.Text = View.Snapshots[0].File;
 				} catch (Exception ex) {
 					MessageBox.Show("Oops! Something went wrong.");
 				}
@@ -67,21 +73,23 @@ namespace WpfUI {
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
 			try {
-				if (manager.SelectedSnapshotIndex == manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart) {
-					manager.SelectedSnapshotIndex = -1;
-					manager.SelectedLine = -1;
+				if (View.SelectedSnapshotIndex == View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart) {
+					View.SelectedSnapshotIndex = -1;
+					View.SelectedLine = -1;
+					View.SelectedLineLID = -1;
 					int index = (int)(slHistoy.Maximum - slHistoy.Value);
-					lblDetails.Content = manager.Snapshots[index].Commit.Description;
+					lblDetails.Content = View.Snapshots[index].Commit.Description;
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
-					manager.SelectedSnapshotIndex = manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
-					manager.SelectedLine = tbCode.TextArea.Caret.Line - 1;
-					lblDetails.Content = manager.Snapshots[manager.SelectedSnapshotIndex].Commit.Description;
+					View.SelectedSnapshotIndex = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
+					View.SelectedLineLID = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].LID;
+					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
+					lblDetails.Content = View.Snapshots[View.SelectedSnapshotIndex].Commit.Description;
 
 					slHistoy.IsSelectionRangeEnabled = true;
-					slHistoy.SelectionStart = slHistoy.Maximum - manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
-					slHistoy.SelectionEnd = slHistoy.Maximum - manager.CurrentSnapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceEnd;
+					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
+					slHistoy.SelectionEnd = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceEnd;
 				}
 
 				tbCode.TextArea.TextView.Redraw();
