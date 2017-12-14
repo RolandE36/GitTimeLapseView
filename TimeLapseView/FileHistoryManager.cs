@@ -67,7 +67,7 @@ namespace TimeLapseView {
 						snapshots.Add(new Snapshot() {
 							File = reader.ReadToEnd(),
 							Commit = new Commit() {
-								Sha = string.Join("", commit.Sha.Take(7)),
+								Sha = string.Join("", commit.Sha.Take(8)),
 								Author = commit.Author.Name,
 								Description = commit.Message,
 								Date = commit.Author.When
@@ -79,9 +79,7 @@ namespace TimeLapseView {
 							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
 							int parentLineNumber = -1;
 							foreach (var line in diff.Lines) {
-								
 								// TODO: Each line should have unique ID
-								// TODO: Probably line instance should be for severl snapshots. it will help for history, etc.
 								var diffLine = new CodeLine();
 								parentLineNumber++;
 								switch (line.Type) {

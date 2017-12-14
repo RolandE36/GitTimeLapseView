@@ -39,17 +39,9 @@ namespace WpfUI {
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
 			int index = (int) (slHistoy.Maximum - slHistoy.Value);
-
 			View.SnapshotIndex = index;
-			var r1 = new TimeLapseLineBackgroundRenderer(View, (int)slHistoy.Value+1, View.Snapshots.Count);
-			var r2 = new SelectedLineBackgroundRenderer(View);
-			
-			tbCode.TextArea.TextView.BackgroundRenderers.Clear();// TODO: Move to form init
-			tbCode.TextArea.TextView.BackgroundRenderers.Add(r1);
-			tbCode.TextArea.TextView.BackgroundRenderers.Add(r2);
 			tbCode.Text = View.Snapshots[index].File;
-
-			UpdaeCommitDetails(View.Snapshots[index].Commit);
+			UpdateCommitDetails(View.Snapshots[index].Commit);
 		}
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
@@ -68,10 +60,19 @@ namespace WpfUI {
 					slHistoy.Minimum = 1;
 					tbCode.Text = View.Snapshots[0].File;
 					lblCommitDetailsSection.Visibility = Visibility.Visible;
+					SetBackgroundRendererMode(RendererMode.TimeLapse);
 				} catch (Exception ex) {
 					MessageBox.Show("Oops! Something went wrong.");
 				}
 			}
+		}
+
+		private void btnTimeLapseViewMode_Click(object sender, RoutedEventArgs e) {
+			SetBackgroundRendererMode(RendererMode.TimeLapse);
+		}
+
+		private void btnIncrementalViewMode_Click(object sender, RoutedEventArgs e) {
+			SetBackgroundRendererMode(RendererMode.IncrementalDiff);
 		}
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
@@ -82,7 +83,7 @@ namespace WpfUI {
 					View.SelectedLineLID = -1;
 					int index = (int)(slHistoy.Maximum - slHistoy.Value);
 
-					UpdaeCommitDetails(View.Snapshots[index].Commit);
+					UpdateCommitDetails(View.Snapshots[index].Commit);
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
@@ -90,7 +91,7 @@ namespace WpfUI {
 					View.SelectedLineLID = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 
-					UpdaeCommitDetails(View.Snapshots[View.SelectedSnapshotIndex].Commit);
+					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex].Commit);
 
 					slHistoy.IsSelectionRangeEnabled = true;
 					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
@@ -104,10 +105,29 @@ namespace WpfUI {
 		}
 
 		/// <summary>
+		/// Choose methout for code background highlighting
+		/// </summary>
+		/// <param name="mode">Rendering mode</param>
+		private void SetBackgroundRendererMode(RendererMode mode) {
+			tbCode.TextArea.TextView.BackgroundRenderers.Clear();
+			switch (mode) {
+				case RendererMode.TimeLapse:
+					tbCode.TextArea.TextView.BackgroundRenderers.Add(new TimeLapseLineBackgroundRenderer(View));
+					break;
+				case RendererMode.IncrementalDiff:
+					tbCode.TextArea.TextView.BackgroundRenderers.Add(new IncrementalDiffLineBackgroundRenderer(View));
+					break;
+			}
+			
+			tbCode.TextArea.TextView.BackgroundRenderers.Add(new SelectedLineBackgroundRenderer(View));
+			tbCode.TextArea.TextView.Redraw();
+		}
+
+		/// <summary>
 		/// Show information about commit
 		/// </summary>
 		/// <param name="commit">Selected commit</param>
-		private void UpdaeCommitDetails(Commit commit) {
+		private void UpdateCommitDetails(Commit commit) {
 			lblCommitSha.Text     = commit.Sha;
 			lblCommitAuthor.Text  = commit.Author;
 			lblCommitDate.Text    = commit.Date.ToString();

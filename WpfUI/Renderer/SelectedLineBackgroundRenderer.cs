@@ -17,6 +17,7 @@ namespace WpfUI.Renderer {
 		/// <summary>
 		/// Commit background color
 		/// </summary>
+		// TODO: Less yelow
 		private static SolidColorBrush selectedCommitBackground = new SolidColorBrush(Color.FromRgb(0xFF, 0xFB, 0x19));
 
 		private static Pen pen;
@@ -31,6 +32,8 @@ namespace WpfUI.Renderer {
 		}
 
 		public void Draw(TextView textView, DrawingContext drawingContext) {
+			if (host == null) return;
+
 			foreach (var v in textView.VisualLines) {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
 				var linenum = v.FirstDocumentLine.LineNumber - 1;

@@ -20,13 +20,39 @@
 		</Grid.RowDefinitions>
 
 		<Button
+			Name="btnIncrementalViewMode"
+			Grid.Column="0"
+			Grid.Row="0"
+			Grid.ColumnSpan="2"
+			Width="20"
+			HorizontalAlignment="Left"
+			Margin="2,2,2,2"
+			Content="I"
+			ToolTip="Incremental View Mode"
+			Click="btnIncrementalViewMode_Click"
+		/>
+
+		<Button
+			Name="btnTimeLapseViewMode"
+			Grid.Column="0"
+			Grid.Row="0"
+			Grid.ColumnSpan="2"
+			Width="20"
+			HorizontalAlignment="Left"
+			Margin="27,2,2,2"
+			Content="T"
+			ToolTip="Time Lapse View Mode"
+			Click="btnTimeLapseViewMode_Click"
+		/>
+
+		<Button
 			Name="btnBrowseFile"
 			Grid.Column="0"
 			Grid.Row="0"
 			Grid.ColumnSpan="2"
 			Width="20"
 			HorizontalAlignment="Left"
-			Margin="2"
+			Margin="52,2,2,2"
 			Content="..."
 			ToolTip="Browse File"
 			Click="btnBrowseFile_Click"
@@ -36,7 +62,7 @@
 			Grid.Column="0"
 			Grid.Row="0"
 			Grid.ColumnSpan="2" 
-			Margin="25,0,0,0"
+			Margin="75,0,0,0"
 		/>
 
 		<Slider 
