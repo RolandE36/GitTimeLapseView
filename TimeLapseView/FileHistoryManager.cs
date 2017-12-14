@@ -67,6 +67,7 @@ namespace TimeLapseView {
 						snapshots.Add(new Snapshot() {
 							File = reader.ReadToEnd(),
 							Commit = new Commit() {
+								Sha = string.Join("", commit.Sha.Take(7)),
 								Author = commit.Author.Name,
 								Description = commit.Message,
 								Date = commit.Author.When

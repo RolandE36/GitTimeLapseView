@@ -34,6 +34,7 @@ namespace WpfUI {
 
 		protected override void OnInitialized(EventArgs e) {
 			base.OnInitialized(e);
+			lblCommitMessageLabel.Text = "\nMessage ";
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
@@ -47,7 +48,8 @@ namespace WpfUI {
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(r1);
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(r2);
 			tbCode.Text = View.Snapshots[index].File;
-			lblDetails.Content = View.Snapshots[index].Commit.Description;
+
+			UpdaeCommitDetails(View.Snapshots[index].Commit);
 		}
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
@@ -65,6 +67,7 @@ namespace WpfUI {
 					slHistoy.Value = View.Snapshots.Count;
 					slHistoy.Minimum = 1;
 					tbCode.Text = View.Snapshots[0].File;
+					lblCommitDetailsSection.Visibility = Visibility.Visible;
 				} catch (Exception ex) {
 					MessageBox.Show("Oops! Something went wrong.");
 				}
@@ -78,14 +81,16 @@ namespace WpfUI {
 					View.SelectedLine = -1;
 					View.SelectedLineLID = -1;
 					int index = (int)(slHistoy.Maximum - slHistoy.Value);
-					lblDetails.Content = View.Snapshots[index].Commit.Description;
+
+					UpdaeCommitDetails(View.Snapshots[index].Commit);
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
 					View.SelectedSnapshotIndex = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
 					View.SelectedLineLID = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
-					lblDetails.Content = View.Snapshots[View.SelectedSnapshotIndex].Commit.Description;
+
+					UpdaeCommitDetails(View.Snapshots[View.SelectedSnapshotIndex].Commit);
 
 					slHistoy.IsSelectionRangeEnabled = true;
 					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
@@ -96,6 +101,18 @@ namespace WpfUI {
 			} catch (Exception ex) {
 
 			}
+		}
+
+		/// <summary>
+		/// Show information about commit
+		/// </summary>
+		/// <param name="commit">Selected commit</param>
+		private void UpdaeCommitDetails(Commit commit) {
+			lblCommitSha.Text     = commit.Sha;
+			lblCommitAuthor.Text  = commit.Author;
+			lblCommitDate.Text    = commit.Date.ToString();
+			lblCommitMessageText.Text = commit.Description;
+			// TODO: Multiline description not working
 		}
 	}
 }

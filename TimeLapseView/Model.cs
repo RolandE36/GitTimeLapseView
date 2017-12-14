@@ -12,6 +12,7 @@ namespace TimeLapseView {
 	}
 	
 	public class Commit {
+		public string Sha;
 		public string Author;
 		public string Description;
 		public DateTimeOffset Date;

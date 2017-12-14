@@ -73,11 +73,22 @@
 				MouseDoubleClick="tbCode_MouseDoubleClick"
 			/>
 
-		<Label
-			Name="lblDetails"
+		<Label 
+			Name="lblCommitDetailsSection"
+			Visibility="Hidden"
 			Grid.Column="0"
 			Grid.Row="3"
-			Grid.ColumnSpan="2"
-		/>
+			Grid.ColumnSpan="2">
+			<TextBlock>
+				<Run Text="Commit   " Foreground="Gray"/>
+				<Run Name="lblCommitSha" Text=""/>
+				<Run Text="at" Foreground="Gray"/>
+				<Run Name="lblCommitDate" Text=""/>
+				<Run Text="by" Foreground="Gray"/>
+				<Run Name="lblCommitAuthor" Text=""/>
+				<Run Name="lblCommitMessageLabel" Text="Message" Foreground="Gray"/>
+				<Run Name="lblCommitMessageText" Text=""/>
+			</TextBlock>
+		</Label>
 	</Grid>
 </Window>
