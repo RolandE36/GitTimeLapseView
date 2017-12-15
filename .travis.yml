@@ -1,2 +1,8 @@
 language: csharp
 solution: GitTimeLapseView.sln
+
+install:
+    - nuget restore ./GitTimeLapseView.sln
+    
+script:
+    - xbuild ./TimeLapseView/TimeLapseView.csproj
