@@ -35,11 +35,21 @@ namespace TimeLapseView {
 		public int SelectedLine;
 		public int SelectedLineLID;
 
+		// TODO: Probably add current state
+		//public RendererMode RendererMode;
+
+		/// <summary>
+		/// Show long name: Roman Lytvyn
+		/// Or only initials: RL
+		/// </summary>
+		//public bool ShowFullAuthorName;
+
 		public ViewData(List<Snapshot> snapshots) {
 			Snapshots = snapshots;
 			SelectedSnapshotIndex = -1;
 			SelectedLine = -1;
 			SelectedLineLID = -1;
+			//ShowFullAuthorName = false;
 		}
 	}
 }

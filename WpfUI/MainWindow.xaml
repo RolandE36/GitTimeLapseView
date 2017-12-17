@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfUI"
         mc:Ignorable="d"
-        Title="Git Time Lapse View" Height="350" Width="525">
+        Title="Git Time Lapse View" Height="350" Width="525"
+>
 	<Grid>
-
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="*"></ColumnDefinition>
 			<ColumnDefinition Width="30"></ColumnDefinition>
@@ -19,51 +19,21 @@
 			<RowDefinition Height="50"></RowDefinition>
 		</Grid.RowDefinitions>
 
-		<Button
-			Name="btnIncrementalViewMode"
-			Grid.Column="0"
+		<Menu Height="20" VerticalAlignment="Top" Grid.Column="0"
 			Grid.Row="0"
-			Grid.ColumnSpan="2"
-			Width="20"
-			HorizontalAlignment="Left"
-			Margin="2,2,2,2"
-			Content="I"
-			ToolTip="Incremental View Mode"
-			Click="btnIncrementalViewMode_Click"
-		/>
-
-		<Button
-			Name="btnTimeLapseViewMode"
-			Grid.Column="0"
-			Grid.Row="0"
-			Grid.ColumnSpan="2"
-			Width="20"
-			HorizontalAlignment="Left"
-			Margin="27,2,2,2"
-			Content="T"
-			ToolTip="Time Lapse View Mode"
-			Click="btnTimeLapseViewMode_Click"
-		/>
-
-		<Button
-			Name="btnBrowseFile"
-			Grid.Column="0"
-			Grid.Row="0"
-			Grid.ColumnSpan="2"
-			Width="20"
-			HorizontalAlignment="Left"
-			Margin="52,2,2,2"
-			Content="..."
-			ToolTip="Browse File"
-			Click="btnBrowseFile_Click"
-		/>
-		<Label
-			Name="lblFilePath"
-			Grid.Column="0"
-			Grid.Row="0"
-			Grid.ColumnSpan="2" 
-			Margin="75,0,0,0"
-		/>
+			Grid.ColumnSpan="2">
+			<MenuItem Header="File">
+				<MenuItem Header="Open File" Click="btnBrowseFile_Click"></MenuItem>
+				<Separator />
+				<MenuItem Header="Exit" Click="btnExit_Click"></MenuItem>
+			</MenuItem>
+			<MenuItem Header="View">
+				<MenuItem Header="Mode" >
+					<MenuItem Name="menuTimeLapseViewMode" Header="Time Lapse" IsCheckable="True" IsChecked="True" Click="btnTimeLapseViewMode_Click"></MenuItem>
+					<MenuItem Name="menuIncrementalViewMode" Header="Incremental" IsCheckable="True" IsChecked="False" Click="btnIncrementalViewMode_Click"></MenuItem>
+				</MenuItem>
+			</MenuItem>
+		</Menu>
 
 		<Slider 
 			Name="slHistoy"
@@ -99,6 +69,7 @@
 				<ListView.View>
 					<GridView>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.AuthorInitials}">AU</GridViewColumn>
+						<!-- <GridViewColumn DisplayMemberBinding="{Binding Commit.Author}">Author</GridViewColumn> -->
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.DescriptionShort}" Width="Auto">Message</GridViewColumn>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.DateString}">Date</GridViewColumn>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.Sha}">Commit</GridViewColumn>

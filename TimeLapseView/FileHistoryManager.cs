@@ -24,7 +24,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Path to investigated file (based on root dir path)
 		/// </summary>
-		private string filePath;
+		public readonly string filePath;
 
 		private List<Snapshot> snapshots;
 

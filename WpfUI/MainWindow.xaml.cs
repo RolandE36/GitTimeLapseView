@@ -24,6 +24,9 @@ namespace WpfUI {
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
 	public partial class MainWindow : Window {
+
+		private const string APP_TITLE = "Git Time Lapse View";
+
 		public MainWindow() {
 			InitializeComponent();
 		}
@@ -58,9 +61,9 @@ namespace WpfUI {
 			if (openFileDialog.ShowDialog() == true) {
 				try {
 					var filename = openFileDialog.FileNames.FirstOrDefault();
-					lblFilePath.Content = filename;
 
 					manager = new FileHistoryManager(filename);
+					Title = APP_TITLE + ": " + manager.filePath;
 					View = new ViewData(manager.GetCommitsHistory());
 					slHistoy.Maximum = View.Snapshots.Count;
 					slHistoy.Value = View.Snapshots.Count;
@@ -84,6 +87,10 @@ namespace WpfUI {
 
 		private void btnIncrementalViewMode_Click(object sender, RoutedEventArgs e) {
 			SetBackgroundRendererMode(RendererMode.IncrementalDiff);
+		}
+
+		private void btnExit_Click(object sender, RoutedEventArgs e) {
+			Close();
 		}
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
@@ -132,6 +139,18 @@ namespace WpfUI {
 			
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(new SelectedLineBackgroundRenderer(View));
 			tbCode.TextArea.TextView.Redraw();
+
+			// Set Menu Check Boxes
+			menuTimeLapseViewMode.IsChecked = false;
+			menuIncrementalViewMode.IsChecked = false;
+			switch (mode) {
+				case RendererMode.TimeLapse:
+					menuTimeLapseViewMode.IsChecked = true;
+					break;
+				case RendererMode.IncrementalDiff:
+					menuIncrementalViewMode.IsChecked = true;
+					break;
+			}
 		}
 
 		/// <summary>
