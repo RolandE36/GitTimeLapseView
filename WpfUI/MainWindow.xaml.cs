@@ -32,16 +32,23 @@ namespace WpfUI {
 
 		FileHistoryManager manager;
 
+		class MovieData {
+			public string Title { get; set; }
+			public string ImageData { get; set; }
+		}
+
 		protected override void OnInitialized(EventArgs e) {
 			base.OnInitialized(e);
 			lblCommitMessageLabel.Text = "\nMessage ";
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
-			int index = (int) (slHistoy.Maximum - slHistoy.Value);
-			View.SnapshotIndex = index;
-			tbCode.Text = View.Snapshots[index].File;
-			UpdateCommitDetails(View.Snapshots[index].Commit);
+			if (View != null) {
+				int index = (int)(slHistoy.Maximum - slHistoy.Value);
+				View.SnapshotIndex = index;
+				tbCode.Text = View.Snapshots[index].File;
+				UpdateCommitDetails(View.Snapshots[index].Commit);
+			}
 		}
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
@@ -61,6 +68,10 @@ namespace WpfUI {
 					tbCode.Text = View.Snapshots[0].File;
 					lblCommitDetailsSection.Visibility = Visibility.Visible;
 					SetBackgroundRendererMode(RendererMode.TimeLapse);
+
+					// TODO: Implement Search by commits
+					// TODO: Highlight code on hover
+					lvVerticalHistoryPanel.ItemsSource = View.Snapshots;
 				} catch (Exception ex) {
 					MessageBox.Show("Oops! Something went wrong.");
 				}

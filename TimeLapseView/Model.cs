@@ -8,14 +8,27 @@ namespace TimeLapseView {
 	public class Snapshot {
 		public string File;
 		public List<CodeLine> Lines = new List<CodeLine>();
-		public Commit Commit;
+		public Commit Commit { get; set; }
 	}
 	
 	public class Commit {
-		public string Sha;
-		public string Author;
-		public string Description;
-		public DateTimeOffset Date;
+		public string Sha { get; set; }
+		public string AuthorInitials {
+			get {
+				return string.Join("", Author.Split(' ').Take(2).Select(e => e[0]));
+			}
+			set { }
+		}
+		public string Author { get; set; }
+		public string Description { get; set; }
+		public string DescriptionShort { get; set; }
+		public DateTimeOffset Date { get; set; }
+		public string DateString {
+			get	{
+				return Date.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+			}
+			set { }
+		}
 	}
 
 	/// <summary>

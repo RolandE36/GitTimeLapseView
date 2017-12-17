@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="Git Time Lapse View" Height="350" Width="525">
 	<Grid>
 
 		<Grid.ColumnDefinitions>
@@ -83,7 +83,32 @@
 			Grid.Column="1" 
 			Grid.Row="1" />
 
-		<avalonEdit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+		<Grid Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+				<ColumnDefinition Width="Auto" />
+				<ColumnDefinition Width="4*" />
+			</Grid.ColumnDefinitions>
+
+			<ListView
+				x:Name="lvVerticalHistoryPanel" 
+				HorizontalAlignment="Left" 
+				VerticalAlignment="Top" 
+				Grid.Column="0"
+			>
+				<ListView.View>
+					<GridView>
+						<GridViewColumn DisplayMemberBinding="{Binding Commit.AuthorInitials}">AU</GridViewColumn>
+						<GridViewColumn DisplayMemberBinding="{Binding Commit.DescriptionShort}" Width="Auto">Message</GridViewColumn>
+						<GridViewColumn DisplayMemberBinding="{Binding Commit.DateString}">Date</GridViewColumn>
+						<GridViewColumn DisplayMemberBinding="{Binding Commit.Sha}">Commit</GridViewColumn>
+					</GridView>
+				</ListView.View>
+			</ListView>
+
+			<GridSplitter Grid.Column="1" ShowsPreview="False" Width="3" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+
+			<avalonEdit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
 				Name="tbCode" 
 				FontFamily="Consolas"
 				SyntaxHighlighting="C#"
@@ -92,12 +117,13 @@
 				Text="" 
 				IsReadOnly="True" 
 				HorizontalScrollBarVisibility="Auto" 
-				VerticalScrollBarVisibility="Visible" 
-				Grid.Column="0"
-				Grid.Row="2"
-				Grid.ColumnSpan="2"
-				MouseDoubleClick="tbCode_MouseDoubleClick"
+				VerticalScrollBarVisibility="Visible"
+				Grid.Column="2"					
+				MouseDoubleClick="tbCode_MouseDoubleClick" 
+				HorizontalContentAlignment="Stretch" 
+				VerticalContentAlignment="Stretch"
 			/>
+		</Grid>
 
 		<Label 
 			Name="lblCommitDetailsSection"

@@ -70,6 +70,7 @@ namespace TimeLapseView {
 								Sha = string.Join("", commit.Sha.Take(8)),
 								Author = commit.Author.Name,
 								Description = commit.Message,
+								DescriptionShort = commit.MessageShort.Replace("\n", " "),
 								Date = commit.Author.When
 							}
 						});
