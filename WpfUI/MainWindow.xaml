@@ -65,6 +65,7 @@
 				HorizontalAlignment="Left" 
 				VerticalAlignment="Top" 
 				Grid.Column="0"
+				MouseLeftButtonUp="lvVerticalHistoryPanel_MouseLeftButtonUp"
 			>
 				<ListView.View>
 					<GridView>

@@ -46,12 +46,25 @@ namespace WpfUI {
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
-			if (View != null) {
-				int index = (int)(slHistoy.Maximum - slHistoy.Value);
-				View.SnapshotIndex = index;
-				tbCode.Text = View.Snapshots[index].File;
-				UpdateCommitDetails(View.Snapshots[index].Commit);
-			}
+			if (View == null) return;
+			SelectedCommitIndexChanged((int)(slHistoy.Maximum - slHistoy.Value));
+		}
+
+		private void lvVerticalHistoryPanel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
+			SelectedCommitIndexChanged(lvVerticalHistoryPanel.SelectedIndex);
+		}
+
+		/// <summary>
+		/// On changed current view index event handler.
+		/// </summary>
+		/// <param name="index">new selected index</param>
+		private void SelectedCommitIndexChanged(int index) {
+			if (View == null) return;
+			View.SnapshotIndex = index;
+			tbCode.Text = View.Snapshots[index].File;
+			slHistoy.Value = slHistoy.Maximum - index;
+			lvVerticalHistoryPanel.SelectedIndex = index;
+			UpdateCommitDetails(View.Snapshots[index].Commit);
 		}
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
