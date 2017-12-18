@@ -62,10 +62,10 @@
 
 			<ListView
 				x:Name="lvVerticalHistoryPanel" 
-				HorizontalAlignment="Left" 
-				VerticalAlignment="Top" 
+				HorizontalAlignment="Stretch"
+				VerticalAlignment="Stretch"
 				Grid.Column="0"
-				MouseLeftButtonUp="lvVerticalHistoryPanel_MouseLeftButtonUp"
+				SelectionChanged="lvVerticalHistoryPanel_SelectionChanged"
 			>
 				<ListView.View>
 					<GridView>

@@ -50,7 +50,7 @@ namespace WpfUI {
 			SelectedCommitIndexChanged((int)(slHistoy.Maximum - slHistoy.Value));
 		}
 
-		private void lvVerticalHistoryPanel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
+		private void lvVerticalHistoryPanel_SelectionChanged(object sender, SelectionChangedEventArgs e) {
 			SelectedCommitIndexChanged(lvVerticalHistoryPanel.SelectedIndex);
 		}
 
