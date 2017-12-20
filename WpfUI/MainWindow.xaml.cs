@@ -42,7 +42,9 @@ namespace WpfUI {
 
 		protected override void OnInitialized(EventArgs e) {
 			base.OnInitialized(e);
+			// TODO: Spaces.......
 			lblCommitMessageLabel.Text = "\nMessage ";
+			lblFilePathLabel.Text = "\nFile         ";
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
@@ -59,12 +61,13 @@ namespace WpfUI {
 		/// </summary>
 		/// <param name="index">new selected index</param>
 		private void SelectedCommitIndexChanged(int index) {
-			if (View == null) return;
+			if (View == null || index < 0) return;
+
 			View.SnapshotIndex = index;
 			tbCode.Text = View.Snapshots[index].File;
 			slHistoy.Value = slHistoy.Maximum - index;
 			lvVerticalHistoryPanel.SelectedIndex = index;
-			UpdateCommitDetails(View.Snapshots[index].Commit);
+			UpdateCommitDetails(View.Snapshots[index]);
 		}
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
@@ -114,7 +117,7 @@ namespace WpfUI {
 					View.SelectedLineLID = -1;
 					int index = (int)(slHistoy.Maximum - slHistoy.Value);
 
-					UpdateCommitDetails(View.Snapshots[index].Commit);
+					UpdateCommitDetails(View.Snapshots[index]);
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
@@ -122,7 +125,7 @@ namespace WpfUI {
 					View.SelectedLineLID = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 
-					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex].Commit);
+					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
 
 					slHistoy.IsSelectionRangeEnabled = true;
 					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
@@ -170,11 +173,13 @@ namespace WpfUI {
 		/// Show information about commit
 		/// </summary>
 		/// <param name="commit">Selected commit</param>
-		private void UpdateCommitDetails(Commit commit) {
-			lblCommitSha.Text     = commit.Sha;
-			lblCommitAuthor.Text  = commit.Author;
-			lblCommitDate.Text    = commit.Date.ToString();
+		private void UpdateCommitDetails(Snapshot snapshot) {
+			var commit                = snapshot.Commit;
+			lblCommitSha.Text         = commit.Sha;
+			lblCommitAuthor.Text = commit.Author;
+			lblCommitDate.Text        = commit.Date.ToString();
 			lblCommitMessageText.Text = commit.Description;
+			lblFilePath.Text          = snapshot.FilePath;
 			// TODO: Multiline description not working
 		}
 	}

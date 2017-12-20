@@ -16,7 +16,7 @@
 			<RowDefinition Height="25"></RowDefinition>
 			<RowDefinition Height="auto"></RowDefinition>
 			<RowDefinition Height="*"></RowDefinition>
-			<RowDefinition Height="50"></RowDefinition>
+			<RowDefinition Height="auto"></RowDefinition>
 		</Grid.RowDefinitions>
 
 		<Menu Height="20" VerticalAlignment="Top" Grid.Column="0"
@@ -110,6 +110,8 @@
 				<Run Name="lblCommitDate" Text=""/>
 				<Run Text="by" Foreground="Gray"/>
 				<Run Name="lblCommitAuthor" Text=""/>
+				<Run Name="lblFilePathLabel" Text="File     " Foreground="Gray"/>
+				<Run Name="lblFilePath" Text=""/>
 				<Run Name="lblCommitMessageLabel" Text="Message" Foreground="Gray"/>
 				<Run Name="lblCommitMessageText" Text=""/>
 			</TextBlock>

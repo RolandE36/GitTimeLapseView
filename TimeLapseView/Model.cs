@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 namespace TimeLapseView {
 	public class Snapshot {
 		public string File;
+		public string FilePath;
+		public FilePathState FilePathState;
+		public string PreviousFilePath;
 		public List<CodeLine> Lines = new List<CodeLine>();
 		public Commit Commit { get; set; }
 	}
@@ -65,12 +68,5 @@ namespace TimeLapseView {
 		public CodeLine() {
 			LID = maxlid++;
 		}
-	}
-
-	public enum LineState {
-		Modified,
-		Inserted,
-		Unchanged,
-		Deleted
 	}
 }

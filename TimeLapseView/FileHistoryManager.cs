@@ -51,34 +51,47 @@ namespace TimeLapseView {
 			snapshots = new List<Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
-				// Get all commits with file.
-				// Target.Id not equal to parent one mean that file was updated.
-				var commits = repo.Commits.Where(c => c.Parents.Count() >= 1 && c.Tree[filePath] != null &&
-												(c.Parents.First().Tree[filePath] == null ||
-													c.Tree[filePath].Target.Id != c.Parents.First().Tree[filePath].Target.Id));
+				// TODO: History in different branches
+				// TODO: Add progress infomation
 
-				foreach (var commit in commits) {
+				var treeFile = filePath;
+				foreach (var commit in repo.Commits) {
+					// Search commits where file was updated (Target.Id not equal to parent one)
+					if (!(commit.Parents.Count() >= 1 &&
+						  commit.Tree[treeFile] != null && 
+						  (commit.Parents.First().Tree[treeFile] == null || 
+						   commit.Tree[treeFile].Target.Id != commit.Parents.First().Tree[treeFile].Target.Id))) {
+
+						// TODO: commit.Parents.First() - investigate possible issues
+						continue;
+					}
+
+					// Observable commit
+					var snapshot = new Snapshot() {
+						FilePath = treeFile,
+						Commit = new Commit() {
+							Sha = string.Join("", commit.Sha.Take(8)),
+							Author = commit.Author.Name,
+							Description = commit.Message,
+							DescriptionShort = commit.MessageShort.Replace("\n", " "),
+							Date = commit.Author.When
+						}
+					};
+
+					snapshots.Add(snapshot);
+
 					// Get file text from commit
-					var blob = (Blob) commit[filePath].Target;
+					var blob = (Blob) commit[treeFile].Target;
 					// TODO: probably use commit.Encoding
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-						//FileHistory.Add(reader.ReadToEnd());
-						//Commits.Add(commit);
-						snapshots.Add(new Snapshot() {
-							File = reader.ReadToEnd(),
-							Commit = new Commit() {
-								Sha = string.Join("", commit.Sha.Take(8)),
-								Author = commit.Author.Name,
-								Description = commit.Message,
-								DescriptionShort = commit.MessageShort.Replace("\n", " "),
-								Date = commit.Author.When
-							}
-						});
-
+						snapshot.File = reader.ReadToEnd();
 						var count = snapshots.Count - 1;
+
 						if (count > 0) {
+							// TODO: OutOfMemoryException -> To many instances of CodeLine class 
 							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
 							int parentLineNumber = -1;
+							// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
 							foreach (var line in diff.Lines) {
 								// TODO: Each line should have unique ID
 								var diffLine = new CodeLine();
@@ -105,6 +118,14 @@ namespace TimeLapseView {
 								snapshots[count - 1].Lines.Add(diffLine);
 							}
 						}
+					}
+
+					// Check is file was renamed/moved
+					treeFile = GetPreviousCommitFileName(snapshot, repo.Diff, commit, treeFile);
+
+					// First file mention
+					if (snapshot.FilePathState == FilePathState.Unknown || snapshot.FilePathState == FilePathState.Added) {
+						break;
 					}
 				}
 
@@ -145,6 +166,52 @@ namespace TimeLapseView {
 				// In other case we found line birthdate
 				return line.SequenceStart = snapshotIndex;
 			}
+		}
+
+		/// <summary>
+		/// Verify is file had the same name in the previous commit or was renamed/moved
+		/// </summary>
+		/// <param name="snapshot">Observable snapshot</param>
+		/// <param name="diff">Commits comparer</param>
+		/// <param name="commit">Current commit</param>
+		/// <param name="name">Current file name</param>
+		/// <returns>File name in previous commit</returns>
+		private string GetPreviousCommitFileName(Snapshot snapshot, Diff diff, LibGit2Sharp.Commit commit, string name) {
+			// TODO: Add notificaton message: Added/Removed/Updated Code // Renamed/Moved/Created File
+			// TODO: commit.Parents.FirstOrDefault(); - investigate possible issues
+			var parent = commit.Parents.FirstOrDefault();
+
+			if (parent == null) {
+				// No parent commits. Stop history looping. Probably is't already last (first) commit.
+				snapshot.FilePathState = FilePathState.Unknown;
+				return string.Empty;
+			}
+
+			var treeComparer = diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
+
+			// If file was renamed than continue to work with previous name
+			foreach (var f in treeComparer.Renamed) {
+				if (name == f.Path) {
+					snapshot.FilePathState = FilePathState.Changed;
+					return snapshot.PreviousFilePath = f.OldPath;
+				}
+			}
+
+			// If file was just adced than nothing to continue
+			foreach (var f in treeComparer.Added) {
+				if (name == f.Path) {
+					snapshot.FilePathState = FilePathState.Added;
+					return string.Empty;
+				}
+			}
+
+			// TODO: Investigate:
+			//		- treeComparer.TypeChanged
+			//		- treeComparer.Copied
+
+			// No name changed was found.
+			snapshot.FilePathState = FilePathState.NotChanged;
+			return name;
 		}
 	}
 }
