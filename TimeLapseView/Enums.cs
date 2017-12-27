@@ -14,24 +14,24 @@ namespace TimeLapseView {
 
 	public enum FilePathState {
 		/// <summary>
-		/// File just created
+		/// Probably initial commit
 		/// </summary>
-		Added,
-
-		/// <summary>
-		/// File was renamed or moved
-		/// </summary>
-		Changed,
+		Unknown = 0x0000,
 
 		/// <summary>
 		/// No file path/name changes
 		/// </summary>
-		NotChanged,
+		NotChanged = 0x0001,
 
 		/// <summary>
-		/// Probably initial commit
+		/// File just created
 		/// </summary>
-		Unknown
+		Added = 0x0011,
+
+		/// <summary>
+		/// File was renamed or moved
+		/// </summary>
+		Changed = 0x0111
 
 		// TODO: Deleted
 	}

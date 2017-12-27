@@ -47,6 +47,35 @@ namespace TimeLapseView {
 			}
 		}
 
+		/// <summary>
+		/// Answer is file was modified in current commit (in compare with any parent commit)
+		/// </summary>
+		/// <param name="commit">Current commit</param>
+		/// <param name="file">File path</param>
+		/// <returns>True if file was modified</returns>
+		private bool IsFileWasUpdated(LibGit2Sharp.Commit commit, string file) {
+			var fileWasChanged = false;
+
+			// It's first commit so file was just created.
+			if (commit.Parents.Count() == 0) fileWasChanged = true;
+
+			foreach (var parent in commit.Parents) {
+				if (parent.Tree[file] == null) {
+					// File not exist in the parent commit (just creted or merged)
+					fileWasChanged = true;
+					break;
+				}
+
+				// File was updated (Target.Id not equal to parent one)
+				if (parent.Tree[file].Target.Id != commit.Tree[file].Target.Id) {
+					fileWasChanged = true;
+					break;
+				}
+			}
+
+			return fileWasChanged;
+		}
+
 		public List<Snapshot> GetCommitsHistory() {
 			snapshots = new List<Snapshot>();
 
@@ -56,16 +85,12 @@ namespace TimeLapseView {
 
 				var treeFile = filePath;
 				foreach (var commit in repo.Commits) {
-					// Search commits where file was updated (Target.Id not equal to parent one)
-					if (!(commit.Parents.Count() >= 1 &&
-						  commit.Tree[treeFile] != null && 
-						  (commit.Parents.First().Tree[treeFile] == null || 
-						   commit.Tree[treeFile].Target.Id != commit.Parents.First().Tree[treeFile].Target.Id))) {
+					// No such file in the commit. Make no sense to continue.
+					if (commit.Tree[treeFile] == null) break;
 
-						// TODO: commit.Parents.First() - investigate possible issues
-						continue;
-					}
-
+					// If nothing was changed then go to the next commit
+					if (!IsFileWasUpdated(commit, treeFile)) continue;
+					
 					// Observable commit
 					var snapshot = new Snapshot() {
 						FilePath = treeFile,
@@ -177,39 +202,49 @@ namespace TimeLapseView {
 		/// <param name="name">Current file name</param>
 		/// <returns>File name in previous commit</returns>
 		private string GetPreviousCommitFileName(Snapshot snapshot, Diff diff, LibGit2Sharp.Commit commit, string name) {
-			// TODO: Add notificaton message: Added/Removed/Updated Code // Renamed/Moved/Created File
-			// TODO: commit.Parents.FirstOrDefault(); - investigate possible issues
-			var parent = commit.Parents.FirstOrDefault();
+			// When you git commit normally, the current commit 
+			// becomes the parent commit of the new commit that's introduced by the command.
 
-			if (parent == null) {
+			// When you git merge two commits (or branches, whatever) without fast-forwarding, 
+			// a new commit will be created with both commits as parents. 
+			// You can merge more than two commits in that way, so the new commit may have more than two parents.
+
+			if (commit.Parents.Count() == 0) {
 				// No parent commits. Stop history looping. Probably is't already last (first) commit.
 				snapshot.FilePathState = FilePathState.Unknown;
 				return string.Empty;
 			}
 
-			var treeComparer = diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
+			foreach (var parent in commit.Parents) {
+				var treeComparer = diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
 
-			// If file was renamed than continue to work with previous name
-			foreach (var f in treeComparer.Renamed) {
-				if (name == f.Path) {
-					snapshot.FilePathState = FilePathState.Changed;
-					return snapshot.PreviousFilePath = f.OldPath;
+				// If file was renamed than continue to work with previous name
+				foreach (var f in treeComparer.Renamed) {
+					if (name == f.Path) {
+						snapshot.FilePathState |= FilePathState.Changed;
+						snapshot.PreviousFilePath = f.OldPath;
+					}
 				}
+
+				// If file was just added than nothing to continue
+				foreach (var f in treeComparer.Added) {
+					if (name == f.Path) {
+						snapshot.FilePathState |= FilePathState.Added;
+					}
+				}
+
+				// TODO: Probably we should set branch source in commit
+				// TODO: Not sure about files conflicts (paralel creating the same file and moving to one branch!)
+				// TODO: Add notificaton message: Added/Removed/Updated Code // Renamed/Moved/Created File
+				// TODO: Investigate:
+				//		- treeComparer.TypeChanged
+				//		- treeComparer.Copied
 			}
 
-			// If file was just adced than nothing to continue
-			foreach (var f in treeComparer.Added) {
-				if (name == f.Path) {
-					snapshot.FilePathState = FilePathState.Added;
-					return string.Empty;
-				}
-			}
+			if (snapshot.FilePathState == FilePathState.Added)   return string.Empty;
+			if (snapshot.FilePathState == FilePathState.Changed) return snapshot.PreviousFilePath;
 
-			// TODO: Investigate:
-			//		- treeComparer.TypeChanged
-			//		- treeComparer.Copied
-
-			// No name changed was found.
+			// No path/name changes was found.
 			snapshot.FilePathState = FilePathState.NotChanged;
 			return name;
 		}

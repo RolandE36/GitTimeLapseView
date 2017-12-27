@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public class Snapshot {
-		public string File;
-		public string FilePath;
-		public FilePathState FilePathState;
-		public string PreviousFilePath;
+		public string File { get; set; }
+		public string FilePath { get; set; }
+		public FilePathState FilePathState { get; set; }
+		public string PreviousFilePath { get; set; }
 		public List<CodeLine> Lines = new List<CodeLine>();
 		public Commit Commit { get; set; }
 	}
