@@ -70,7 +70,7 @@
 				<ListView.View>
 					<GridView>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.AuthorInitials}">AU</GridViewColumn>
-						<!-- <GridViewColumn DisplayMemberBinding="{Binding Commit.Author}">Author</GridViewColumn> -->
+						<GridViewColumn DisplayMemberBinding="{Binding TextTree}">Tree</GridViewColumn>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.DescriptionShort}" Width="Auto">Message</GridViewColumn>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.DateString}">Date</GridViewColumn>
 						<GridViewColumn DisplayMemberBinding="{Binding Commit.Sha}">Commit</GridViewColumn>

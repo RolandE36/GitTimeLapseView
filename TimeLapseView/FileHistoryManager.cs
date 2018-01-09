@@ -27,6 +27,7 @@ namespace TimeLapseView {
 		public readonly string filePath;
 
 		private List<Snapshot> snapshots;
+		private Dictionary<string, Snapshot> dictionary;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
@@ -78,6 +79,7 @@ namespace TimeLapseView {
 
 		public List<Snapshot> GetCommitsHistory() {
 			snapshots = new List<Snapshot>();
+			dictionary = new Dictionary<string, Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
@@ -90,23 +92,19 @@ namespace TimeLapseView {
 
 					// If nothing was changed then go to the next commit
 					if (!IsFileWasUpdated(commit, treeFile)) continue;
-					
+
 					// Observable commit
 					var snapshot = new Snapshot() {
+						Index = snapshots.Count,
 						FilePath = treeFile,
-						Commit = new Commit() {
-							Sha = string.Join("", commit.Sha.Take(8)),
-							Author = commit.Author.Name,
-							Description = commit.Message,
-							DescriptionShort = commit.MessageShort.Replace("\n", " "),
-							Date = commit.Author.When
-						}
+						Commit = new Commit(commit)
 					};
 
 					snapshots.Add(snapshot);
+					dictionary[snapshot.Sha] = snapshot;
 
 					// Get file text from commit
-					var blob = (Blob) commit[treeFile].Target;
+					var blob = (Blob)commit[treeFile].Target;
 					// TODO: probably use commit.Encoding
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
 						snapshot.File = reader.ReadToEnd();
@@ -162,6 +160,23 @@ namespace TimeLapseView {
 						}
 					}
 				}
+
+				// Find positions for all commits in branches tree
+				snapshots[0].TreeOffset = 0;
+				foreach (var snapshot in snapshots) {
+					int offset = 0;
+					foreach (var parentSha in snapshot.Commit.Parents) {
+						// Parrent could be not related to this file
+						if (!dictionary.ContainsKey(parentSha)) continue;
+
+						var parent = dictionary[parentSha];
+						parent.TreeOffset = snapshot.TreeOffset + offset++;
+
+						if (parent.TreeOffset != snapshot.TreeOffset) {
+							ReserveBranchOffset(parent);
+						}
+					}
+				}
 			}
 
 			return snapshots;
@@ -190,6 +205,19 @@ namespace TimeLapseView {
 			} else {
 				// In other case we found line birthdate
 				return line.SequenceStart = snapshotIndex;
+			}
+		}
+
+		/// <summary>
+		/// Reserve position for the current branch. Any branch on the same position should move right.
+		/// </summary>
+		/// <param name="snapshot">Comit that claims position</param>
+		private void ReserveBranchOffset(Snapshot snapshot) {
+			for (int i = snapshot.Index + 1; i < snapshots.Count; i++) {
+				if (snapshots[i].TreeOffset == snapshot.TreeOffset) {
+					snapshots[i].TreeOffset++;
+					ReserveBranchOffset(snapshot);
+				}
 			}
 		}
 
