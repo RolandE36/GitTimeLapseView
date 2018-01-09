@@ -189,15 +189,16 @@ namespace WpfUI {
 		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
 			var lines = View.Snapshot.Lines;
 			var i = tbCode.TextArea.Caret.Line;
-			if (i == lines.Count) return;
+			if (i >= lines.Count) i = lines.Count - 1;
 
-			// Skip current diff
-			if (lines[i].State != LineState.Unchanged) while (i < lines.Count && lines[i].State != LineState.Unchanged) i++;
-			// Find next diff
-			while (i < lines.Count && lines[i].State == LineState.Unchanged) i++;
+			while (i < lines.Count && lines[i].State != LineState.Unchanged) i++; // Skip current diff
+			while (i < lines.Count && lines[i].State == LineState.Unchanged) i++; // Find next diff
+			i++;
 
-			tbCode.TextArea.Caret.Line = i;
 			tbCode.ScrollTo(i, 0);
+			tbCode.TextArea.Caret.Line = i;
+			tbCode.TextArea.Caret.Column = 1;
+			tbCode.TextArea.Focus();
 		}
 
 		/// <summary>
@@ -205,16 +206,17 @@ namespace WpfUI {
 		/// </summary>
 		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
 			var lines = View.Snapshot.Lines;
-			var i = tbCode.TextArea.Caret.Line;
-			if (i == 0) return;
+			var i = tbCode.TextArea.Caret.Line - 1;
+			if (i <= 0) i = 0;
 
-			// Skip current diff
-			if (lines[i].State != LineState.Unchanged) while (i > 0 && lines[i].State != LineState.Unchanged) i--;
-			// Find next diff
-			while (i > 0 && lines[i].State == LineState.Unchanged) i--;
+			while (i > 0 && lines[i].State != LineState.Unchanged) i--; // Skip current diff
+			while (i > 0 && lines[i].State == LineState.Unchanged) i--; // Find next diff
+			i++;
 
-			tbCode.TextArea.Caret.Line = i;
 			tbCode.ScrollTo(i, 0);
+			tbCode.TextArea.Caret.Line = i;
+			tbCode.TextArea.Caret.Column = 1;
+			tbCode.TextArea.Focus();
 		}
 	}
 }

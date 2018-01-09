@@ -111,7 +111,9 @@ namespace TimeLapseView {
 						var count = snapshots.Count - 1;
 
 						if (count > 0) {
-							// TODO: OutOfMemoryException -> To many instances of CodeLine class 
+							// TODO: OutOfMemoryException -> To many instances of CodeLine class
+							// TODO: Compare with each parent file, not with previous snapshot
+							// TODO: Remove snapshots without changes (as results of merge requests)
 							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
 							int parentLineNumber = -1;
 							// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
