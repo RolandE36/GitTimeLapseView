@@ -182,5 +182,39 @@ namespace WpfUI {
 			lblFilePath.Text          = snapshot.FilePath;
 			// TODO: Multiline description not working
 		}
+
+		/// <summary>
+		/// Go to the next file diff
+		/// </summary>
+		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
+			var lines = View.Snapshot.Lines;
+			var i = tbCode.TextArea.Caret.Line;
+			if (i == lines.Count) return;
+
+			// Skip current diff
+			if (lines[i].State != LineState.Unchanged) while (i < lines.Count && lines[i].State != LineState.Unchanged) i++;
+			// Find next diff
+			while (i < lines.Count && lines[i].State == LineState.Unchanged) i++;
+
+			tbCode.TextArea.Caret.Line = i;
+			tbCode.ScrollTo(i, 0);
+		}
+
+		/// <summary>
+		/// Go to the previous file diff
+		/// </summary>
+		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
+			var lines = View.Snapshot.Lines;
+			var i = tbCode.TextArea.Caret.Line;
+			if (i == 0) return;
+
+			// Skip current diff
+			if (lines[i].State != LineState.Unchanged) while (i > 0 && lines[i].State != LineState.Unchanged) i--;
+			// Find next diff
+			while (i > 0 && lines[i].State == LineState.Unchanged) i--;
+
+			tbCode.TextArea.Caret.Line = i;
+			tbCode.ScrollTo(i, 0);
+		}
 	}
 }
