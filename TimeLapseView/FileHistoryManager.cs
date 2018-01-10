@@ -111,39 +111,35 @@ namespace TimeLapseView {
 						var count = snapshots.Count - 1;
 
 						if (count > 0) {
-							// TODO: OutOfMemoryException -> To many instances of CodeLine class
 							// TODO: Compare with each parent file, not with previous snapshot
 							// TODO: Remove snapshots without changes (as results of merge requests)
 							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
+							snapshots[count - 1].FileDetails = new CodeFile(diff.Lines.Count(e => e.Type != ChangeType.Deleted));
 							int parentLineNumber = -1;
 							// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
 							foreach (var line in diff.Lines) {
-								// TODO: Each line should have unique ID
-								var diffLine = new CodeLine();
 								parentLineNumber++;
 								switch (line.Type) {
 									case ChangeType.Modified:
-										diffLine.State = LineState.Modified;
-										diffLine.ParentLineNumber = -1;
+										snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Modified, -1);
 										break;
 									case ChangeType.Inserted:
-										diffLine.State = LineState.Inserted;
+										snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Inserted, -1);
 										--parentLineNumber;
-										diffLine.ParentLineNumber = -1;
 										break;
 									case ChangeType.Deleted:
 										// Nothing to add. Parent line number already calculated.
 										continue;
 									default:
-										diffLine.State = LineState.Unchanged;
-										diffLine.ParentLineNumber = parentLineNumber;
+										// TODO: count - 1 .........
+										snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Unchanged, parentLineNumber);
 										break;
 								}
-
-								snapshots[count - 1].Lines.Add(diffLine);
 							}
 						}
 					}
+
+					snapshots.Last().FileDetails = new CodeFile(0);
 
 					// Check is file was renamed/moved
 					treeFile = GetPreviousCommitFileName(snapshot, repo.Diff, commit, treeFile);
@@ -156,9 +152,9 @@ namespace TimeLapseView {
 
 				// Find lifetime for all lines in all commits
 				for (int i = 0; i < snapshots.Count; i++) {
-					for (int j = 0; j < snapshots[i].Lines.Count; j++) {
-						if (snapshots[i].Lines[j].SequenceStart == 0) {
-							MeasureLineLife(i, j, i, snapshots[i].Lines[j].LID);
+					for (int j = 0; j < snapshots[i].FileDetails.Count; j++) {
+						if (snapshots[i].FileDetails[j].Birth == 0) {
+							MeasureLineLife(i, j, i, snapshots[i].FileDetails[j].LID);
 						}
 					}
 				}
@@ -198,15 +194,15 @@ namespace TimeLapseView {
 				return snapshotIndex;
 			}
 
-			var line = snapshots[snapshotIndex].Lines[lineIndex];
-			line.SequenceEnd = sequenceEnd;
+			var line = snapshots[snapshotIndex].FileDetails[lineIndex];
+			line.Death = sequenceEnd;
 			line.LID = lid;
 			if (line.State == LineState.Unchanged) {
 				// If line wasn't changed then go deeper
-				return line.SequenceStart = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd, line.LID);
+				return line.Birth = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd, line.LID);
 			} else {
 				// In other case we found line birthdate
-				return line.SequenceStart = snapshotIndex;
+				return line.Birth = snapshotIndex;
 			}
 		}
 

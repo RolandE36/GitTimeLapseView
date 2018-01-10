@@ -11,7 +11,7 @@ namespace TimeLapseView {
 		public string FilePath { get; set; }
 		public FilePathState FilePathState { get; set; }
 		public string PreviousFilePath { get; set; }
-		public List<CodeLine> Lines = new List<CodeLine>();
+		public CodeFile FileDetails { get; set; }
 		public Commit Commit { get; set; }
 		public string Sha { get { return Commit.Sha; } }
 		/// <summary>
@@ -75,38 +75,140 @@ namespace TimeLapseView {
 	}
 
 	/// <summary>
-	/// Represent details about line of code in snapshot
+	/// Represent details about all file lines in snapshot
 	/// </summary>
-	public class CodeLine {
+	public class CodeFile {
 		/// <summary>
 		/// Line Life Id. LID is unique only in the scope of line life or one commit. Not unique in general.
 		/// </summary>
-		public int LID;
+		public int[] Lid;
 
 		/// <summary>
 		/// Line state (Modified/Inserted/Unchanged/Deleted)
 		/// </summary>
-		public LineState State;
+		public LineState[] State;
 
 		/// <summary>
 		/// Number of the same line in parent commit
 		/// </summary>
-		public int ParentLineNumber;
+		public int[] ParentLineNumber;
 
 		/// <summary>
 		/// Index of the first commit with current line
 		/// </summary>
-		public int SequenceStart;
+		public int[] Birth;
 
 		/// <summary>
 		/// Index of the last commit with current line
 		/// </summary>
-		public int SequenceEnd;
+		public int[] Death;
 
-		private static int maxlid = 1;
+		/// <summary>
+		/// Pointer for lines initialization
+		/// </summary>
+		private int cursor;
 
-		public CodeLine() {
-			LID = maxlid++;
+		/// <summary>
+		/// Static variable for unique id's generation
+		/// </summary>
+		private static int uniqueId;
+
+		/// <summary>
+		/// Lines count
+		/// </summary>
+		public readonly int Count;
+
+		/// <param name="lines">Lines count in file</param>
+		public CodeFile(int lines) {
+			Lid = new int[lines];
+			State = new LineState[lines];
+			ParentLineNumber = new int[lines];
+			Birth = new int[lines];
+			Death = new int[lines];
+			Count = lines;
+			cursor = 0;
+
+			for (int i = 0; i < lines; i++) {
+				Lid[i] = uniqueId++;
+				State[i] = LineState.Unchanged;
+			}
+		}
+
+		/// <summary>
+		/// Initialize next line state in queue
+		/// </summary>
+		/// <param name="state">New state</param>
+		/// <param name="parentLineNumber">Number of the same line in parent commit</param>
+		public void InitializeNextLine(LineState state, int parentLineNumber) {
+			State[cursor] = state;
+			ParentLineNumber[cursor] = parentLineNumber;
+			cursor++;
+		}
+
+		/// <summary>
+		/// Return line details (Fully reference object)
+		/// </summary>
+		public CodeLine this[int i] {
+			get {
+				return new CodeLine {
+					ParentFile = this,
+					Number = i
+				};
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represent details about line in snapshot
+	/// </summary>
+	public class CodeLine { 
+		/// <summary>
+		/// Refference to parent file
+		/// </summary>
+		public CodeFile ParentFile;
+
+		/// <summary>
+		/// Line number in parent file
+		/// </summary>
+		public int Number;
+
+		/// <summary>
+		/// Line Life Id. LID is unique only in the scope of line life or one commit. Not unique in general.
+		/// </summary>
+		public int LID { 
+			get { return ParentFile.Lid[Number]; }
+			set { ParentFile.Lid[Number] = value; }
+		}
+
+		/// <summary>
+		/// Line state (Modified/Inserted/Unchanged/Deleted)
+		/// </summary>
+		public LineState State {
+			get { return ParentFile.State[Number]; }
+			set { ParentFile.State[Number] = value; }
+		}
+
+		/// <summary>
+		/// Number of the same line in parent commit
+		/// </summary>
+		public int ParentLineNumber {
+			get { return ParentFile.ParentLineNumber[Number]; }
+			set { ParentFile.ParentLineNumber[Number] = value; }
+		}
+		/// <summary>
+		/// Index of the first commit with current line
+		/// </summary>
+		public int Birth {
+			get { return ParentFile.Birth[Number]; }
+			set { ParentFile.Birth[Number] = value; }
+		}
+
+		/// <summary>
+		/// Index of the last commit with current line
+		/// </summary>
+		public int Death {
+			get { return ParentFile.Death[Number]; }
+			set { ParentFile.Death[Number] = value; }
 		}
 	}
 }

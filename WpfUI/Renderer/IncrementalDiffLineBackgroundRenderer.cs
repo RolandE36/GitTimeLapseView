@@ -32,11 +32,11 @@ namespace WpfUI.Renderer {
 			foreach (var v in textView.VisualLines) {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
 				var linenum = v.FirstDocumentLine.LineNumber - 1;
-				if (linenum >= host.Snapshot.Lines.Count) continue;
+				if (linenum >= host.Snapshot.FileDetails.Count) continue;
 
 				var brush = default(Brush);
 
-				switch (host.Snapshot.Lines[linenum].State) {
+				switch (host.Snapshot.FileDetails[linenum].State) {
 					case LineState.Modified:
 					case LineState.Inserted:
 						brush = addedBackground;

@@ -38,12 +38,12 @@ namespace WpfUI {
 			foreach (var v in textView.VisualLines) {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
 				var linenum = v.FirstDocumentLine.LineNumber - 1;
-				if (linenum >= host.Snapshot.Lines.Count) continue;
+				if (linenum >= host.Snapshot.FileDetails.Count) continue;
 
 				var brush = default(Brush);
 
 				// TODO: Move brush creation to separate class using percentage values (current, max, step)
-				var lineSnapshotsNumber = host.Snapshots.Count - host.Snapshot.Lines[linenum].SequenceStart;
+				var lineSnapshotsNumber = host.Snapshots.Count - host.Snapshot.FileDetails[linenum].Birth;
 				var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.SnapshotIndex)) / 100;
 				// TODO: Fix calcultions
 				if (lineLifeTimePercent > 1) lineLifeTimePercent = 1;

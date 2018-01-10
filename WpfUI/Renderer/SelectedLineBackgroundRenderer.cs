@@ -37,15 +37,15 @@ namespace WpfUI.Renderer {
 			foreach (var v in textView.VisualLines) {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
 				var linenum = v.FirstDocumentLine.LineNumber - 1;
-				if (linenum >= host.Snapshot.Lines.Count) continue;
+				if (linenum >= host.Snapshot.FileDetails.Count) continue;
 
 				var brush = default(Brush);
 
-				if (host.SelectedSnapshotIndex != -1 && host.Snapshot.Lines[linenum].SequenceStart == host.SelectedSnapshotIndex) {
+				if (host.SelectedSnapshotIndex != -1 && host.Snapshot.FileDetails[linenum].Birth == host.SelectedSnapshotIndex) {
 					brush = selectedCommitBackground;
 				}
 
-				if (host.SelectedSnapshotIndex != -1 && host.Snapshot.Lines[linenum].LID == host.SelectedLineLID) {
+				if (host.SelectedSnapshotIndex != -1 && host.Snapshot.FileDetails[linenum].LID == host.SelectedLineLID) {
 					brush = selectedLineBackground;
 				}
 

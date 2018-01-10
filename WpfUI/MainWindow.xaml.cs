@@ -111,7 +111,7 @@ namespace WpfUI {
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
 			try {
-				if (View.SelectedSnapshotIndex == View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart) {
+				if (View.SelectedSnapshotIndex == View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Birth) {
 					View.SelectedSnapshotIndex = -1;
 					View.SelectedLine = -1;
 					View.SelectedLineLID = -1;
@@ -121,15 +121,15 @@ namespace WpfUI {
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
-					View.SelectedSnapshotIndex = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
-					View.SelectedLineLID = View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].LID;
+					View.SelectedSnapshotIndex = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Birth;
+					View.SelectedLineLID = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 
 					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
 
 					slHistoy.IsSelectionRangeEnabled = true;
-					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceStart;
-					slHistoy.SelectionEnd = slHistoy.Maximum - View.Snapshot.Lines[tbCode.TextArea.Caret.Line - 1].SequenceEnd;
+					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Birth;
+					slHistoy.SelectionEnd = slHistoy.Maximum - View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Death;
 				}
 
 				tbCode.TextArea.TextView.Redraw();
@@ -187,7 +187,7 @@ namespace WpfUI {
 		/// Go to the next file diff
 		/// </summary>
 		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
-			var lines = View.Snapshot.Lines;
+			var lines = View.Snapshot.FileDetails;
 			var i = tbCode.TextArea.Caret.Line;
 			if (i >= lines.Count) i = lines.Count - 1;
 
@@ -205,7 +205,7 @@ namespace WpfUI {
 		/// Go to the previous file diff
 		/// </summary>
 		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
-			var lines = View.Snapshot.Lines;
+			var lines = View.Snapshot.FileDetails;
 			var i = tbCode.TextArea.Caret.Line - 1;
 			if (i <= 0) i = 0;
 
