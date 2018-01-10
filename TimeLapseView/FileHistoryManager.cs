@@ -113,6 +113,8 @@ namespace TimeLapseView {
 						if (count > 0) {
 							// TODO: Compare with each parent file, not with previous snapshot
 							// TODO: Remove snapshots without changes (as results of merge requests)
+							// TODO: OutOfMemoryException with large files in diff class.
+							// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
 							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
 							snapshots[count - 1].FileDetails = new CodeFile(diff.Lines.Count(e => e.Type != ChangeType.Deleted));
 							int parentLineNumber = -1;

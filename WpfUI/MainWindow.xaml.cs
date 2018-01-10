@@ -91,6 +91,9 @@ namespace WpfUI {
 					// TODO: Implement Search by commits
 					// TODO: Highlight code on hover
 					lvVerticalHistoryPanel.ItemsSource = View.Snapshots;
+				} catch (OutOfMemoryException ex) {
+					// TODO: "Try to change end date." - add abilty to choose end dates or commits count.
+					MessageBox.Show("File history too large.");
 				} catch (Exception ex) {
 					MessageBox.Show("Oops! Something went wrong.");
 				}
