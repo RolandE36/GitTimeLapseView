@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -55,10 +56,8 @@ namespace TimeLapseView {
 		/// <param name="file">File path</param>
 		/// <returns>True if file was modified</returns>
 		private bool IsFileWasUpdated(LibGit2Sharp.Commit commit, string file) {
-			var fileWasChanged = false;
-
 			// It's first commit so file was just created.
-			if (commit.Parents.Count() == 0) fileWasChanged = true;
+			bool fileWasChanged = !commit.Parents.Any();
 
 			foreach (var parent in commit.Parents) {
 				if (parent.Tree[file] == null) {
@@ -90,14 +89,17 @@ namespace TimeLapseView {
 					// No such file in the commit. Make no sense to continue.
 					if (commit.Tree[treeFile] == null) break;
 
+					// TODO: Not sure that it was good idea
 					// If nothing was changed then go to the next commit
-					if (!IsFileWasUpdated(commit, treeFile)) continue;
+					// if (!IsFileWasUpdated(commit, treeFile)) continue;
 
 					// Observable commit
 					var snapshot = new Snapshot() {
 						Index = snapshots.Count,
 						FilePath = treeFile,
-						Commit = new Commit(commit)
+						Commit = new Commit(commit),
+						TreeOffset = -1,
+						BranchLineId = -1
 					};
 
 					snapshots.Add(snapshot);
@@ -161,25 +163,210 @@ namespace TimeLapseView {
 					}
 				}
 
-				// Find positions for all commits in branches tree
-				snapshots[0].TreeOffset = 0;
+				// Remove not existing parents
 				foreach (var snapshot in snapshots) {
-					int offset = 0;
-					foreach (var parentSha in snapshot.Commit.Parents) {
-						// Parrent could be not related to this file
-						if (!dictionary.ContainsKey(parentSha)) continue;
+					for (int i = snapshot.Commit.Parents.Count-1; i >= 0; i--) {
+						if (!dictionary.ContainsKey(snapshot.Commit.Parents[i])) snapshot.Commit.Parents.RemoveAt(i);
+					}
+				}
 
-						var parent = dictionary[parentSha];
-						parent.TreeOffset = snapshot.TreeOffset + offset++;
+				// Link parent and child commits
+				foreach (var snapshot in snapshots) {
+					foreach (var sha in snapshot.Commit.Parents) {
+						dictionary[sha].Commit.Childs.Add(snapshot.Sha);
+					}
+				}
 
-						if (parent.TreeOffset != snapshot.TreeOffset) {
-							ReserveBranchOffset(parent);
+				// Find related lines
+				var offset = 0;
+				var branch = 0;
+				foreach (var snapshot in snapshots) {
+					// Set new offset is not yet defined
+					if (snapshot.TreeOffset == -1) {
+						snapshot.TreeOffset = offset++;
+						snapshot.BranchLineId = branch++;
+					}
+
+					if (snapshot.Commit.Parents.Count == 0) continue;    // Fo nothing if no parents
+					var parent = dictionary[snapshot.Commit.Parents[0]]; // Get first parent
+					if (parent.TreeOffset != -1) continue;               // Do nothing if offset already defined
+					
+					if (snapshot.Commit.Parents.Count == 1 &&            // If commit has only one parrent 
+						parent.Commit.Childs.Count != 1 &&               // and parent has several chils 
+						parent.Commit.Childs.Last() == snapshot.Sha) 
+						continue;                                        // than set only values from last child
+
+					parent.TreeOffset   = snapshot.TreeOffset;
+					parent.BranchLineId = snapshot.BranchLineId;
+				}
+
+				// Archivation
+				// TODO: Not optimized
+				var maxBranchoffset = snapshots.Max(e => e.TreeOffset);
+				for (int i = 1; i < maxBranchoffset+1; i++) {
+					// Find line Y
+					var miny = snapshots.Where(e => e.BranchLineId == i).Min(e => e.Index);
+					var maxy = snapshots.Where(e => e.BranchLineId == i).Max(e => e.Index);
+
+					// Check lines before current
+					for (int j = 0; j < i; j++) {
+						var linesInOffset = snapshots.Where(e => e.TreeOffset == j).GroupBy(e => e.BranchLineId);
+						var canChangeOffset = true;
+						foreach (var line in linesInOffset) {
+							var lmin = snapshots.Where(e => e.BranchLineId == line.Key).Min(e => e.Index);
+							var lmax = snapshots.Where(e => e.BranchLineId == line.Key).Max(e => e.Index);
+
+							// Is place empty
+							if ((lmax >= miny || lmin >= miny) && (lmax <= maxy || lmin <= maxy)) {
+								canChangeOffset = false;
+								break;
+							}
+						}
+
+						if (canChangeOffset) {
+							foreach (var snapshot in snapshots.Where(e => e.BranchLineId == i)) snapshot.TreeOffset = j;
+							break;
 						}
 					}
 				}
 			}
 
+			GraphTest();
 			return snapshots;
+		}
+
+		// TODO: Move to separate class
+		public string CalculateMD5Hash(string input) {
+			// step 1, calculate MD5 hash from input
+			MD5 md5 = System.Security.Cryptography.MD5.Create();
+			byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+			byte[] hash = md5.ComputeHash(inputBytes);
+
+			// step 2, convert byte array to hex string
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < hash.Length; i++) {
+				sb.Append(hash[i].ToString("X2"));
+			}
+
+			return sb.ToString().ToLower();
+		}
+
+		// TODO: Move to separate class
+		private void GraphTest() {
+
+			var colors = new List<string>() {
+							"#e6194b",
+							"#3cb44b",
+							"#ffe119",
+							"#0082c8",
+							"#f58231",
+							"#911eb4",
+							"#46f0f0",
+							"#f032e6",
+							"#d2f53c",
+							"#fabebe",
+							"#008080",
+							"#e6beff",
+							"#aa6e28",
+							"#fffac8",
+							"#800000",
+							"#aaffc3",
+							"#808000",
+							"#ffd8b1",
+							"#000080",
+							"#808080"
+						};
+
+
+
+
+			var rnd = new Random();
+
+
+			var fileName = @"Wtree.html";
+			//var fileName = @"Wtree_"+DateTime.Now.Ticks+".html";
+
+			using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName, false)) {
+
+				file.WriteLine(@"<!DOCTYPE html>
+								<html>
+								<body>
+								<svg height='21000' width='5000'>");
+
+				int i = 0;
+				foreach (var snapshot in snapshots) {
+					var color = snapshot.Commit.Parents.Count == 1 ? "blue" : "green";
+					file.WriteLine(string.Format("<text x='{0}' y='{1}' fill='red'>{2}</text>", 300, 50 * i + 5, snapshot.Commit.DescriptionShort));
+					for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--)
+					//foreach (var parent in snapshot.Commit.Parents)
+					{
+						var parent = snapshot.Commit.Parents[j];
+						if (!dictionary.ContainsKey(parent)) continue;
+						var p = dictionary[parent];
+
+						/*var x1 = 10;
+						var y1 = 50*i;
+						var x2 = 10;
+						var y2 = 50*p.Index;
+						var x3 = 10 + 50 + (y2 - y1) / 10;
+						var y3 = (int)((y2 - y1)/2 + y1);
+						var sameLine = snapshot.Index == p.Index - 1;*/
+
+						var x1 = 10 + 50 * snapshot.TreeOffset;
+						var y1 = 50 * i;
+						var x2 = 10 + 50 * p.TreeOffset;
+						var y2 = 50 * p.Index;
+						//var x3 = 10 + 50*snapshot.TreeOffset + 50 + (y2 - y1) / 10;
+						//var y3 = (int)((y2 - y1)/2 + y1);
+						var x3 = x2;
+						var y3 = y1;
+
+						if (y3 > y2) {
+							x3 = x1;
+							y3 = y2;
+						}
+
+						var sameLine = p.BranchLineId == snapshot.BranchLineId;
+
+						/*if (sameLine)
+						{
+							for (int l = snapshot.Index + 1; l <= p.Index - 1; l++)
+							{
+								if (snapshots[l].TreeOffset <= snapshot.TreeOffset)
+								{
+									sameLine = false;
+									break;
+								}
+							}
+						}*/
+						if (sameLine) {
+							file.WriteLine(string.Format("<line x1='{0}' y1='{1}' x2='{2}' y2='{3}' style='stroke:{4};stroke-width:3' />", x1, y1, x2, y2, colors[snapshot.BranchLineId % colors.Count]));
+						} else {
+							file.WriteLine(string.Format("<path d='M{0} {1} C {4} {5}, {4} {5}, {2} {3}' stroke='{6}' fill='transparent'/>",
+															x1, y1, x2, y2, x3, y3, colors[p.BranchLineId % colors.Count]));
+						}
+					}
+
+
+					file.WriteLine(string.Format("<image x='{0}' y='{1}' width='20' height='20' xlink:href='https://www.gravatar.com/avatar/{3}?d=identicon&s=20' />", 10 + 50 * snapshot.TreeOffset - 10, 50 * i - 10, color, CalculateMD5Hash(snapshot.Commit.Email)));
+					file.WriteLine(string.Format("<circle cx='{0}' cy='{1}' r='12' stroke='white' stroke-width='5' fill='transparent' />", 10 + 50 * snapshot.TreeOffset, 50 * i, color));
+					file.WriteLine(string.Format("<circle cx='{0}' cy='{1}' r='10' stroke='{2}' stroke-width='2' fill='transparent' />", 10 + 50 * snapshot.TreeOffset, 50 * i, color));
+
+					i++;
+				}
+
+				file.WriteLine(@"</svg>
+					<style>
+						line {
+							filter: drop-shadow( 0 2px 1px black );
+						}
+
+						line:hover {
+							#filter: drop-shadow( 0 2px 1px black );
+						}
+					</style>
+				</body></html>");
+			}
 		}
 
 		/// <summary>
@@ -216,7 +403,7 @@ namespace TimeLapseView {
 			for (int i = snapshot.Index + 1; i < snapshots.Count; i++) {
 				if (snapshots[i].TreeOffset == snapshot.TreeOffset) {
 					snapshots[i].TreeOffset++;
-					ReserveBranchOffset(snapshot);
+					ReserveBranchOffset(snapshots[i]);
 				}
 			}
 		}

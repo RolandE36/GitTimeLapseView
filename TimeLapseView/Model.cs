@@ -18,6 +18,7 @@ namespace TimeLapseView {
 		/// Commit position in branches tree
 		/// </summary>
 		public int TreeOffset { get; set; }
+		public int BranchLineId { get; set; }
 		/// <summary>
 		/// Tree visualization in text format
 		/// </summary>
@@ -50,10 +51,12 @@ namespace TimeLapseView {
 			set { }
 		}
 		public string Author { get; set; }
+		public string Email { get; set; }
 		public string Description { get; set; }
 		public string DescriptionShort { get; set; }
 		public DateTimeOffset Date { get; set; }
 		public List<string> Parents { get; set; }
+		public List<string> Childs { get; set; }
 		public string DateString {
 			get	{
 				return Date.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
@@ -64,10 +67,12 @@ namespace TimeLapseView {
 		public Commit(LibGit2Sharp.Commit commit) {
 			Sha = string.Join("", commit.Sha);
 			Author = commit.Author.Name;
+			Email = commit.Author.Email;
 			Description = commit.Message;
 			DescriptionShort = commit.MessageShort.Replace("\n", " ");
 			Date = commit.Author.When;
 			Parents = new List<string>();
+			Childs = new List<string>();
 			foreach (var parent in commit.Parents) {
 				Parents.Add(string.Join("", parent.Sha));
 			}
