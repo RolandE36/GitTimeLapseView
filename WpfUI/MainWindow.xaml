@@ -70,6 +70,7 @@
 				VerticalAlignment="Stretch"
 				Grid.Column="0"
 				SelectionChanged="lvVerticalHistoryPanel_SelectionChanged"
+				Visibility="Hidden"
 			>
 				<ListView.View>
 					<GridView>
@@ -81,6 +82,13 @@
 					</GridView>
 				</ListView.View>
 			</ListView>
+
+			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+				<Grid x:Name="drawingGrid">
+					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" >
+					</Canvas>
+				</Grid>
+			</ScrollViewer>
 
 			<GridSplitter Grid.Column="1" ShowsPreview="False" Width="3" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
 

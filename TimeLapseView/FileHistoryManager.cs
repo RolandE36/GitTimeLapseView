@@ -28,7 +28,8 @@ namespace TimeLapseView {
 		public readonly string filePath;
 
 		private List<Snapshot> snapshots;
-		private Dictionary<string, Snapshot> dictionary;
+		// TODO: Should be private
+		public Dictionary<string, Snapshot> dictionary;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
@@ -63,6 +64,7 @@ namespace TimeLapseView {
 				if (parent.Tree[file] == null) {
 					// File not exist in the parent commit (just creted or merged)
 					fileWasChanged = true;
+					// TODO: Probably try false
 					break;
 				}
 
@@ -85,7 +87,10 @@ namespace TimeLapseView {
 				// TODO: Add progress infomation
 
 				var treeFile = filePath;
-				foreach (var commit in repo.Commits) {
+				// TODO: Investigate:
+				// https://github.com/libgit2/libgit2sharp/issues/1074
+				// var commits = repo.Commits.QueryBy(parameters.FilePath.Replace(_repository, "")).ToList();
+				foreach (var commit in repo.Commits.Take(1000)) {
 					// No such file in the commit. Make no sense to continue.
 					if (commit.Tree[treeFile] == null) break;
 
@@ -99,7 +104,9 @@ namespace TimeLapseView {
 						FilePath = treeFile,
 						Commit = new Commit(commit),
 						TreeOffset = -1,
-						BranchLineId = -1
+						BranchLineId = -1,
+						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile),
+						IsCommitVisible = true
 					};
 
 					snapshots.Add(snapshot);
@@ -109,8 +116,11 @@ namespace TimeLapseView {
 					var blob = (Blob)commit[treeFile].Target;
 					// TODO: probably use commit.Encoding
 					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
+						// TODO: Lazy loading
 						snapshot.File = reader.ReadToEnd();
-						var count = snapshots.Count - 1;
+
+						// TODO: Not working with tree
+						/*var count = snapshots.Count - 1;
 
 						if (count > 0) {
 							// TODO: Compare with each parent file, not with previous snapshot
@@ -140,18 +150,19 @@ namespace TimeLapseView {
 										break;
 								}
 							}
-						}
+						}*/
 					}
 
 					snapshots.Last().FileDetails = new CodeFile(0);
-
+					// TODO: Not working for tree. Should revrite code for files renaming
+					/*
 					// Check is file was renamed/moved
 					treeFile = GetPreviousCommitFileName(snapshot, repo.Diff, commit, treeFile);
 
 					// First file mention
 					if (snapshot.FilePathState == FilePathState.Unknown || snapshot.FilePathState == FilePathState.Added) {
 						break;
-					}
+					}*/
 				}
 
 				// Find lifetime for all lines in all commits
@@ -203,6 +214,53 @@ namespace TimeLapseView {
 				// Archivation
 				// TODO: Not optimized
 				var maxBranchoffset = snapshots.Max(e => e.TreeOffset);
+				
+				// Hide lines without commits related to file
+				var commitsInBranch = snapshots.GroupBy(e => e.BranchLineId);
+				foreach (var commitsGroup in commitsInBranch) {
+					if (commitsGroup.All(e => !e.IsCommitRelatedToFile)) {
+						foreach (var commit in commitsGroup) {
+							commit.IsCommitVisible = false;
+							commit.TreeOffset = int.MaxValue;
+						}
+					}
+				}
+
+				// TODO: Probably function
+				// Unlink unvisible commits
+				foreach (var snapshot in snapshots) {
+					for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
+						var parent = dictionary[snapshot.Commit.Parents[i]];
+						if (!parent.IsCommitVisible) snapshot.Commit.Parents.RemoveAt(i);
+					}
+
+					// TODO: Probably childs also
+				}
+
+				// Remove not important commits (without merge requests)
+				/*for (int i = snapshots.Count - 1; i >= 0; i--) {
+					var snapshot = snapshots[i];
+					if (snapshot.IsCommitVisible && !snapshot.IsCommitRelatedToFile && snapshot.Commit.Parents.Count > 0 && snapshot.Commit.Childs.Count > 0) {
+
+						for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
+							var child = dictionary[snapshot.Commit.Childs[j]];
+							child.Commit.Parents.AddRange(snapshot.Commit.Parents);
+							child.Commit.Parents = child.Commit.Parents.Distinct().ToList();
+						}
+
+						for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
+							var parent = dictionary[snapshot.Commit.Parents[j]];
+							parent.Commit.Childs.AddRange(snapshot.Commit.Childs);
+							parent.Commit.Childs = parent.Commit.Childs.Distinct().ToList();
+						}
+
+						snapshot.IsCommitVisible = false;
+						//snapshot.Commit.Childs.Clear();
+						//snapshot.Commit.Parents.Clear();
+					}
+				}
+				*/
+
 				for (int i = 1; i < maxBranchoffset+1; i++) {
 					// Find line Y
 					var miny = snapshots.Where(e => e.BranchLineId == i).Min(e => e.Index);
@@ -231,142 +289,7 @@ namespace TimeLapseView {
 				}
 			}
 
-			GraphTest();
 			return snapshots;
-		}
-
-		// TODO: Move to separate class
-		public string CalculateMD5Hash(string input) {
-			// step 1, calculate MD5 hash from input
-			MD5 md5 = System.Security.Cryptography.MD5.Create();
-			byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-			byte[] hash = md5.ComputeHash(inputBytes);
-
-			// step 2, convert byte array to hex string
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < hash.Length; i++) {
-				sb.Append(hash[i].ToString("X2"));
-			}
-
-			return sb.ToString().ToLower();
-		}
-
-		// TODO: Move to separate class
-		private void GraphTest() {
-
-			var colors = new List<string>() {
-							"#e6194b",
-							"#3cb44b",
-							"#ffe119",
-							"#0082c8",
-							"#f58231",
-							"#911eb4",
-							"#46f0f0",
-							"#f032e6",
-							"#d2f53c",
-							"#fabebe",
-							"#008080",
-							"#e6beff",
-							"#aa6e28",
-							"#fffac8",
-							"#800000",
-							"#aaffc3",
-							"#808000",
-							"#ffd8b1",
-							"#000080",
-							"#808080"
-						};
-
-
-
-
-			var rnd = new Random();
-
-
-			var fileName = @"Wtree.html";
-			//var fileName = @"Wtree_"+DateTime.Now.Ticks+".html";
-
-			using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName, false)) {
-
-				file.WriteLine(@"<!DOCTYPE html>
-								<html>
-								<body>
-								<svg height='21000' width='5000'>");
-
-				int i = 0;
-				foreach (var snapshot in snapshots) {
-					var color = snapshot.Commit.Parents.Count == 1 ? "blue" : "green";
-					file.WriteLine(string.Format("<text x='{0}' y='{1}' fill='red'>{2}</text>", 300, 50 * i + 5, snapshot.Commit.DescriptionShort));
-					for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--)
-					//foreach (var parent in snapshot.Commit.Parents)
-					{
-						var parent = snapshot.Commit.Parents[j];
-						if (!dictionary.ContainsKey(parent)) continue;
-						var p = dictionary[parent];
-
-						/*var x1 = 10;
-						var y1 = 50*i;
-						var x2 = 10;
-						var y2 = 50*p.Index;
-						var x3 = 10 + 50 + (y2 - y1) / 10;
-						var y3 = (int)((y2 - y1)/2 + y1);
-						var sameLine = snapshot.Index == p.Index - 1;*/
-
-						var x1 = 10 + 50 * snapshot.TreeOffset;
-						var y1 = 50 * i;
-						var x2 = 10 + 50 * p.TreeOffset;
-						var y2 = 50 * p.Index;
-						//var x3 = 10 + 50*snapshot.TreeOffset + 50 + (y2 - y1) / 10;
-						//var y3 = (int)((y2 - y1)/2 + y1);
-						var x3 = x2;
-						var y3 = y1;
-
-						if (y3 > y2) {
-							x3 = x1;
-							y3 = y2;
-						}
-
-						var sameLine = p.BranchLineId == snapshot.BranchLineId;
-
-						/*if (sameLine)
-						{
-							for (int l = snapshot.Index + 1; l <= p.Index - 1; l++)
-							{
-								if (snapshots[l].TreeOffset <= snapshot.TreeOffset)
-								{
-									sameLine = false;
-									break;
-								}
-							}
-						}*/
-						if (sameLine) {
-							file.WriteLine(string.Format("<line x1='{0}' y1='{1}' x2='{2}' y2='{3}' style='stroke:{4};stroke-width:3' />", x1, y1, x2, y2, colors[snapshot.BranchLineId % colors.Count]));
-						} else {
-							file.WriteLine(string.Format("<path d='M{0} {1} C {4} {5}, {4} {5}, {2} {3}' stroke='{6}' fill='transparent'/>",
-															x1, y1, x2, y2, x3, y3, colors[p.BranchLineId % colors.Count]));
-						}
-					}
-
-
-					file.WriteLine(string.Format("<image x='{0}' y='{1}' width='20' height='20' xlink:href='https://www.gravatar.com/avatar/{3}?d=identicon&s=20' />", 10 + 50 * snapshot.TreeOffset - 10, 50 * i - 10, color, CalculateMD5Hash(snapshot.Commit.Email)));
-					file.WriteLine(string.Format("<circle cx='{0}' cy='{1}' r='12' stroke='white' stroke-width='5' fill='transparent' />", 10 + 50 * snapshot.TreeOffset, 50 * i, color));
-					file.WriteLine(string.Format("<circle cx='{0}' cy='{1}' r='10' stroke='{2}' stroke-width='2' fill='transparent' />", 10 + 50 * snapshot.TreeOffset, 50 * i, color));
-
-					i++;
-				}
-
-				file.WriteLine(@"</svg>
-					<style>
-						line {
-							filter: drop-shadow( 0 2px 1px black );
-						}
-
-						line:hover {
-							#filter: drop-shadow( 0 2px 1px black );
-						}
-					</style>
-				</body></html>");
-			}
 		}
 
 		/// <summary>

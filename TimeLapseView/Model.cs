@@ -19,15 +19,28 @@ namespace TimeLapseView {
 		/// </summary>
 		public int TreeOffset { get; set; }
 		public int BranchLineId { get; set; }
+		public bool IsCommitRelatedToFile { get; set; }
+		public bool IsCommitVisible { get; set; }
+
+		public bool IsImportantCommit {
+			get { return IsCommitVisible && IsCommitRelatedToFile && Commit.Parents.Count == 1; }
+		}
+
+		public bool IsMerge {
+			get { return Commit.Parents.Count > 1; }
+		}
+
 		/// <summary>
 		/// Tree visualization in text format
 		/// </summary>
 		public string TextTree { 
 			get {
-				return new string(' ', TreeOffset*2) + "*";
+				return "";//new string(' ', TreeOffset*2) + "*"; // TODO: Delete this. Not required any more.
 			} 
 			set { } 
 		}
+
+		public double ViewIndex { get; set; }
 	}
 
 	public class Branch {

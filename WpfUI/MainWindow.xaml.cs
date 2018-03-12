@@ -11,6 +11,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -87,6 +88,9 @@ namespace WpfUI {
 					tbCode.Text = View.Snapshots[0].File;
 					lblCommitDetailsSection.Visibility = Visibility.Visible;
 					SetBackgroundRendererMode(RendererMode.TimeLapse);
+
+					var cr = new CanvasTreeRenderer(View, Canvas1);
+					cr.BuildTree();
 
 					// TODO: Implement Search by commits
 					// TODO: Highlight code on hover

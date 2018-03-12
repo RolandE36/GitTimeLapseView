@@ -59,6 +59,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Renderer\CanvasTreeRenderer.cs" />
     <Compile Include="Renderer\IncrementalDiffLineBackgroundRenderer.cs" />
     <Compile Include="Renderer\RendererMode.cs" />
     <Compile Include="Renderer\SelectedLineBackgroundRenderer.cs" />
