@@ -86,11 +86,24 @@ namespace WpfUI.Renderer {
 				if (!snapshot.IsCommitVisible) continue;
 
 				// Line 
+				/*
+				// TODO: Very complicated solution
+				var parentLineMergeGroup = snapshot.Commit.Parents.Where(e => dictionary[e].IsCommitVisible).GroupBy(e => dictionary[e].BranchLineId);
+				foreach (var group in parentLineMergeGroup) {
+					var maxIndex = group.Max(e => dictionary[e].Index);
+					var parent = group.First(e => dictionary[e].Index == maxIndex);
+					*/
 				for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
 					var parent = snapshot.Commit.Parents[j];
 					if (!dictionary.ContainsKey(parent)) continue;
 					var p = dictionary[parent];
-
+					/*
+					// TODO: Very complicated solution
+					var childParentsInCurrentLine = p.Commit.Childs.Where(e => dictionary[e].IsCommitVisible && dictionary[e].BranchLineId == snapshot.BranchLineId);
+					var maxChildIndex = childParentsInCurrentLine.Max(e => dictionary[e].Index);
+					var child = childParentsInCurrentLine.First(e => dictionary[e].Index == maxChildIndex);
+					if (snapshot.Sha != dictionary[child].Sha) continue;
+					*/
 					if (!p.IsCommitVisible) continue;
 
 					// var x1 = 10;

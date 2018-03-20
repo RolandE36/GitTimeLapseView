@@ -211,6 +211,43 @@ namespace TimeLapseView {
 					parent.BranchLineId = snapshot.BranchLineId;
 				}
 
+				// TODO: Slow perfomance
+				// TODO: Probably wrong order
+				// TODO: Very coplicated
+				// Remove not important commits (without merge requests)
+				for (int i = snapshots.Count - 1; i >= 0; i--) {
+					var snapshot = snapshots[i];
+
+					if (snapshot.IsImportantCommit) continue;
+					if (snapshot.IsCommitVisible && snapshot.Commit.Childs.Count == 1) {
+						var p = dictionary[snapshot.Commit.Childs[0]];
+						if (p.IsImportantCommit) continue;
+					}
+
+					if (snapshot.IsCommitVisible && snapshot.Commit.Parents.Count > 0 && snapshot.Commit.Childs.Count > 0) {
+
+						// TODO: Probably we shouldn't include all merges from the same line, only last one
+						for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
+							var child = dictionary[snapshot.Commit.Childs[j]];
+							if (child.TreeOffset == int.MaxValue) continue;
+							child.Commit.Parents.AddRange(snapshot.Commit.Parents);
+							child.Commit.Parents = child.Commit.Parents.Distinct().ToList();
+						}
+
+						// TODO: Probably we shouldn't include all merges from the same line, only first one
+						for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
+							var parent = dictionary[snapshot.Commit.Parents[j]];
+							if (parent.TreeOffset == int.MaxValue) continue;
+							parent.Commit.Childs.AddRange(snapshot.Commit.Childs);
+							parent.Commit.Childs = parent.Commit.Childs.Distinct().ToList();
+						}
+
+						snapshot.IsCommitVisible = false;
+						snapshot.Commit.Childs.Clear();
+						snapshot.Commit.Parents.Clear();
+					}
+				}
+
 				// Archivation
 				// TODO: Not optimized
 				var maxBranchoffset = snapshots.Max(e => e.TreeOffset);
@@ -237,29 +274,8 @@ namespace TimeLapseView {
 					// TODO: Probably childs also
 				}
 
-				// Remove not important commits (without merge requests)
-				/*for (int i = snapshots.Count - 1; i >= 0; i--) {
-					var snapshot = snapshots[i];
-					if (snapshot.IsCommitVisible && !snapshot.IsCommitRelatedToFile && snapshot.Commit.Parents.Count > 0 && snapshot.Commit.Childs.Count > 0) {
-
-						for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
-							var child = dictionary[snapshot.Commit.Childs[j]];
-							child.Commit.Parents.AddRange(snapshot.Commit.Parents);
-							child.Commit.Parents = child.Commit.Parents.Distinct().ToList();
-						}
-
-						for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
-							var parent = dictionary[snapshot.Commit.Parents[j]];
-							parent.Commit.Childs.AddRange(snapshot.Commit.Childs);
-							parent.Commit.Childs = parent.Commit.Childs.Distinct().ToList();
-						}
-
-						snapshot.IsCommitVisible = false;
-						//snapshot.Commit.Childs.Clear();
-						//snapshot.Commit.Parents.Clear();
-					}
-				}
-				*/
+				
+				
 
 				for (int i = 1; i < maxBranchoffset+1; i++) {
 					// Find line Y
