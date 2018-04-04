@@ -230,16 +230,19 @@ namespace TimeLapseView {
 						for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
 							var child = dictionary[snapshot.Commit.Childs[j]];
 							if (child.TreeOffset == int.MaxValue) continue;
-							child.Commit.Parents.AddRange(snapshot.Commit.Parents);
-							child.Commit.Parents = child.Commit.Parents.Distinct().ToList();
+							foreach (var sha in snapshot.Commit.Parents) {
+								if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
+							}
 						}
 
 						// TODO: Probably we shouldn't include all merges from the same line, only first one
 						for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
 							var parent = dictionary[snapshot.Commit.Parents[j]];
 							if (parent.TreeOffset == int.MaxValue) continue;
-							parent.Commit.Childs.AddRange(snapshot.Commit.Childs);
-							parent.Commit.Childs = parent.Commit.Childs.Distinct().ToList();
+
+							foreach (var sha in snapshot.Commit.Childs) {
+								if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
+							}
 						}
 
 						snapshot.IsCommitVisible = false;
@@ -247,10 +250,6 @@ namespace TimeLapseView {
 						snapshot.Commit.Parents.Clear();
 					}
 				}
-
-				// Archivation
-				// TODO: Not optimized
-				var maxBranchoffset = snapshots.Max(e => e.TreeOffset);
 				
 				// Hide lines without commits related to file
 				var commitsInBranch = snapshots.GroupBy(e => e.BranchLineId);
@@ -263,6 +262,10 @@ namespace TimeLapseView {
 					}
 				}
 
+				// TODO: Not required for new approach :'(
+				//RemoveRedundantLinks();
+
+				// TODO: Probably it's not required
 				// TODO: Probably function
 				// Unlink unvisible commits
 				foreach (var snapshot in snapshots) {
@@ -274,38 +277,126 @@ namespace TimeLapseView {
 					// TODO: Probably childs also
 				}
 
-				
-				
+				SimpleBranchesArchivation();
+				//AdvancesBranchesArchivation();
 
-				for (int i = 1; i < maxBranchoffset+1; i++) {
-					// Find line Y
-					var miny = snapshots.Where(e => e.BranchLineId == i).Min(e => e.Index);
-					var maxy = snapshots.Where(e => e.BranchLineId == i).Max(e => e.Index);
+				// Calculate Commit Base history
+				for (int i = snapshots.Count - 1; i >= 0; i--) {
+					var snapshot = snapshots[i];
 
-					// Check lines before current
-					for (int j = 0; j < i; j++) {
-						var linesInOffset = snapshots.Where(e => e.TreeOffset == j).GroupBy(e => e.BranchLineId);
-						var canChangeOffset = true;
-						foreach (var line in linesInOffset) {
-							var lmin = snapshots.Where(e => e.BranchLineId == line.Key).Min(e => e.Index);
-							var lmax = snapshots.Where(e => e.BranchLineId == line.Key).Max(e => e.Index);
+					foreach (var psha in snapshot.Commit.Parents) {
 
-							// Is place empty
-							if ((lmax >= miny || lmin >= miny) && (lmax <= maxy || lmin <= maxy)) {
-								canChangeOffset = false;
-								break;
-							}
+						if (!snapshot.Commit.Base.Keys.Contains(psha)) {
+							snapshot.Commit.Base[psha] = 1;
+						} else {
+							snapshot.Commit.Base[psha]++;
 						}
 
-						if (canChangeOffset) {
-							foreach (var snapshot in snapshots.Where(e => e.BranchLineId == i)) snapshot.TreeOffset = j;
-							break;
+
+						foreach (var bsha in dictionary[psha].Commit.Base) {
+							if (!snapshot.Commit.Base.Keys.Contains(bsha.Key)) {
+								snapshot.Commit.Base[bsha.Key] = 1;
+							} else {
+								snapshot.Commit.Base[bsha.Key]++;
+							}
 						}
 					}
 				}
+
+				// Remove not Important parents based on Base Historys
+				foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+					snapshot.Commit.Parents = snapshot.Commit.Parents
+												.Where(e => snapshot.Commit.Base[e] == 1)
+												.ToList();
+				}
+
+				AdvancesBranchesArchivation();
+				SimpleBranchesArchivation();
 			}
 
 			return snapshots;
+		}
+
+		private void SimpleBranchesArchivation() {
+			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
+			int position = 1;
+			for (int i = 1; i < maxBranchoffset + 1; i++) {
+				if (snapshots.Any(e => dictionary[e.Sha].IsCommitVisible && dictionary[e.Sha].TreeOffset == i)) {
+					foreach (var snapshot in snapshots.Where(e => e.TreeOffset == i)) snapshot.TreeOffset = position;
+					position++;
+				}
+			}
+		}
+
+		private void AdvancesBranchesArchivation() {
+			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
+
+			for (int i = 1; i < maxBranchoffset + 1; i++) {
+				// Find line Y
+				var miny = snapshots.Where(e => e.BranchLineId == i).Min(e => e.Index);
+				var maxy = snapshots.Where(e => e.BranchLineId == i).Max(e => e.Index);
+
+				// Check lines before current
+				for (int j = 0; j < i; j++) {
+					var linesInOffset = snapshots.Where(e => e.TreeOffset == j).GroupBy(e => e.BranchLineId);
+					var canChangeOffset = true;
+					foreach (var line in linesInOffset) {
+						var lmin = snapshots.Where(e => e.BranchLineId == line.Key).Min(e => e.Index);
+						var lmax = snapshots.Where(e => e.BranchLineId == line.Key).Max(e => e.Index);
+
+						// Is place empty
+						if ((lmax >= miny || lmin >= miny) && (lmax <= maxy || lmin <= maxy)) {
+							canChangeOffset = false;
+							break;
+						}
+					}
+
+					if (canChangeOffset) {
+						foreach (var snapshot in snapshots.Where(e => e.BranchLineId == i)) snapshot.TreeOffset = j;
+						break;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Remove redundant links between commit and commits in second branch.
+		///
+		///  From:    To:
+		///  1        1
+		///  | \      |\
+		///  |  2     | 2
+		///  |\ |     | |
+		///  | \3     | 3
+		///  |  |     | |
+		/// </summary>
+		private void RemoveRedundantLinks() {
+			// If single commit have several links to several commits in second branch then choose only first one.
+			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+				snapshot.Commit.Parents = snapshot.Commit.Parents
+											.Where(e => dictionary[e].IsCommitVisible)
+											.GroupBy(e => dictionary[e].BranchLineId)
+											.Select(e => e.OrderBy(o => dictionary[o].Index).Last())
+											.ToList();
+
+				snapshot.Commit.Childs = snapshot.Commit.Childs
+											.Where(e => dictionary[e].IsCommitVisible)
+											.GroupBy(e => dictionary[e].BranchLineId)
+											.Select(e => e.OrderBy(o => dictionary[o].Index).Last())
+											.ToList();
+			}
+
+			// Find the intersection between child and parent links in different branches.
+			foreach (var snapshot in snapshots) {
+				for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
+					var parent = snapshot.Commit.Parents[i];
+					if (!dictionary[parent].Commit.Childs.Contains(snapshot.Sha)) {
+						snapshot.Commit.Parents.RemoveAt(i);
+						// Now we have inconsistency between child and parent commits. 
+						// So we shouldn't use child links anymore. 
+					}
+				}
+			}
 		}
 
 		/// <summary>

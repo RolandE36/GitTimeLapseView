@@ -70,6 +70,7 @@ namespace TimeLapseView {
 		public DateTimeOffset Date { get; set; }
 		public List<string> Parents { get; set; }
 		public List<string> Childs { get; set; }
+		public Dictionary<string, int> Base { get; set; }
 		public string DateString {
 			get	{
 				return Date.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
@@ -86,6 +87,7 @@ namespace TimeLapseView {
 			Date = commit.Author.When;
 			Parents = new List<string>();
 			Childs = new List<string>();
+			Base = new Dictionary<string, int>();
 			foreach (var parent in commit.Parents) {
 				Parents.Add(string.Join("", parent.Sha));
 			}
