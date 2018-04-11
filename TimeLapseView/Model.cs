@@ -41,6 +41,11 @@ namespace TimeLapseView {
 		}
 
 		public double ViewIndex { get; set; }
+
+		//TODO: Incorrect place. Use view model
+		public List<object> UiElements { get; set; }
+		public bool IsFirstInLine { get; set; }
+		public bool IsLastInLine { get; set; }
 	}
 
 	public class Branch {
@@ -68,8 +73,8 @@ namespace TimeLapseView {
 		public string Description { get; set; }
 		public string DescriptionShort { get; set; }
 		public DateTimeOffset Date { get; set; }
-		public List<string> Parents { get; set; }
-		public List<string> Childs { get; set; }
+		public List<string> Parents { get; set; } // TODO: try to use HashSet
+		public List<string> Childs { get; set; }  // TODO: try to use HashSet
 		public Dictionary<string, int> Base { get; set; }
 		public string DateString {
 			get	{

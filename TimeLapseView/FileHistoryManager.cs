@@ -106,7 +106,8 @@ namespace TimeLapseView {
 						TreeOffset = -1,
 						BranchLineId = -1,
 						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile),
-						IsCommitVisible = true
+						IsCommitVisible = true,
+						UiElements = new List<object>()
 					};
 
 					snapshots.Add(snapshot);
@@ -175,11 +176,11 @@ namespace TimeLapseView {
 				}
 
 				// Remove not existing parents
-				foreach (var snapshot in snapshots) {
-					for (int i = snapshot.Commit.Parents.Count-1; i >= 0; i--) {
+				Parallel.ForEach(snapshots, (snapshot) => {
+					for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
 						if (!dictionary.ContainsKey(snapshot.Commit.Parents[i])) snapshot.Commit.Parents.RemoveAt(i);
 					}
-				}
+				});
 
 				// Link parent and child commits
 				foreach (var snapshot in snapshots) {
@@ -189,27 +190,6 @@ namespace TimeLapseView {
 				}
 
 				// Find related lines
-				var offset = 0;
-				var branch = 0;
-				foreach (var snapshot in snapshots) {
-					// Set new offset is not yet defined
-					if (snapshot.TreeOffset == -1) {
-						snapshot.TreeOffset = offset++;
-						snapshot.BranchLineId = branch++;
-					}
-
-					if (snapshot.Commit.Parents.Count == 0) continue;    // Fo nothing if no parents
-					var parent = dictionary[snapshot.Commit.Parents[0]]; // Get first parent
-					if (parent.TreeOffset != -1) continue;               // Do nothing if offset already defined
-					
-					if (snapshot.Commit.Parents.Count == 1 &&            // If commit has only one parrent 
-						parent.Commit.Childs.Count != 1 &&               // and parent has several chils 
-						parent.Commit.Childs.Last() == snapshot.Sha) 
-						continue;                                        // than set only values from last child
-
-					parent.TreeOffset   = snapshot.TreeOffset;
-					parent.BranchLineId = snapshot.BranchLineId;
-				}
 
 				// TODO: Slow perfomance
 				// TODO: Probably wrong order
@@ -218,48 +198,80 @@ namespace TimeLapseView {
 				for (int i = snapshots.Count - 1; i >= 0; i--) {
 					var snapshot = snapshots[i];
 
+					if (snapshot.Commit.Parents.Count == 0) continue;
+					if (snapshot.Commit.Childs.Count == 0) continue;
 					if (snapshot.IsImportantCommit) continue;
-					if (snapshot.IsCommitVisible && snapshot.Commit.Childs.Count == 1) {
-						var p = dictionary[snapshot.Commit.Childs[0]];
-						if (p.IsImportantCommit) continue;
+					if (!snapshot.IsCommitVisible) continue;
+
+					// Mainly for merge requests with one child
+					if (snapshot.Commit.Childs.Count == 1 && 
+						dictionary[snapshot.Commit.Childs[0]].IsImportantCommit) continue;
+
+					// TODO: Probably we shouldn't include all merges from the same line, only last one
+					for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
+						var child = dictionary[snapshot.Commit.Childs[j]];
+						foreach (var sha in snapshot.Commit.Parents) {
+							if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
+						}
 					}
 
-					if (snapshot.IsCommitVisible && snapshot.Commit.Parents.Count > 0 && snapshot.Commit.Childs.Count > 0) {
-
-						// TODO: Probably we shouldn't include all merges from the same line, only last one
-						for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
-							var child = dictionary[snapshot.Commit.Childs[j]];
-							if (child.TreeOffset == int.MaxValue) continue;
-							foreach (var sha in snapshot.Commit.Parents) {
-								if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
-							}
+					// TODO: Probably we shouldn't include all merges from the same line, only first one
+					for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
+						var parent = dictionary[snapshot.Commit.Parents[j]];
+						foreach (var sha in snapshot.Commit.Childs) {
+							if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
 						}
-
-						// TODO: Probably we shouldn't include all merges from the same line, only first one
-						for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
-							var parent = dictionary[snapshot.Commit.Parents[j]];
-							if (parent.TreeOffset == int.MaxValue) continue;
-
-							foreach (var sha in snapshot.Commit.Childs) {
-								if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
-							}
-						}
-
-						snapshot.IsCommitVisible = false;
-						snapshot.Commit.Childs.Clear();
-						snapshot.Commit.Parents.Clear();
 					}
+
+					snapshot.IsCommitVisible = false;
+					//snapshot.Commit.Childs.Clear();
+					//snapshot.Commit.Parents.Clear();
 				}
-				
-				// Hide lines without commits related to file
+
+
+				// Find related lines
+				var offset = 0;
+				var branch = 0;
+				foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+					// Set new offset is not yet defined
+					if (snapshot.TreeOffset == -1) {
+						snapshot.TreeOffset = offset++;
+						snapshot.BranchLineId = branch++;
+					}
+
+					if (snapshot.Commit.Parents.Count == 0) continue;    // Do nothing if no parents
+					var parent = dictionary[snapshot.Commit.Parents[0]]; // Get first parent
+					if (parent.TreeOffset != -1) continue;               // Do nothing if offset already defined
+
+					if (snapshot.Commit.Parents.Count == 1 &&            // If commit has only one parrent 
+						parent.Commit.Childs.Count != 1 &&               // and parent has several chils 
+						parent.Commit.Childs.Last() == snapshot.Sha)
+						continue;                                        // than set only values from last child
+
+					parent.TreeOffset = snapshot.TreeOffset;
+					parent.BranchLineId = snapshot.BranchLineId;
+				}
+
+				// TODO: Probably it's not required
 				var commitsInBranch = snapshots.GroupBy(e => e.BranchLineId);
 				foreach (var commitsGroup in commitsInBranch) {
+					// Hide lines without commits related to file
 					if (commitsGroup.All(e => !e.IsCommitRelatedToFile)) {
 						foreach (var commit in commitsGroup) {
 							commit.IsCommitVisible = false;
-							commit.TreeOffset = int.MaxValue;
 						}
+					} else {
+						// Find line start/end
+						commitsGroup.First().IsFirstInLine = true;
+						commitsGroup.Last().IsLastInLine = true;
 					}
+				}
+
+				// TODO: Related only to rendering. Move to other place
+				foreach (var commitsGroup in snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId)) {
+					// Find line start/end
+					commitsGroup.First().IsFirstInLine = true;
+					commitsGroup.Last().IsLastInLine = true;
 				}
 
 				// TODO: Not required for new approach :'(
@@ -277,28 +289,16 @@ namespace TimeLapseView {
 					// TODO: Probably childs also
 				}
 
-				SimpleBranchesArchivation();
-				//AdvancesBranchesArchivation();
-
 				// Calculate Commit Base history
 				for (int i = snapshots.Count - 1; i >= 0; i--) {
 					var snapshot = snapshots[i];
+					if (!snapshot.IsCommitVisible) continue;
 
 					foreach (var psha in snapshot.Commit.Parents) {
-
-						if (!snapshot.Commit.Base.Keys.Contains(psha)) {
-							snapshot.Commit.Base[psha] = 1;
-						} else {
-							snapshot.Commit.Base[psha]++;
-						}
-
+						AddAncestorToCommit(snapshot, psha);
 
 						foreach (var bsha in dictionary[psha].Commit.Base) {
-							if (!snapshot.Commit.Base.Keys.Contains(bsha.Key)) {
-								snapshot.Commit.Base[bsha.Key] = 1;
-							} else {
-								snapshot.Commit.Base[bsha.Key]++;
-							}
+							AddAncestorToCommit(snapshot, bsha.Key);
 						}
 					}
 				}
@@ -311,7 +311,7 @@ namespace TimeLapseView {
 				}
 
 				AdvancesBranchesArchivation();
-				SimpleBranchesArchivation();
+				//SimpleBranchesArchivation();
 			}
 
 			return snapshots;
@@ -356,6 +356,17 @@ namespace TimeLapseView {
 						break;
 					}
 				}
+			}
+		}
+
+		/// <summary>
+		/// Add sha as ancestor for commit
+		/// </summary>
+		private void AddAncestorToCommit(Snapshot snapshot, string sha) {
+			if (!snapshot.Commit.Base.Keys.Contains(sha)) {
+				snapshot.Commit.Base[sha] = 1;
+			} else {
+				snapshot.Commit.Base[sha]++;
 			}
 		}
 
