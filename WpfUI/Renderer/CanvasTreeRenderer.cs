@@ -17,7 +17,8 @@ namespace WpfUI.Renderer {
 		public ViewData ViewData;
 		public Canvas Canvas;
 
-		private const int SCALE = 10;
+		private const int SCALE_Y = 10;
+		private const int SCALE_X = 30;
 
 		private readonly SolidColorBrush BlackBrush = new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x10));
 		private readonly SolidColorBrush BlueBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x82, 0xc8));
@@ -50,8 +51,9 @@ namespace WpfUI.Renderer {
 		public List<Ellipse> Ellipses = new List<Ellipse>();
 
 		public void BuildTree() {
+			var rnd = new Random();
 
-			// TODO: Rewrite this
+			// TODO: Rewrite this. We shouldn't have additional dictionary
 			var dictionary = new Dictionary<string, Snapshot>();
 			foreach (var snapshot in ViewData.Snapshots) {
 				dictionary[snapshot.Sha] = snapshot;
@@ -61,6 +63,7 @@ namespace WpfUI.Renderer {
 				snapshot.ViewIndex = snapshot.Index;
 			}
 			
+			// Calculate Y coordinates for visible commits
 			double index = 0;
 			bool previousSmall = false;
 			foreach (var snapshot in ViewData.Snapshots) {
@@ -77,68 +80,27 @@ namespace WpfUI.Renderer {
 					previousSmall = false;
 				}
 			}
-			
-
-			// TODO: Implement without merges
 
 			foreach (var snapshot in ViewData.Snapshots) {
-
 				if (!snapshot.IsCommitVisible) continue;
 
-				// Line 
-				/*
-				// TODO: Very complicated solution
-				var parentLineMergeGroup = snapshot.Commit.Parents.Where(e => dictionary[e].IsCommitVisible).GroupBy(e => dictionary[e].BranchLineId);
-				foreach (var group in parentLineMergeGroup) {
-					var maxIndex = group.Max(e => dictionary[e].Index);
-					var parent = group.First(e => dictionary[e].Index == maxIndex);
-					*/
 				for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
 					var parent = snapshot.Commit.Parents[j];
-					if (!dictionary.ContainsKey(parent)) continue;
 					var p = dictionary[parent];
-					/*
-					// TODO: Very complicated solution
-					var childParentsInCurrentLine = p.Commit.Childs.Where(e => dictionary[e].IsCommitVisible && dictionary[e].BranchLineId == snapshot.BranchLineId);
-					var maxChildIndex = childParentsInCurrentLine.Max(e => dictionary[e].Index);
-					var child = childParentsInCurrentLine.First(e => dictionary[e].Index == maxChildIndex);
-					if (snapshot.Sha != dictionary[child].Sha) continue;
-					*/
 					if (!p.IsCommitVisible) continue;
 
-					// var x1 = 10;
-					// var y1 = 50*i;
-					// var x2 = 10;
-					// var y2 = 50*p.Index;
-					// var x3 = 10 + 50 + (y2 - y1) / 10;
-					// var y3 = (int)((y2 - y1)/2 + y1);
-					// var sameLine = snapshot.Index == p.Index - 1;
-
-					var x1 = SCALE + 2 * SCALE * snapshot.TreeOffset;
-					var y1 = SCALE + 2 * SCALE * snapshot.ViewIndex;
+					var x1 = SCALE_X + 2 * SCALE_X * snapshot.TreeOffset;
+					var y1 = SCALE_Y + 2 * SCALE_Y * snapshot.ViewIndex;
 					
-					var x2 = SCALE + 2 * SCALE * p.TreeOffset;
-					var y2 = SCALE + 2 * SCALE * p.ViewIndex;
+					var x2 = SCALE_X + 2 * SCALE_X * p.TreeOffset;
+					var y2 = SCALE_Y + 2 * SCALE_Y * p.ViewIndex;
 
-					if (snapshot.Commit.Parents.Count > 1) {
-						//y1 += SCALE;
-					}
-
-					//var x3 = 10 + 50*snapshot.TreeOffset + 50 + (y2 - y1) / 10;
-					//var y3 = (int)((y2 - y1)/2 + y1);
 					var x3 = x2;
 					var y3 = y1;
+					var x4 = x1;
+					var y4 = y2;
 
-					// TODO: If first in line make it curves nice
-
-					if (y3 > y2) {
-						x3 = x1;
-						y3 = y2;
-					}
-
-					var sameLine = p.BranchLineId == snapshot.BranchLineId;
-
-					if (sameLine) {
+					if (IsCommitsInOneLine(snapshot, p)) {
 						var line = new Line();
 						line.Stroke = Brushes[snapshot.BranchLineId % Brushes.Count];
 						line.X1 = x1;
@@ -148,29 +110,79 @@ namespace WpfUI.Renderer {
 						line.StrokeThickness = 1;
 
 						Canvas.Children.Add(line);
+
+						p.UiElements.Add(line);
+						snapshot.UiElements.Add(line);
 					} else {
-						// Point0 should be 0x0
-						x2 -= x1;
-						x3 -= x1;
-						y2 -= y1;
-						y3 -= y1;
-
-						BezierSegment bezier = new BezierSegment()
-						{
-							Point1 = new Point(x3, y3),
-							Point2 = new Point(x3, y3),
-							Point3 = new Point(x2, y2),
-							IsStroked = true
-						};
-
 						PathFigure figure = new PathFigure();
-						figure.Segments.Add(bezier);
+
+						// Normalization to (x1, y1) as zero point
+						x2 -= x1; //       1
+						x3 -= x1; //       |
+						x4 -= x1; // 2-----4
+
+						y2 -= y1; // 1-----3
+						y3 -= y1; //       |
+						y4 -= y1; //       2
+
+						// TODO: Calculate x3 y3 in other place near center???
+
+						if (IsSimpleDownLine(snapshot, p)) {
+							BezierSegment bezier = new BezierSegment() {
+								// Point0                   //         3
+								Point1 = new Point(x4, y4), //         |
+								Point2 = new Point(x4, y4), //         |
+								Point3 = new Point(x2, y2), // 0 _____1,2
+								IsStroked = true
+							};
+
+							figure.Segments.Add(bezier);
+						} else if(IsSimpleUpLine(snapshot, p)) {
+							BezierSegment bezier = new BezierSegment() {
+								// Point0                   // 0______1,2
+								Point1 = new Point(x3, y3), //         |
+								Point2 = new Point(x3, y3), //         |
+								Point3 = new Point(x2, y2), //         3
+								IsStroked = true
+							};
+
+							figure.Segments.Add(bezier);
+						} else {
+							var n = SCALE_X / 2 + rnd.Next(SCALE_X / 2);
+							var left = x1 < x2 ? n : -n;
+							
+							x3 -= left;
+							x2 -= left;
+
+							// Main line
+							BezierSegment bezier = new BezierSegment() {
+								Point1 = new Point(x3, y3),
+								Point2 = new Point(x3, y3),
+								Point3 = new Point(x2, y2 - SCALE_Y / 2),
+								IsStroked = true
+							};
+
+							// Helper line
+							BezierSegment s1 = new BezierSegment() {
+								Point1 = new Point(x2, y2),
+								Point2 = new Point(x2, y2),
+								Point3 = new Point(x2 + left, y2),
+								IsStroked = true
+							};
+
+							figure.Segments.Add(bezier);
+							figure.Segments.Add(s1);
+						}
 
 						Path path = new Path();
 						path.Stroke = Brushes[p.BranchLineId % Brushes.Count];
 						path.Data = new PathGeometry(new PathFigure[] { figure });
+						path.Opacity = 1;
 
 						Canvas.Children.Add(path);
+
+						p.UiElements.Add(path);
+						snapshot.UiElements.Add(path);
 
 						Canvas.SetLeft(path, x1);
 						Canvas.SetTop(path,  y1);
@@ -180,9 +192,8 @@ namespace WpfUI.Renderer {
 				// Circle (Commit)
 				var color = !snapshot.IsCommitRelatedToFile ? BlueBrush : GreenBrush;
 
-				var diameter = SCALE;
-				//if (!snapshot.IsCommitRelatedToFile) diameter = SCALE / 2;
-				if (!snapshot.IsImportantCommit) diameter = SCALE / 2;
+				var diameter = SCALE_Y;
+				if (!snapshot.IsImportantCommit) diameter = SCALE_Y / 2;
 
 				var ellipse = new Ellipse();
 				ellipse.Fill = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
@@ -193,11 +204,10 @@ namespace WpfUI.Renderer {
 				ellipse.ToolTip = snapshot.Commit.Description;
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
-				//ellipse.Visibility = snapshot.IsCommitRelatedToFile ? Visibility.Visible : Visibility.Hidden;
+				ellipse.Tag = snapshot.Index;
 
-				
-				var x = (SCALE-diameter/2) + 2*SCALE*snapshot.TreeOffset;
-				var y = (SCALE-diameter/2) + 2*SCALE*snapshot.ViewIndex;
+				var x = (SCALE_X - diameter/2) + 2* SCALE_X * snapshot.TreeOffset;
+				var y = (SCALE_Y - diameter/2) + 2* SCALE_Y * snapshot.ViewIndex;
 
 				Ellipses.Add(ellipse);
 				Canvas.Children.Add(ellipse);
@@ -225,13 +235,13 @@ namespace WpfUI.Renderer {
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.Commit.DateString + " " + snapshot.Commit.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
-				Canvas.SetLeft(textBlock, 150);
+				Canvas.SetLeft(textBlock, SCALE_X * 7);
 				Canvas.SetTop(textBlock, y);
 				Canvas.Children.Add(textBlock);
 			}
 
-			Canvas.Width = ViewData.Snapshots.Max(e => e.TreeOffset)*SCALE+SCALE;
-			Canvas.Height = ViewData.Snapshots.Count*SCALE+SCALE;
+			Canvas.Width = ViewData.Snapshots.Max(e => e.TreeOffset)*SCALE_X+SCALE_X;
+			Canvas.Height = ViewData.Snapshots.Count* SCALE_Y + SCALE_Y;
 		}
 
 		// TODO: Move to separate class
@@ -252,10 +262,94 @@ namespace WpfUI.Renderer {
 
 		private void Ellipse_OnMouseEnter(object sender, MouseEventArgs e) {
 			(sender as Ellipse).StrokeThickness = 2;
+			
+			var index = (int)(sender as Ellipse).Tag;
+			var s = ViewData.Snapshots.First(f => f.Index == index);
+			foreach (var element in s.UiElements) {
+				(element as Shape).StrokeThickness = 2;
+			}
 		}
 
 		private void Ellipse_OnMouseLeave(object sender, MouseEventArgs e) {
 			(sender as Ellipse).StrokeThickness = 1;
+
+			var index = (int)(sender as Ellipse).Tag;
+			var s = ViewData.Snapshots.First(f => f.Index == index);
+			foreach (var element in s.UiElements) {
+				(element as Shape).StrokeThickness = 1;
+			}
 		}
+
+		#region Tree preparation
+
+		/// <summary>
+		/// Return true if commits in the same line in the same branch and nothing in between
+		/// *
+		/// |
+		/// |
+		/// *
+		/// </summary>
+		private bool IsCommitsInOneLine(Snapshot a, Snapshot p) {
+			if (p.TreeOffset != a.TreeOffset) return false;
+			if (p.BranchLineId == a.BranchLineId) return true;
+
+			for (int i = a.Index + 1; i < p.Index; i++) {
+				if (ViewData.Snapshots[i].IsCommitVisible && ViewData.Snapshots[i].TreeOffset == p.TreeOffset) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Return true is we can draw simple up line
+		///   ____ *
+		///  /
+		/// /
+		/// |
+		/// |
+		/// *
+		/// </summary>
+		private bool IsSimpleUpLine(Snapshot s, Snapshot p) {
+			if (!p.IsFirstInLine) return false;
+			if (p.TreeOffset == s.TreeOffset) return false;
+
+			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) / 2; 
+			if (ViewData
+					.Snapshots
+					.Where(e => e.IsCommitVisible)
+					.Where(e => p.ViewIndex - requiredEmptySpace < e.ViewIndex && e.ViewIndex < p.ViewIndex)
+					.Any(e => e.TreeOffset == p.TreeOffset)
+				) return false;
+
+			return true;
+		}
+
+		/// <summary>
+		/// Return true is we can draw simple down line
+		///        *
+		///        |
+		///        |
+		///        |
+		///        /
+		/// *____ /
+		/// </summary>
+		private bool IsSimpleDownLine(Snapshot s, Snapshot p) {
+			if (!s.IsLastInLine) return false;
+			if (p.TreeOffset == s.TreeOffset) return false;
+
+			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) / 2;
+			if (ViewData
+					.Snapshots
+					.Where(e => e.IsCommitVisible)
+					.Where(e => s.ViewIndex < e.ViewIndex && e.ViewIndex < s.ViewIndex + requiredEmptySpace)
+					.Any(e => e.TreeOffset == s.TreeOffset)
+				) return false;
+
+			return true;
+		}
+
+		#endregion
 	}
 }
