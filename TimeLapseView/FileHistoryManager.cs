@@ -113,47 +113,6 @@ namespace TimeLapseView {
 					snapshots.Add(snapshot);
 					dictionary[snapshot.Sha] = snapshot;
 
-					// Get file text from commit
-					var blob = (Blob)commit[treeFile].Target;
-					// TODO: probably use commit.Encoding
-					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-						// TODO: Lazy loading
-						snapshot.File = reader.ReadToEnd();
-
-						// TODO: Not working with tree
-						/*var count = snapshots.Count - 1;
-
-						if (count > 0) {
-							// TODO: Compare with each parent file, not with previous snapshot
-							// TODO: Remove snapshots without changes (as results of merge requests)
-							// TODO: OutOfMemoryException with large files in diff class.
-							// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
-							var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
-							snapshots[count - 1].FileDetails = new CodeFile(diff.Lines.Count(e => e.Type != ChangeType.Deleted));
-							int parentLineNumber = -1;
-							// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
-							foreach (var line in diff.Lines) {
-								parentLineNumber++;
-								switch (line.Type) {
-									case ChangeType.Modified:
-										snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Modified, -1);
-										break;
-									case ChangeType.Inserted:
-										snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Inserted, -1);
-										--parentLineNumber;
-										break;
-									case ChangeType.Deleted:
-										// Nothing to add. Parent line number already calculated.
-										continue;
-									default:
-										// TODO: count - 1 .........
-										snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Unchanged, parentLineNumber);
-										break;
-								}
-							}
-						}*/
-					}
-
 					snapshots.Last().FileDetails = new CodeFile(0);
 					// TODO: Not working for tree. Should revrite code for files renaming
 					/*
@@ -194,7 +153,7 @@ namespace TimeLapseView {
 				// TODO: Slow perfomance
 				// TODO: Probably wrong order
 				// TODO: Very coplicated
-				// Remove not important commits (without merge requests)
+				// Remove commits without changes in file (except merge requests to important file)
 				for (int i = snapshots.Count - 1; i >= 0; i--) {
 					var snapshot = snapshots[i];
 
@@ -228,7 +187,6 @@ namespace TimeLapseView {
 					//snapshot.Commit.Parents.Clear();
 				}
 
-
 				// Find related lines
 				var offset = 0;
 				var branch = 0;
@@ -253,32 +211,25 @@ namespace TimeLapseView {
 				}
 
 				// TODO: Probably it's not required
-				var commitsInBranch = snapshots.GroupBy(e => e.BranchLineId);
-				foreach (var commitsGroup in commitsInBranch) {
+				var lineGroup = snapshots.GroupBy(e => e.BranchLineId);
+				Parallel.ForEach(lineGroup, (commitsGroup) => {
 					// Hide lines without commits related to file
 					if (commitsGroup.All(e => !e.IsCommitRelatedToFile)) {
 						foreach (var commit in commitsGroup) {
 							commit.IsCommitVisible = false;
 						}
-					} else {
-						// Find line start/end
-						commitsGroup.First().IsFirstInLine = true;
-						commitsGroup.Last().IsLastInLine = true;
 					}
-				}
+				});
 
 				// TODO: Related only to rendering. Move to other place
-				foreach (var commitsGroup in snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId)) {
+				lineGroup = snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId);
+				Parallel.ForEach(lineGroup, (commitsGroup) => {
 					// Find line start/end
 					commitsGroup.First().IsFirstInLine = true;
 					commitsGroup.Last().IsLastInLine = true;
-				}
-
-				// TODO: Not required for new approach :'(
-				//RemoveRedundantLinks();
+				});
 
 				// TODO: Probably it's not required
-				// TODO: Probably function
 				// Unlink unvisible commits
 				foreach (var snapshot in snapshots) {
 					for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
@@ -303,15 +254,59 @@ namespace TimeLapseView {
 					}
 				}
 
-				// Remove not Important parents based on Base Historys
+				// TODO: Investigate matrix (Parent cross Childs) perfomance
+				// Remove not Important parents based on Base History
 				foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
 					snapshot.Commit.Parents = snapshot.Commit.Parents
 												.Where(e => snapshot.Commit.Base[e] == 1)
 												.ToList();
 				}
 
-				AdvancesBranchesArchivation();
+				AdvancedBranchesArchivation();
 				//SimpleBranchesArchivation();
+
+				// Remove unvisible snapshots
+				snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
+				for (int i = 0; i < snapshots.Count; i++) snapshots[i].Index = i;
+
+				// Read files content
+				Parallel.ForEach(snapshots, (snapshot) => {
+					// TODO: Lazy loading
+					snapshot.File = GetFileContent(snapshot, treeFile);
+
+					// TODO: Not working with tree
+					/*var count = snapshots.Count - 1;
+
+					if (count > 0) {
+						// TODO: Compare with each parent file, not with previous snapshot
+						// TODO: Remove snapshots without changes (as results of merge requests)
+						// TODO: OutOfMemoryException with large files in diff class.
+						// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
+						var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
+						snapshots[count - 1].FileDetails = new CodeFile(diff.Lines.Count(e => e.Type != ChangeType.Deleted));
+						int parentLineNumber = -1;
+						// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
+						foreach (var line in diff.Lines) {
+							parentLineNumber++;
+							switch (line.Type) {
+								case ChangeType.Modified:
+									snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Modified, -1);
+									break;
+								case ChangeType.Inserted:
+									snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Inserted, -1);
+									--parentLineNumber;
+									break;
+								case ChangeType.Deleted:
+									// Nothing to add. Parent line number already calculated.
+									continue;
+								default:
+									// TODO: count - 1 .........
+									snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Unchanged, parentLineNumber);
+									break;
+							}
+						}
+					}*/
+				});
 			}
 
 			return snapshots;
@@ -328,7 +323,7 @@ namespace TimeLapseView {
 			}
 		}
 
-		private void AdvancesBranchesArchivation() {
+		private void AdvancedBranchesArchivation() {
 			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
 
 			for (int i = 1; i < maxBranchoffset + 1; i++) {
@@ -503,6 +498,14 @@ namespace TimeLapseView {
 			// No path/name changes was found.
 			snapshot.FilePathState = FilePathState.NotChanged;
 			return name;
+		}
+
+		private string GetFileContent(Snapshot snapshot, string file) {
+			var blob = (Blob)snapshot.Commit.GitCommit[file].Target;
+			// TODO: probably use commit.Encoding
+			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
+				return reader.ReadToEnd();
+			}
 		}
 	}
 }

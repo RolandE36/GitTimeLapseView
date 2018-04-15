@@ -55,6 +55,8 @@ namespace TimeLapseView {
 	}
 
 	public class Commit {
+		public LibGit2Sharp.Commit GitCommit;
+
 		public string Sha { get; set; }
 		public string ShortSha { 
 			get {
@@ -84,6 +86,7 @@ namespace TimeLapseView {
 		}
 
 		public Commit(LibGit2Sharp.Commit commit) {
+			GitCommit = commit;
 			Sha = string.Join("", commit.Sha);
 			Author = commit.Author.Name;
 			Email = commit.Author.Email;
