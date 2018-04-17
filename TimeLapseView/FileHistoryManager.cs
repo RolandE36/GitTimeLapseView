@@ -125,19 +125,10 @@ namespace TimeLapseView {
 					}*/
 				}
 
-				// Find lifetime for all lines in all commits
-				for (int i = 0; i < snapshots.Count; i++) {
-					for (int j = 0; j < snapshots[i].FileDetails.Count; j++) {
-						if (snapshots[i].FileDetails[j].Birth == 0) {
-							MeasureLineLife(i, j, i, snapshots[i].FileDetails[j].LID);
-						}
-					}
-				}
-
 				// Remove not existing parents
 				Parallel.ForEach(snapshots, (snapshot) => {
-					for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
-						if (!dictionary.ContainsKey(snapshot.Commit.Parents[i])) snapshot.Commit.Parents.RemoveAt(i);
+					foreach (var p in snapshot.Commit.Parents.ToList()) {
+						if (!dictionary.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
 					}
 				});
 
@@ -163,20 +154,20 @@ namespace TimeLapseView {
 					if (!snapshot.IsCommitVisible) continue;
 
 					// Mainly for merge requests with one child
-					if (snapshot.Commit.Childs.Count == 1 && 
-						dictionary[snapshot.Commit.Childs[0]].IsImportantCommit) continue;
+					if (snapshot.Commit.Childs.Count == 1 &&
+						dictionary[snapshot.Commit.Childs.First()].IsImportantCommit) continue;
 
 					// TODO: Probably we shouldn't include all merges from the same line, only last one
-					for (int j = snapshot.Commit.Childs.Count - 1; j >= 0; j--) {
-						var child = dictionary[snapshot.Commit.Childs[j]];
+					foreach (var c in snapshot.Commit.Childs) {
+						var child = dictionary[c];
 						foreach (var sha in snapshot.Commit.Parents) {
 							if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
 						}
 					}
 
 					// TODO: Probably we shouldn't include all merges from the same line, only first one
-					for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
-						var parent = dictionary[snapshot.Commit.Parents[j]];
+					foreach (var p in snapshot.Commit.Parents) {
+						var parent = dictionary[p];
 						foreach (var sha in snapshot.Commit.Childs) {
 							if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
 						}
@@ -197,14 +188,14 @@ namespace TimeLapseView {
 						snapshot.BranchLineId = branch++;
 					}
 
-					if (snapshot.Commit.Parents.Count == 0) continue;    // Do nothing if no parents
-					var parent = dictionary[snapshot.Commit.Parents[0]]; // Get first parent
-					if (parent.TreeOffset != -1) continue;               // Do nothing if offset already defined
+					if (snapshot.Commit.Parents.Count == 0) continue;         // Do nothing if no parents
+					var parent = dictionary[snapshot.Commit.Parents.First()]; // Get first parent
+					if (parent.TreeOffset != -1) continue;                    // Do nothing if offset already defined
 
-					if (snapshot.Commit.Parents.Count == 1 &&            // If commit has only one parrent 
-						parent.Commit.Childs.Count != 1 &&               // and parent has several chils 
+					if (snapshot.Commit.Parents.Count == 1 &&                 // If commit has only one parrent 
+						parent.Commit.Childs.Count != 1 &&                    // and parent has several chils 
 						parent.Commit.Childs.Last() == snapshot.Sha)
-						continue;                                        // than set only values from last child
+						continue;                                             // than set only values from last child
 
 					parent.TreeOffset = snapshot.TreeOffset;
 					parent.BranchLineId = snapshot.BranchLineId;
@@ -232,9 +223,9 @@ namespace TimeLapseView {
 				// TODO: Probably it's not required
 				// Unlink unvisible commits
 				foreach (var snapshot in snapshots) {
-					for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
-						var parent = dictionary[snapshot.Commit.Parents[i]];
-						if (!parent.IsCommitVisible) snapshot.Commit.Parents.RemoveAt(i);
+					foreach (var p in snapshot.Commit.Parents.ToList()) {
+						var parent = dictionary[p];
+						if (!parent.IsCommitVisible) snapshot.Commit.Parents.Remove(p);
 					}
 
 					// TODO: Probably childs also
@@ -257,9 +248,11 @@ namespace TimeLapseView {
 				// TODO: Investigate matrix (Parent cross Childs) perfomance
 				// Remove not Important parents based on Base History
 				foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
-					snapshot.Commit.Parents = snapshot.Commit.Parents
-												.Where(e => snapshot.Commit.Base[e] == 1)
-												.ToList();
+					foreach (var p in snapshot.Commit.Parents.ToList()) {
+						if (snapshot.Commit.Base[p] != 1) {
+							snapshot.Commit.Parents.Remove(p);
+						}
+					}
 				}
 
 				AdvancedBranchesArchivation();
@@ -307,6 +300,15 @@ namespace TimeLapseView {
 						}
 					}*/
 				});
+
+				// Find lifetime for all lines in all commits
+				foreach (var snapshot in snapshots) {
+					for (int j = 0; j < snapshot.FileDetails.Count; j++) {
+						if (snapshot.FileDetails[j].Birth == 0) {
+							MeasureLineLife(snapshot.Index, j, snapshot.Index, snapshot.FileDetails[j].LID);
+						}
+					}
+				}
 			}
 
 			return snapshots;
@@ -362,46 +364,6 @@ namespace TimeLapseView {
 				snapshot.Commit.Base[sha] = 1;
 			} else {
 				snapshot.Commit.Base[sha]++;
-			}
-		}
-
-		/// <summary>
-		/// Remove redundant links between commit and commits in second branch.
-		///
-		///  From:    To:
-		///  1        1
-		///  | \      |\
-		///  |  2     | 2
-		///  |\ |     | |
-		///  | \3     | 3
-		///  |  |     | |
-		/// </summary>
-		private void RemoveRedundantLinks() {
-			// If single commit have several links to several commits in second branch then choose only first one.
-			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
-				snapshot.Commit.Parents = snapshot.Commit.Parents
-											.Where(e => dictionary[e].IsCommitVisible)
-											.GroupBy(e => dictionary[e].BranchLineId)
-											.Select(e => e.OrderBy(o => dictionary[o].Index).Last())
-											.ToList();
-
-				snapshot.Commit.Childs = snapshot.Commit.Childs
-											.Where(e => dictionary[e].IsCommitVisible)
-											.GroupBy(e => dictionary[e].BranchLineId)
-											.Select(e => e.OrderBy(o => dictionary[o].Index).Last())
-											.ToList();
-			}
-
-			// Find the intersection between child and parent links in different branches.
-			foreach (var snapshot in snapshots) {
-				for (int i = snapshot.Commit.Parents.Count - 1; i >= 0; i--) {
-					var parent = snapshot.Commit.Parents[i];
-					if (!dictionary[parent].Commit.Childs.Contains(snapshot.Sha)) {
-						snapshot.Commit.Parents.RemoveAt(i);
-						// Now we have inconsistency between child and parent commits. 
-						// So we shouldn't use child links anymore. 
-					}
-				}
 			}
 		}
 

@@ -75,8 +75,8 @@ namespace TimeLapseView {
 		public string Description { get; set; }
 		public string DescriptionShort { get; set; }
 		public DateTimeOffset Date { get; set; }
-		public List<string> Parents { get; set; } // TODO: try to use HashSet
-		public List<string> Childs { get; set; }  // TODO: try to use HashSet
+		public HashSet<string> Parents { get; set; }
+		public HashSet<string> Childs { get; set; }
 		public Dictionary<string, int> Base { get; set; }
 		public string DateString {
 			get	{
@@ -93,8 +93,8 @@ namespace TimeLapseView {
 			Description = commit.Message;
 			DescriptionShort = commit.MessageShort.Replace("\n", " ");
 			Date = commit.Author.When;
-			Parents = new List<string>();
-			Childs = new List<string>();
+			Parents = new HashSet<string>();
+			Childs = new HashSet<string>();
 			Base = new Dictionary<string, int>();
 			foreach (var parent in commit.Parents) {
 				Parents.Add(string.Join("", parent.Sha));

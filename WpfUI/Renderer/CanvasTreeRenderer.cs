@@ -84,23 +84,22 @@ namespace WpfUI.Renderer {
 			foreach (var snapshot in ViewData.Snapshots) {
 				if (!snapshot.IsCommitVisible) continue;
 
-				for (int j = snapshot.Commit.Parents.Count - 1; j >= 0; j--) {
-					var parent = snapshot.Commit.Parents[j];
-					var p = dictionary[parent];
-					if (!p.IsCommitVisible) continue;
+				foreach (var p in snapshot.Commit.Parents) {
+					var parent = dictionary[p];
+					if (!parent.IsCommitVisible) continue;
 
 					var x1 = SCALE_X + 2 * SCALE_X * snapshot.TreeOffset;
 					var y1 = SCALE_Y + 2 * SCALE_Y * snapshot.ViewIndex;
 					
-					var x2 = SCALE_X + 2 * SCALE_X * p.TreeOffset;
-					var y2 = SCALE_Y + 2 * SCALE_Y * p.ViewIndex;
+					var x2 = SCALE_X + 2 * SCALE_X * parent.TreeOffset;
+					var y2 = SCALE_Y + 2 * SCALE_Y * parent.ViewIndex;
 
 					var x3 = x2;
 					var y3 = y1;
 					var x4 = x1;
 					var y4 = y2;
 
-					if (IsCommitsInOneLine(snapshot, p)) {
+					if (IsCommitsInOneLine(snapshot, parent)) {
 						var line = new Line();
 						line.Stroke = Brushes[snapshot.BranchLineId % Brushes.Count];
 						line.X1 = x1;
@@ -111,7 +110,7 @@ namespace WpfUI.Renderer {
 
 						Canvas.Children.Add(line);
 
-						p.UiElements.Add(line);
+						parent.UiElements.Add(line);
 						snapshot.UiElements.Add(line);
 					} else {
 						PathFigure figure = new PathFigure();
@@ -127,7 +126,7 @@ namespace WpfUI.Renderer {
 
 						// TODO: Calculate x3 y3 in other place near center???
 
-						if (IsSimpleDownLine(snapshot, p)) {
+						if (IsSimpleDownLine(snapshot, parent)) {
 							BezierSegment bezier = new BezierSegment() {
 								// Point0                   //         3
 								Point1 = new Point(x4, y4), //         |
@@ -137,7 +136,7 @@ namespace WpfUI.Renderer {
 							};
 
 							figure.Segments.Add(bezier);
-						} else if(IsSimpleUpLine(snapshot, p)) {
+						} else if(IsSimpleUpLine(snapshot, parent)) {
 							BezierSegment bezier = new BezierSegment() {
 								// Point0                   // 0______1,2
 								Point1 = new Point(x3, y3), //         |
@@ -175,13 +174,13 @@ namespace WpfUI.Renderer {
 						}
 
 						Path path = new Path();
-						path.Stroke = Brushes[p.BranchLineId % Brushes.Count];
+						path.Stroke = Brushes[parent.BranchLineId % Brushes.Count];
 						path.Data = new PathGeometry(new PathFigure[] { figure });
 						path.Opacity = 1;
 
 						Canvas.Children.Add(path);
 
-						p.UiElements.Add(path);
+						parent.UiElements.Add(path);
 						snapshot.UiElements.Add(path);
 
 						Canvas.SetLeft(path, x1);
@@ -241,7 +240,7 @@ namespace WpfUI.Renderer {
 			}
 
 			Canvas.Width = ViewData.Snapshots.Max(e => e.TreeOffset)*SCALE_X+SCALE_X;
-			Canvas.Height = ViewData.Snapshots.Count* SCALE_Y + SCALE_Y;
+			Canvas.Height = ViewData.Snapshots.Count* SCALE_Y * 2 + SCALE_Y;
 		}
 
 		// TODO: Move to separate class
@@ -315,7 +314,7 @@ namespace WpfUI.Renderer {
 			if (!p.IsFirstInLine) return false;
 			if (p.TreeOffset == s.TreeOffset) return false;
 
-			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) / 2; 
+			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) * 0.6;
 			if (ViewData
 					.Snapshots
 					.Where(e => e.IsCommitVisible)
@@ -339,7 +338,7 @@ namespace WpfUI.Renderer {
 			if (!s.IsLastInLine) return false;
 			if (p.TreeOffset == s.TreeOffset) return false;
 
-			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) / 2;
+			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) * 0.6;
 			if (ViewData
 					.Snapshots
 					.Where(e => e.IsCommitVisible)
