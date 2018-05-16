@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public enum LineState {
-		Modified,
-		Inserted,
-		Unchanged,
-		Deleted
+		Deleted   = 0x0001,
+		Modified  = 0x0011,
+		Inserted  = 0x0111,
+		Unchanged = 0x1111,
 	}
 
 	public enum FilePathState {

@@ -113,7 +113,6 @@ namespace TimeLapseView {
 					snapshots.Add(snapshot);
 					dictionary[snapshot.Sha] = snapshot;
 
-					snapshots.Last().FileDetails = new CodeFile(0);
 					// TODO: Not working for tree. Should revrite code for files renaming
 					/*
 					// Check is file was renamed/moved
@@ -259,6 +258,9 @@ namespace TimeLapseView {
 				//SimpleBranchesArchivation();
 
 				// Remove unvisible snapshots
+				//for (int i = 0; i < snapshots.Count; i++) snapshots[i].IsCommitVisible = true;
+
+
 				snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
 				for (int i = 0; i < snapshots.Count; i++) snapshots[i].Index = i;
 
@@ -266,27 +268,32 @@ namespace TimeLapseView {
 				Parallel.ForEach(snapshots, (snapshot) => {
 					// TODO: Lazy loading
 					snapshot.File = GetFileContent(snapshot, treeFile);
+				});
 
-					// TODO: Not working with tree
-					/*var count = snapshots.Count - 1;
+				// Life time...
+				//Parallel.ForEach(snapshots, (snapshot) => {
+				foreach (var snapshot in snapshots) {
+					foreach (var p in snapshot.Commit.Parents) {
+						var parent = dictionary[p];
 
-					if (count > 0) {
 						// TODO: Compare with each parent file, not with previous snapshot
 						// TODO: Remove snapshots without changes (as results of merge requests)
 						// TODO: OutOfMemoryException with large files in diff class.
 						// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
-						var diff = fileComparer.BuildDiffModel(snapshots[count].File, snapshots[count - 1].File);
-						snapshots[count - 1].FileDetails = new CodeFile(diff.Lines.Count(e => e.Type != ChangeType.Deleted));
+						var diff = fileComparer.BuildDiffModel(snapshot.File, parent.File);
+						if (snapshot.FileDetails ==  null) snapshot.FileDetails = new CodeFile(diff.Lines.Count()*2/*.Count(e => e.Type != ChangeType.Deleted)*/);
+						snapshot.FileDetails.ResetCursor();
+
 						int parentLineNumber = -1;
 						// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
 						foreach (var line in diff.Lines) {
 							parentLineNumber++;
 							switch (line.Type) {
 								case ChangeType.Modified:
-									snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Modified, -1);
+									snapshot.FileDetails.InitializeNextLine(LineState.Modified, -1);
 									break;
 								case ChangeType.Inserted:
-									snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Inserted, -1);
+									snapshot.FileDetails.InitializeNextLine(LineState.Inserted, -1);
 									--parentLineNumber;
 									break;
 								case ChangeType.Deleted:
@@ -294,13 +301,14 @@ namespace TimeLapseView {
 									continue;
 								default:
 									// TODO: count - 1 .........
-									snapshots[count - 1].FileDetails.InitializeNextLine(LineState.Unchanged, parentLineNumber);
+									snapshot.FileDetails.InitializeNextLine(LineState.Unchanged, parentLineNumber);
 									break;
 							}
 						}
-					}*/
-				});
-
+					}
+				}
+				snapshots.Last().FileDetails = new CodeFile(0);
+				/*
 				// Find lifetime for all lines in all commits
 				foreach (var snapshot in snapshots) {
 					for (int j = 0; j < snapshot.FileDetails.Count; j++) {
@@ -308,7 +316,7 @@ namespace TimeLapseView {
 							MeasureLineLife(snapshot.Index, j, snapshot.Index, snapshot.FileDetails[j].LID);
 						}
 					}
-				}
+				}*/
 			}
 
 			return snapshots;
@@ -384,7 +392,7 @@ namespace TimeLapseView {
 			var line = snapshots[snapshotIndex].FileDetails[lineIndex];
 			line.Death = sequenceEnd;
 			line.LID = lid;
-			if (line.State == LineState.Unchanged) {
+			if (line.State == LineState.Unchanged && line.ParentLineNumber != -1) {
 				// If line wasn't changed then go deeper
 				return line.Birth = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd, line.LID);
 			} else {

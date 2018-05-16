@@ -159,7 +159,12 @@ namespace TimeLapseView {
 			for (int i = 0; i < lines; i++) {
 				Lid[i] = uniqueId++;
 				State[i] = LineState.Unchanged;
+				ParentLineNumber[i] = -1;
 			}
+		}
+
+		public void ResetCursor() {
+			cursor = 0;
 		}
 
 		/// <summary>
@@ -168,8 +173,8 @@ namespace TimeLapseView {
 		/// <param name="state">New state</param>
 		/// <param name="parentLineNumber">Number of the same line in parent commit</param>
 		public void InitializeNextLine(LineState state, int parentLineNumber) {
-			State[cursor] = state;
-			ParentLineNumber[cursor] = parentLineNumber;
+			State[cursor] |= state;
+			if (state == LineState.Unchanged) ParentLineNumber[cursor] = parentLineNumber;
 			cursor++;
 		}
 

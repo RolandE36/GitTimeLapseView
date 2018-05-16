@@ -62,7 +62,7 @@ namespace WpfUI {
 		/// </summary>
 		/// <param name="index">new selected index</param>
 		private void SelectedCommitIndexChanged(int index) {
-			if (View == null || index < 0) return;
+			if (View == null || index < 0 || View.Snapshots.Count == 0) return;
 
 			View.SnapshotIndex = index;
 			tbCode.Text = View.Snapshots[index].File;
