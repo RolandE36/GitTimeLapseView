@@ -51,31 +51,26 @@ namespace TimeLapseView {
 		}
 
 		/// <summary>
-		/// Answer is file was modified in current commit (in compare with any parent commit)
+		/// Answer is file was modified in current commit (in compare with all parent commits)
 		/// </summary>
 		/// <param name="commit">Current commit</param>
 		/// <param name="file">File path</param>
 		/// <returns>True if file was modified</returns>
 		private bool IsFileWasUpdated(LibGit2Sharp.Commit commit, string file) {
+			// File not exist
+			if (commit.Tree[file] == null) return false;
+			// TODO: File was deleted or renamed: if (commit.Tree[file] == null && commit.Parents.Count() > 0 && commit.Parents.All(e => e.Tree[file] != null)) return true;
+
 			// It's first commit so file was just created.
-			bool fileWasChanged = !commit.Parents.Any();
+			if (commit.Parents.Count() == 0) return true;
 
-			foreach (var parent in commit.Parents) {
-				if (parent.Tree[file] == null) {
-					// File not exist in the parent commit (just creted or merged)
-					fileWasChanged = true;
-					// TODO: Probably try false
-					break;
-				}
+			// Did not exist before
+			if (commit.Parents.All(e => e.Tree[file] == null)) return true;
 
-				// File was updated (Target.Id not equal to parent one)
-				if (parent.Tree[file].Target.Id != commit.Tree[file].Target.Id) {
-					fileWasChanged = true;
-					break;
-				}
-			}
+			// Nothing related to parent files
+			if (commit.Parents.All(e => e.Tree[file] == null || e.Tree[file].Target.Id != commit.Tree[file].Target.Id)) return true;
 
-			return fileWasChanged;
+			return false;
 		}
 
 		public List<Snapshot> GetCommitsHistory() {
@@ -91,12 +86,6 @@ namespace TimeLapseView {
 				// https://github.com/libgit2/libgit2sharp/issues/1074
 				// var commits = repo.Commits.QueryBy(parameters.FilePath.Replace(_repository, "")).ToList();
 				foreach (var commit in repo.Commits.Take(1000)) {
-					// No such file in the commit. Make no sense to continue.
-					if (commit.Tree[treeFile] == null) break;
-
-					// TODO: Not sure that it was good idea
-					// If nothing was changed then go to the next commit
-					// if (!IsFileWasUpdated(commit, treeFile)) continue;
 
 					// Observable commit
 					var snapshot = new Snapshot() {
@@ -138,8 +127,6 @@ namespace TimeLapseView {
 					}
 				}
 
-				// Find related lines
-
 				// TODO: Slow perfomance
 				// TODO: Probably wrong order
 				// TODO: Very coplicated
@@ -155,7 +142,7 @@ namespace TimeLapseView {
 					// Mainly for merge requests with one child
 					if (snapshot.Commit.Childs.Count == 1 &&
 						dictionary[snapshot.Commit.Childs.First()].IsImportantCommit) continue;
-
+						
 					// TODO: Probably we shouldn't include all merges from the same line, only last one
 					foreach (var c in snapshot.Commit.Childs) {
 						var child = dictionary[c];
@@ -176,7 +163,7 @@ namespace TimeLapseView {
 					//snapshot.Commit.Childs.Clear();
 					//snapshot.Commit.Parents.Clear();
 				}
-
+				
 				// Find related lines
 				var offset = 0;
 				var branch = 0;
@@ -199,7 +186,7 @@ namespace TimeLapseView {
 					parent.TreeOffset = snapshot.TreeOffset;
 					parent.BranchLineId = snapshot.BranchLineId;
 				}
-
+				/*
 				// TODO: Probably it's not required
 				var lineGroup = snapshots.GroupBy(e => e.BranchLineId);
 				Parallel.ForEach(lineGroup, (commitsGroup) => {
@@ -229,7 +216,7 @@ namespace TimeLapseView {
 
 					// TODO: Probably childs also
 				}
-
+				*/
 				// Calculate Commit Base history
 				for (int i = snapshots.Count - 1; i >= 0; i--) {
 					var snapshot = snapshots[i];
@@ -260,16 +247,16 @@ namespace TimeLapseView {
 				// Remove unvisible snapshots
 				//for (int i = 0; i < snapshots.Count; i++) snapshots[i].IsCommitVisible = true;
 
-
+				/*
 				snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
 				for (int i = 0; i < snapshots.Count; i++) snapshots[i].Index = i;
-
+				*/
 				// Read files content
 				Parallel.ForEach(snapshots, (snapshot) => {
 					// TODO: Lazy loading
-					snapshot.File = GetFileContent(snapshot, treeFile);
+					//snapshot.File = GetFileContent(snapshot, treeFile);
 				});
-
+				/*
 				// Life time...
 				//Parallel.ForEach(snapshots, (snapshot) => {
 				foreach (var snapshot in snapshots) {
@@ -281,7 +268,7 @@ namespace TimeLapseView {
 						// TODO: OutOfMemoryException with large files in diff class.
 						// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
 						var diff = fileComparer.BuildDiffModel(snapshot.File, parent.File);
-						if (snapshot.FileDetails ==  null) snapshot.FileDetails = new CodeFile(diff.Lines.Count()*2/*.Count(e => e.Type != ChangeType.Deleted)*/);
+						if (snapshot.FileDetails ==  null) snapshot.FileDetails = new CodeFile(diff.Lines.Count()*2);
 						snapshot.FileDetails.ResetCursor();
 
 						int parentLineNumber = -1;
@@ -317,6 +304,10 @@ namespace TimeLapseView {
 						}
 					}
 				}*/
+			}
+
+			foreach(var snapshot in snapshots) {
+				snapshot.FileDetails = new CodeFile(0);
 			}
 
 			return snapshots;
