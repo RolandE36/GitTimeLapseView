@@ -127,23 +127,11 @@ namespace TimeLapseView {
 					}
 				}
 
-				// TODO: Slow perfomance
-				// TODO: Probably wrong order
-				// TODO: Very coplicated
-				// Remove commits without changes in file (except merge requests to important file)
+				// Remove commits without changes in file
 				for (int i = snapshots.Count - 1; i >= 0; i--) {
 					var snapshot = snapshots[i];
-
-					if (snapshot.Commit.Parents.Count == 0) continue;
-					if (snapshot.Commit.Childs.Count == 0) continue;
-					if (snapshot.IsImportantCommit) continue;
-					if (!snapshot.IsCommitVisible) continue;
-
-					// Mainly for merge requests with one child
-					if (snapshot.Commit.Childs.Count == 1 &&
-						dictionary[snapshot.Commit.Childs.First()].IsImportantCommit) continue;
+					if (snapshot.IsCommitRelatedToFile) continue;
 						
-					// TODO: Probably we shouldn't include all merges from the same line, only last one
 					foreach (var c in snapshot.Commit.Childs) {
 						var child = dictionary[c];
 						foreach (var sha in snapshot.Commit.Parents) {
@@ -151,7 +139,6 @@ namespace TimeLapseView {
 						}
 					}
 
-					// TODO: Probably we shouldn't include all merges from the same line, only first one
 					foreach (var p in snapshot.Commit.Parents) {
 						var parent = dictionary[p];
 						foreach (var sha in snapshot.Commit.Childs) {
@@ -160,8 +147,6 @@ namespace TimeLapseView {
 					}
 
 					snapshot.IsCommitVisible = false;
-					//snapshot.Commit.Childs.Clear();
-					//snapshot.Commit.Parents.Clear();
 				}
 				
 				// Find related lines
