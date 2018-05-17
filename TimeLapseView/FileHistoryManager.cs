@@ -50,29 +50,6 @@ namespace TimeLapseView {
 			}
 		}
 
-		/// <summary>
-		/// Answer is file was modified in current commit (in compare with all parent commits)
-		/// </summary>
-		/// <param name="commit">Current commit</param>
-		/// <param name="file">File path</param>
-		/// <returns>True if file was modified</returns>
-		private bool IsFileWasUpdated(LibGit2Sharp.Commit commit, string file) {
-			// File not exist
-			if (commit.Tree[file] == null) return false;
-			// TODO: File was deleted or renamed: if (commit.Tree[file] == null && commit.Parents.Count() > 0 && commit.Parents.All(e => e.Tree[file] != null)) return true;
-
-			// It's first commit so file was just created.
-			if (commit.Parents.Count() == 0) return true;
-
-			// Did not exist before
-			if (commit.Parents.All(e => e.Tree[file] == null)) return true;
-
-			// Nothing related to parent files
-			if (commit.Parents.All(e => e.Tree[file] == null || e.Tree[file].Target.Id != commit.Tree[file].Target.Id)) return true;
-
-			return false;
-		}
-
 		public List<Snapshot> GetCommitsHistory() {
 			snapshots = new List<Snapshot>();
 			dictionary = new Dictionary<string, Snapshot>();
@@ -113,64 +90,23 @@ namespace TimeLapseView {
 					}*/
 				}
 
-				// Remove not existing parents
-				Parallel.ForEach(snapshots, (snapshot) => {
-					foreach (var p in snapshot.Commit.Parents.ToList()) {
-						if (!dictionary.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
-					}
+				RemoveNotExistingParents();
+				LinkParentsWithChilds();
+				UnlinkCommitsWithoutChanges();
+				FindRelatedLines();
+				FindAllCommitAncestors();
+				RemoveNotValuableLinks();
+				AdvancedBranchesArchivation();
+				RemoveUnvisibleCommits();
+				ReadFilesContent(treeFile);
+
+				// TODO: Related only to rendering. Move to other place
+				var lineGroup = snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId);
+				Parallel.ForEach(lineGroup, (commitsGroup) => {
+					// Find line start/end
+					commitsGroup.First().IsFirstInLine = true;
+					commitsGroup.Last().IsLastInLine = true;
 				});
-
-				// Link parent and child commits
-				foreach (var snapshot in snapshots) {
-					foreach (var sha in snapshot.Commit.Parents) {
-						dictionary[sha].Commit.Childs.Add(snapshot.Sha);
-					}
-				}
-
-				// Remove commits without changes in file
-				for (int i = snapshots.Count - 1; i >= 0; i--) {
-					var snapshot = snapshots[i];
-					if (snapshot.IsCommitRelatedToFile) continue;
-						
-					foreach (var c in snapshot.Commit.Childs) {
-						var child = dictionary[c];
-						foreach (var sha in snapshot.Commit.Parents) {
-							if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
-						}
-					}
-
-					foreach (var p in snapshot.Commit.Parents) {
-						var parent = dictionary[p];
-						foreach (var sha in snapshot.Commit.Childs) {
-							if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
-						}
-					}
-
-					snapshot.IsCommitVisible = false;
-				}
-				
-				// Find related lines
-				var offset = 0;
-				var branch = 0;
-				foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
-					// Set new offset is not yet defined
-					if (snapshot.TreeOffset == -1) {
-						snapshot.TreeOffset = offset++;
-						snapshot.BranchLineId = branch++;
-					}
-
-					if (snapshot.Commit.Parents.Count == 0) continue;         // Do nothing if no parents
-					var parent = dictionary[snapshot.Commit.Parents.First()]; // Get first parent
-					if (parent.TreeOffset != -1) continue;                    // Do nothing if offset already defined
-
-					if (snapshot.Commit.Parents.Count == 1 &&                 // If commit has only one parrent 
-						parent.Commit.Childs.Count != 1 &&                    // and parent has several chils 
-						parent.Commit.Childs.Last() == snapshot.Sha)
-						continue;                                             // than set only values from last child
-
-					parent.TreeOffset = snapshot.TreeOffset;
-					parent.BranchLineId = snapshot.BranchLineId;
-				}
 				/*
 				// TODO: Probably it's not required
 				var lineGroup = snapshots.GroupBy(e => e.BranchLineId);
@@ -181,14 +117,6 @@ namespace TimeLapseView {
 							commit.IsCommitVisible = false;
 						}
 					}
-				});
-
-				// TODO: Related only to rendering. Move to other place
-				lineGroup = snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId);
-				Parallel.ForEach(lineGroup, (commitsGroup) => {
-					// Find line start/end
-					commitsGroup.First().IsFirstInLine = true;
-					commitsGroup.Last().IsLastInLine = true;
 				});
 
 				// TODO: Probably it's not required
@@ -202,46 +130,11 @@ namespace TimeLapseView {
 					// TODO: Probably childs also
 				}
 				*/
-				// Calculate Commit Base history
-				for (int i = snapshots.Count - 1; i >= 0; i--) {
-					var snapshot = snapshots[i];
-					if (!snapshot.IsCommitVisible) continue;
 
-					foreach (var psha in snapshot.Commit.Parents) {
-						AddAncestorToCommit(snapshot, psha);
-
-						foreach (var bsha in dictionary[psha].Commit.Base) {
-							AddAncestorToCommit(snapshot, bsha.Key);
-						}
-					}
-				}
-
-				// TODO: Investigate matrix (Parent cross Childs) perfomance
-				// Remove not Important parents based on Base History
-				foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
-					foreach (var p in snapshot.Commit.Parents.ToList()) {
-						if (snapshot.Commit.Base[p] != 1) {
-							snapshot.Commit.Parents.Remove(p);
-						}
-					}
-				}
-
-				AdvancedBranchesArchivation();
 				//SimpleBranchesArchivation();
 
-				// Remove unvisible snapshots
-				//for (int i = 0; i < snapshots.Count; i++) snapshots[i].IsCommitVisible = true;
 
-				/*
-				snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
-				for (int i = 0; i < snapshots.Count; i++) snapshots[i].Index = i;
-				*/
-				// Read files content
-				Parallel.ForEach(snapshots, (snapshot) => {
-					// TODO: Lazy loading
-					//snapshot.File = GetFileContent(snapshot, treeFile);
-				});
-				/*
+				//TODO: Calculate Life time right now in one loop
 				// Life time...
 				//Parallel.ForEach(snapshots, (snapshot) => {
 				foreach (var snapshot in snapshots) {
@@ -253,7 +146,7 @@ namespace TimeLapseView {
 						// TODO: OutOfMemoryException with large files in diff class.
 						// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
 						var diff = fileComparer.BuildDiffModel(snapshot.File, parent.File);
-						if (snapshot.FileDetails ==  null) snapshot.FileDetails = new CodeFile(diff.Lines.Count()*2);
+						if (snapshot.FileDetails == null) snapshot.FileDetails = new CodeFile(diff.Lines.Count() * 2);
 						snapshot.FileDetails.ResetCursor();
 
 						int parentLineNumber = -1;
@@ -280,7 +173,7 @@ namespace TimeLapseView {
 					}
 				}
 				snapshots.Last().FileDetails = new CodeFile(0);
-				/*
+
 				// Find lifetime for all lines in all commits
 				foreach (var snapshot in snapshots) {
 					for (int j = 0; j < snapshot.FileDetails.Count; j++) {
@@ -288,23 +181,170 @@ namespace TimeLapseView {
 							MeasureLineLife(snapshot.Index, j, snapshot.Index, snapshot.FileDetails[j].LID);
 						}
 					}
-				}*/
-			}
-
-			foreach(var snapshot in snapshots) {
-				snapshot.FileDetails = new CodeFile(0);
+				}
 			}
 
 			return snapshots;
 		}
 
-		private void SimpleBranchesArchivation() {
-			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
-			int position = 1;
-			for (int i = 1; i < maxBranchoffset + 1; i++) {
-				if (snapshots.Any(e => dictionary[e.Sha].IsCommitVisible && dictionary[e.Sha].TreeOffset == i)) {
-					foreach (var snapshot in snapshots.Where(e => e.TreeOffset == i)) snapshot.TreeOffset = position;
-					position++;
+		/// <summary>
+		/// Answer is file was modified in current commit (in compare with all parent commits)
+		/// </summary>
+		/// <param name="commit">Current commit</param>
+		/// <param name="file">File path</param>
+		/// <returns>True if file was modified</returns>
+		private bool IsFileWasUpdated(LibGit2Sharp.Commit commit, string file) {
+			// File not exist
+			if (commit.Tree[file] == null) return false;
+			// TODO: File was deleted or renamed: if (commit.Tree[file] == null && commit.Parents.Count() > 0 && commit.Parents.All(e => e.Tree[file] != null)) return true;
+
+			// It's first commit so file was just created.
+			if (commit.Parents.Count() == 0) return true;
+
+			// Did not exist before
+			if (commit.Parents.All(e => e.Tree[file] == null)) return true;
+
+			// Nothing related to parent files
+			if (commit.Parents.All(e => e.Tree[file] == null || e.Tree[file].Target.Id != commit.Tree[file].Target.Id)) return true;
+
+			return false;
+		}
+
+		/// <summary>
+		/// Remove links to parent commits which not in the current sample (for performance reasons).
+		/// </summary>
+		private void RemoveNotExistingParents() {
+			Parallel.ForEach(snapshots, (snapshot) => {
+				foreach (var p in snapshot.Commit.Parents.ToList()) {
+					if (!dictionary.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
+				}
+			});
+		}
+
+		/// <summary>
+		/// Link parent and child commits
+		/// </summary>
+		private void LinkParentsWithChilds() {
+			foreach (var snapshot in snapshots) {
+				foreach (var sha in snapshot.Commit.Parents) {
+					dictionary[sha].Commit.Childs.Add(snapshot.Sha);
+				}
+			}
+		}
+
+		/// <summary>
+		/// If file wasn't changed in commit then update links and hide commit
+		/// </summary>
+		private void UnlinkCommitsWithoutChanges() {
+			for (int i = snapshots.Count - 1; i >= 0; i--) {
+				var snapshot = snapshots[i];
+				if (snapshot.IsCommitRelatedToFile) continue;
+
+				foreach (var c in snapshot.Commit.Childs) {
+					var child = dictionary[c];
+					foreach (var sha in snapshot.Commit.Parents) {
+						if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
+					}
+				}
+
+				foreach (var p in snapshot.Commit.Parents) {
+					var parent = dictionary[p];
+					foreach (var sha in snapshot.Commit.Childs) {
+						if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
+					}
+				}
+
+				snapshot.IsCommitVisible = false;
+			}
+		}
+
+		/// <summary>
+		/// Remove not valuable commits
+		/// </summary>
+		private void RemoveUnvisibleCommits() {
+			// Remove unvisible snapshots
+			snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
+			dictionary.Clear();
+			for (int i = 0; i < snapshots.Count; i++) {
+				dictionary.Add(snapshots[i].Sha, snapshots[i]);
+				snapshots[i].Index = i;
+			}
+			RemoveNotExistingParents();
+		}
+
+		/// <summary>
+		/// Link related commits in to lines
+		/// </summary>
+		private void FindRelatedLines() {
+			// Find related lines
+			var offset = 0;
+			var branch = 0;
+			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+				// Set new offset is not yet defined
+				if (snapshot.TreeOffset == -1) {
+					snapshot.TreeOffset = offset++;
+					snapshot.BranchLineId = branch++;
+				}
+
+				if (snapshot.Commit.Parents.Count == 0) continue;    // Do nothing if no parents
+				
+				foreach (var p in snapshot.Commit.Parents) {
+					var parent = dictionary[p];
+					if (parent.TreeOffset != -1) continue;           // Do nothing if offset already defined
+
+					if (snapshot.Commit.Parents.Count == 1 &&        // If commit has only one parrent 
+						parent.Commit.Childs.Count != 1 &&           // and parent has several chils 
+						parent.Commit.Childs.Last() == snapshot.Sha)
+						continue;                                    // than set only values from last child
+
+					parent.TreeOffset = snapshot.TreeOffset;
+					parent.BranchLineId = snapshot.BranchLineId;
+					break;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Add sha as ancestor for commit
+		/// </summary>
+		private void AddAncestorToCommit(Snapshot snapshot, string sha) {
+			if (!snapshot.Commit.Base.Keys.Contains(sha)) {
+				snapshot.Commit.Base[sha] = 1;
+			} else {
+				snapshot.Commit.Base[sha]++;
+			}
+		}
+
+		/// <summary>
+		/// To remove not valuable links we should have details about all commit ancestors
+		/// </summary>
+		private void FindAllCommitAncestors() {
+			// Calculate Commit Base history
+			for (int i = snapshots.Count - 1; i >= 0; i--) {
+				var snapshot = snapshots[i];
+				if (!snapshot.IsCommitVisible) continue;
+
+				foreach (var psha in snapshot.Commit.Parents) {
+					AddAncestorToCommit(snapshot, psha);
+
+					foreach (var bsha in dictionary[psha].Commit.Base) {
+						AddAncestorToCommit(snapshot, bsha.Key);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Remove duplicates to cleanup relations
+		/// </summary>
+		private void RemoveNotValuableLinks() {
+			// TODO: Investigate matrix (Parent cross Childs) perfomance
+			// Remove not Important parents based on Base History
+			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+				foreach (var p in snapshot.Commit.Parents.ToList()) {
+					if (snapshot.Commit.Base[p] != 1) {
+						snapshot.Commit.Parents.Remove(p);
+					}
 				}
 			}
 		}
@@ -341,15 +381,40 @@ namespace TimeLapseView {
 		}
 
 		/// <summary>
-		/// Add sha as ancestor for commit
+		/// Read file content
 		/// </summary>
-		private void AddAncestorToCommit(Snapshot snapshot, string sha) {
-			if (!snapshot.Commit.Base.Keys.Contains(sha)) {
-				snapshot.Commit.Base[sha] = 1;
-			} else {
-				snapshot.Commit.Base[sha]++;
+		private string GetFileContent(Snapshot snapshot, string file) {
+			var blob = (Blob)snapshot.Commit.GitCommit[file].Target;
+			// TODO: probably use commit.Encoding
+			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
+				return reader.ReadToEnd();
 			}
 		}
+
+		/// <summary>
+		/// Reead files content
+		/// </summary>
+		/// <param name="treeFile">File name</param>
+		private void ReadFilesContent(string treeFile) {
+			Parallel.ForEach(snapshots, (snapshot) => {
+				snapshot.File = GetFileContent(snapshot, treeFile);
+			});
+		}
+
+		private void SimpleBranchesArchivation() {
+			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
+			int position = 1;
+			for (int i = 1; i < maxBranchoffset + 1; i++) {
+				if (snapshots.Any(e => dictionary[e.Sha].IsCommitVisible && dictionary[e.Sha].TreeOffset == i)) {
+					foreach (var snapshot in snapshots.Where(e => e.TreeOffset == i)) snapshot.TreeOffset = position;
+					position++;
+				}
+			}
+		}
+
+		
+
+		
 
 		/// <summary>
 		/// Find first/last commits of line life
@@ -444,14 +509,6 @@ namespace TimeLapseView {
 			// No path/name changes was found.
 			snapshot.FilePathState = FilePathState.NotChanged;
 			return name;
-		}
-
-		private string GetFileContent(Snapshot snapshot, string file) {
-			var blob = (Blob)snapshot.Commit.GitCommit[file].Target;
-			// TODO: probably use commit.Encoding
-			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-				return reader.ReadToEnd();
-			}
 		}
 	}
 }
