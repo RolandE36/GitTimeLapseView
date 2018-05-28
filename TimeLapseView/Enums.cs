@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public enum LineState {
+		Unknown   = 0x0000,
 		Deleted   = 0x0001,
 		Modified  = 0x0011,
 		Inserted  = 0x0111,

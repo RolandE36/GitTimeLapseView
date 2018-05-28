@@ -44,6 +44,8 @@ namespace TimeLapseView {
 
 		//TODO: Incorrect place. Use view model
 		public List<object> UiElements { get; set; }
+		public object UiCircle { get; set; }
+
 		public bool IsFirstInLine { get; set; }
 		public bool IsLastInLine { get; set; }
 	}
@@ -117,24 +119,16 @@ namespace TimeLapseView {
 		public LineState[] State;
 
 		/// <summary>
-		/// Number of the same line in parent commit
-		/// </summary>
-		public int[] ParentLineNumber;
-
-		/// <summary>
 		/// Index of the first commit with current line
 		/// </summary>
+		[Obsolete]
 		public int[] Birth;
 
 		/// <summary>
 		/// Index of the last commit with current line
 		/// </summary>
+		[Obsolete]
 		public int[] Death;
-
-		/// <summary>
-		/// Pointer for lines initialization
-		/// </summary>
-		private int cursor;
 
 		/// <summary>
 		/// Static variable for unique id's generation
@@ -146,36 +140,31 @@ namespace TimeLapseView {
 		/// </summary>
 		public readonly int Count;
 
+		/// <summary>
+		/// Link to dictionary with line life
+		/// </summary>
+		public int[] LineHistory;
+
+		/// <summary>
+		/// Life of each unique line sequence
+		/// </summary>
+		public static Dictionary<int, HashSet<string>> LineBase;
+
 		/// <param name="lines">Lines count in file</param>
 		public CodeFile(int lines) {
 			Lid = new int[lines];
 			State = new LineState[lines];
-			ParentLineNumber = new int[lines];
 			Birth = new int[lines];
 			Death = new int[lines];
+			LineHistory = new int[lines];
 			Count = lines;
-			cursor = 0;
+			if (LineBase == null) LineBase = new Dictionary<int, HashSet<string>>();
 
 			for (int i = 0; i < lines; i++) {
 				Lid[i] = uniqueId++;
-				State[i] = LineState.Unchanged;
-				ParentLineNumber[i] = -1;
+				State[i] = LineState.Unknown;
+				Death[i] = 0;
 			}
-		}
-
-		public void ResetCursor() {
-			cursor = 0;
-		}
-
-		/// <summary>
-		/// Initialize next line state in queue
-		/// </summary>
-		/// <param name="state">New state</param>
-		/// <param name="parentLineNumber">Number of the same line in parent commit</param>
-		public void InitializeNextLine(LineState state, int parentLineNumber) {
-			State[cursor] |= state;
-			if (state == LineState.Unchanged) ParentLineNumber[cursor] = parentLineNumber;
-			cursor++;
 		}
 
 		/// <summary>
@@ -221,13 +210,6 @@ namespace TimeLapseView {
 			set { ParentFile.State[Number] = value; }
 		}
 
-		/// <summary>
-		/// Number of the same line in parent commit
-		/// </summary>
-		public int ParentLineNumber {
-			get { return ParentFile.ParentLineNumber[Number]; }
-			set { ParentFile.ParentLineNumber[Number] = value; }
-		}
 		/// <summary>
 		/// Index of the first commit with current line
 		/// </summary>

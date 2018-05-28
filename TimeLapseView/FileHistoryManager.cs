@@ -99,6 +99,7 @@ namespace TimeLapseView {
 				AdvancedBranchesArchivation();
 				RemoveUnvisibleCommits();
 				ReadFilesContent(treeFile);
+				FindLifeTimeForEachLine();
 
 				// TODO: Related only to rendering. Move to other place
 				var lineGroup = snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId);
@@ -133,54 +134,12 @@ namespace TimeLapseView {
 
 				//SimpleBranchesArchivation();
 
-
-				//TODO: Calculate Life time right now in one loop
-				// Life time...
-				//Parallel.ForEach(snapshots, (snapshot) => {
-				foreach (var snapshot in snapshots) {
-					foreach (var p in snapshot.Commit.Parents) {
-						var parent = dictionary[p];
-
-						// TODO: Compare with each parent file, not with previous snapshot
-						// TODO: Remove snapshots without changes (as results of merge requests)
-						// TODO: OutOfMemoryException with large files in diff class.
-						// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
-						var diff = fileComparer.BuildDiffModel(snapshot.File, parent.File);
-						if (snapshot.FileDetails == null) snapshot.FileDetails = new CodeFile(diff.Lines.Count() * 2);
-						snapshot.FileDetails.ResetCursor();
-
-						int parentLineNumber = -1;
-						// TODO: Compare Line SubPieces -> diff.Lines[0].SubPieces
-						foreach (var line in diff.Lines) {
-							parentLineNumber++;
-							switch (line.Type) {
-								case ChangeType.Modified:
-									snapshot.FileDetails.InitializeNextLine(LineState.Modified, -1);
-									break;
-								case ChangeType.Inserted:
-									snapshot.FileDetails.InitializeNextLine(LineState.Inserted, -1);
-									--parentLineNumber;
-									break;
-								case ChangeType.Deleted:
-									// Nothing to add. Parent line number already calculated.
-									continue;
-								default:
-									// TODO: count - 1 .........
-									snapshot.FileDetails.InitializeNextLine(LineState.Unchanged, parentLineNumber);
-									break;
-							}
-						}
-					}
+				for (var i = 0; i < snapshots[0].FileDetails.Death.Length; i++) {
+					snapshots[0].FileDetails.Death[i] = 0;
 				}
-				snapshots.Last().FileDetails = new CodeFile(0);
 
-				// Find lifetime for all lines in all commits
-				foreach (var snapshot in snapshots) {
-					for (int j = 0; j < snapshot.FileDetails.Count; j++) {
-						if (snapshot.FileDetails[j].Birth == 0) {
-							MeasureLineLife(snapshot.Index, j, snapshot.Index, snapshot.FileDetails[j].LID);
-						}
-					}
+				for (var i = 1; i < snapshots.Count; i++) {
+					var snapshot = snapshots[i];
 				}
 			}
 
@@ -401,6 +360,111 @@ namespace TimeLapseView {
 			});
 		}
 
+		/// <summary>
+		/// Find life time of each line
+		/// </summary>
+		private void FindLifeTimeForEachLine() {
+			// Set default values for commits without parents
+			foreach (var snapshot in snapshots.Where(e => e.Commit.Parents.Count() == 0)) {
+				// TODO: Calculate file size after read
+				var fileLinesCount = snapshot.File.Split('\n').Count();
+
+				snapshot.FileDetails = new CodeFile(fileLinesCount);
+				for (var i = 0; i < fileLinesCount; i++) {
+					snapshot.FileDetails.Birth[i] = snapshot.Index;
+					snapshot.FileDetails.State[i] = LineState.Inserted;
+
+					// new aproach
+					var lineBaseId = CodeFile.LineBase.Count + 1;
+					snapshot.FileDetails.LineHistory[i] = lineBaseId;
+					CodeFile.LineBase[lineBaseId] = new HashSet<string>();
+					CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+				}
+			};
+
+			for (var i = snapshots.Count - 2; i >= 0; i--) {
+				var snapshot = snapshots[i];
+
+				// TODO: Calculate file size after read
+				snapshot.FileDetails = new CodeFile(snapshot.File.Split('\n').Count());
+
+				foreach (var p in snapshots[i].Commit.Parents) {
+					var parent = dictionary[p];
+
+					// TODO: OutOfMemoryException with large files in diff class.
+					// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
+					var diff = fileComparer.BuildDiffModel(parent.File, snapshot.File);
+
+					int parentLineNumber = -1;
+					int lineIndex = 0;
+					foreach (var line in diff.Lines) {
+						parentLineNumber++;
+						switch (line.Type) {
+							case ChangeType.Modified:
+								snapshot.FileDetails.State[lineIndex] |= LineState.Modified;
+								if (snapshot.FileDetails.State[lineIndex] == LineState.Modified) {
+									snapshot.FileDetails.Birth[lineIndex] = snapshot.Index;
+
+									var lineBaseId = CodeFile.LineBase.Count + 1;
+									snapshot.FileDetails.LineHistory[lineIndex] = lineBaseId;
+									CodeFile.LineBase[lineBaseId] = new HashSet<string>();
+									CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+								}
+								lineIndex++;
+								break;
+							case ChangeType.Inserted:
+								snapshot.FileDetails.State[lineIndex] |= LineState.Inserted;
+								if (snapshot.FileDetails.State[lineIndex] == LineState.Inserted) {
+									snapshot.FileDetails.Birth[lineIndex] = snapshot.Index;
+
+									var lineBaseId = CodeFile.LineBase.Count + 1;
+									snapshot.FileDetails.LineHistory[lineIndex] = lineBaseId;
+									CodeFile.LineBase[lineBaseId] = new HashSet<string>();
+									CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+								}
+								--parentLineNumber;
+								lineIndex++;
+								break;
+							case ChangeType.Deleted:
+								// Nothing to add. Parent line number already calculated.
+								break;
+							default:
+								// Already unchanged
+								snapshot.FileDetails.Birth[lineIndex] = parent.FileDetails.Birth[parentLineNumber];
+
+								// Initial commit wasn't added to history and as result, 
+								// line could be unchanged for two parents.
+								if (snapshot.FileDetails.State[lineIndex] == LineState.Unchanged) {
+									var parentLineBaseId = parent.FileDetails.LineHistory[parentLineNumber];
+									var snapshotLineBaseId = snapshot.FileDetails.LineHistory[lineIndex];
+									foreach (var sha in CodeFile.LineBase[parentLineBaseId]) {
+										if (!CodeFile.LineBase[snapshotLineBaseId].Contains(sha)) {
+											CodeFile.LineBase[snapshotLineBaseId].Add(sha);
+										}
+									}
+
+									//  E        Related lines should have the same history
+									//  |    D   E is related to D
+									//  C   /
+									//  /\ /
+									// /  B      initial parent was missed
+									// A         so A and B is the same lines
+									CodeFile.LineBase[parentLineBaseId] = CodeFile.LineBase[snapshotLineBaseId];
+								} else {
+									snapshot.FileDetails.State[lineIndex] |= LineState.Unchanged;
+									var parentLineBaseId = parent.FileDetails.LineHistory[parentLineNumber];
+									snapshot.FileDetails.LineHistory[lineIndex] = parentLineBaseId;
+									CodeFile.LineBase[parentLineBaseId].Add(snapshot.Sha);
+								}
+
+								lineIndex++;
+								break;
+						}
+					}
+				}
+			}
+		}
+
 		private void SimpleBranchesArchivation() {
 			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
 			int position = 1;
@@ -409,36 +473,6 @@ namespace TimeLapseView {
 					foreach (var snapshot in snapshots.Where(e => e.TreeOffset == i)) snapshot.TreeOffset = position;
 					position++;
 				}
-			}
-		}
-
-		
-
-		
-
-		/// <summary>
-		/// Find first/last commits of line life
-		/// </summary>
-		/// <param name="snapshotIndex">Commit Index</param>
-		/// <param name="lineIndex">Line Index</param>
-		/// <param name="sequenceEnd">Last Commit Index</param>
-		/// <param name="lid">Line Life ID</param>
-		/// <returns>First Commit Index</returns>
-		private int MeasureLineLife(int snapshotIndex, int lineIndex, int sequenceEnd, int lid) {
-			// Stop if we reach last commit.
-			if (snapshotIndex == snapshots.Count - 1) {
-				return snapshotIndex;
-			}
-
-			var line = snapshots[snapshotIndex].FileDetails[lineIndex];
-			line.Death = sequenceEnd;
-			line.LID = lid;
-			if (line.State == LineState.Unchanged && line.ParentLineNumber != -1) {
-				// If line wasn't changed then go deeper
-				return line.Birth = MeasureLineLife(snapshotIndex + 1, line.ParentLineNumber, sequenceEnd, line.LID);
-			} else {
-				// In other case we found line birthdate
-				return line.Birth = snapshotIndex;
 			}
 		}
 
