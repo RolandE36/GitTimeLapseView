@@ -93,11 +93,11 @@ namespace TimeLapseView {
 				RemoveNotExistingParents();
 				LinkParentsWithChilds();
 				UnlinkCommitsWithoutChanges();
-				FindRelatedLines();
 				FindAllCommitAncestors();
 				RemoveNotValuableLinks();
-				AdvancedBranchesArchivation();
 				RemoveUnvisibleCommits();
+				FindRelatedLines();
+				AdvancedBranchesArchivation();
 				ReadFilesContent(treeFile);
 				FindLifeTimeForEachLine();
 
