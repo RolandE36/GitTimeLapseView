@@ -28,8 +28,6 @@ namespace TimeLapseView {
 		public readonly string filePath;
 
 		private List<Snapshot> snapshots;
-		// TODO: Should be private
-		public Dictionary<string, Snapshot> dictionary;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
@@ -52,7 +50,6 @@ namespace TimeLapseView {
 
 		public List<Snapshot> GetCommitsHistory() {
 			snapshots = new List<Snapshot>();
-			dictionary = new Dictionary<string, Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
@@ -65,7 +62,7 @@ namespace TimeLapseView {
 				foreach (var commit in repo.Commits.Take(1000)) {
 
 					// Observable commit
-					var snapshot = new Snapshot() {
+					var snapshot = new Snapshot(commit.Sha) {
 						Index = snapshots.Count,
 						FilePath = treeFile,
 						Commit = new Commit(commit),
@@ -77,7 +74,7 @@ namespace TimeLapseView {
 					};
 
 					snapshots.Add(snapshot);
-					dictionary[snapshot.Sha] = snapshot;
+
 
 					// TODO: Not working for tree. Should revrite code for files renaming
 					/*
@@ -134,10 +131,6 @@ namespace TimeLapseView {
 
 				//SimpleBranchesArchivation();
 
-				for (var i = 0; i < snapshots[0].FileDetails.Death.Length; i++) {
-					snapshots[0].FileDetails.Death[i] = 0;
-				}
-
 				for (var i = 1; i < snapshots.Count; i++) {
 					var snapshot = snapshots[i];
 				}
@@ -175,7 +168,7 @@ namespace TimeLapseView {
 		private void RemoveNotExistingParents() {
 			Parallel.ForEach(snapshots, (snapshot) => {
 				foreach (var p in snapshot.Commit.Parents.ToList()) {
-					if (!dictionary.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
+					if (!Snapshot.All.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
 				}
 			});
 		}
@@ -186,7 +179,7 @@ namespace TimeLapseView {
 		private void LinkParentsWithChilds() {
 			foreach (var snapshot in snapshots) {
 				foreach (var sha in snapshot.Commit.Parents) {
-					dictionary[sha].Commit.Childs.Add(snapshot.Sha);
+					Snapshot.All[sha].Commit.Childs.Add(snapshot.Sha);
 				}
 			}
 		}
@@ -200,14 +193,14 @@ namespace TimeLapseView {
 				if (snapshot.IsCommitRelatedToFile) continue;
 
 				foreach (var c in snapshot.Commit.Childs) {
-					var child = dictionary[c];
+					var child = Snapshot.All[c];
 					foreach (var sha in snapshot.Commit.Parents) {
 						if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
 					}
 				}
 
 				foreach (var p in snapshot.Commit.Parents) {
-					var parent = dictionary[p];
+					var parent = Snapshot.All[p];
 					foreach (var sha in snapshot.Commit.Childs) {
 						if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
 					}
@@ -221,11 +214,13 @@ namespace TimeLapseView {
 		/// Remove not valuable commits
 		/// </summary>
 		private void RemoveUnvisibleCommits() {
+			foreach (var snapshot in snapshots.Where(e => !e.IsCommitVisible)) {
+				snapshot.Dispose();
+			}
+
 			// Remove unvisible snapshots
 			snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
-			dictionary.Clear();
 			for (int i = 0; i < snapshots.Count; i++) {
-				dictionary.Add(snapshots[i].Sha, snapshots[i]);
 				snapshots[i].Index = i;
 			}
 			RemoveNotExistingParents();
@@ -248,7 +243,7 @@ namespace TimeLapseView {
 				if (snapshot.Commit.Parents.Count == 0) continue;    // Do nothing if no parents
 				
 				foreach (var p in snapshot.Commit.Parents) {
-					var parent = dictionary[p];
+					var parent = Snapshot.All[p];
 					if (parent.TreeOffset != -1) continue;           // Do nothing if offset already defined
 
 					if (snapshot.Commit.Parents.Count == 1 &&        // If commit has only one parrent 
@@ -286,7 +281,7 @@ namespace TimeLapseView {
 				foreach (var psha in snapshot.Commit.Parents) {
 					AddAncestorToCommit(snapshot, psha);
 
-					foreach (var bsha in dictionary[psha].Commit.Base) {
+					foreach (var bsha in Snapshot.All[psha].Commit.Base) {
 						AddAncestorToCommit(snapshot, bsha.Key);
 					}
 				}
@@ -371,7 +366,6 @@ namespace TimeLapseView {
 
 				snapshot.FileDetails = new CodeFile(fileLinesCount);
 				for (var i = 0; i < fileLinesCount; i++) {
-					snapshot.FileDetails.Birth[i] = snapshot.Index;
 					snapshot.FileDetails.State[i] = LineState.Inserted;
 
 					// new aproach
@@ -389,7 +383,7 @@ namespace TimeLapseView {
 				snapshot.FileDetails = new CodeFile(snapshot.File.Split('\n').Count());
 
 				foreach (var p in snapshots[i].Commit.Parents) {
-					var parent = dictionary[p];
+					var parent = Snapshot.All[p];
 
 					// TODO: OutOfMemoryException with large files in diff class.
 					// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
@@ -403,7 +397,6 @@ namespace TimeLapseView {
 							case ChangeType.Modified:
 								snapshot.FileDetails.State[lineIndex] |= LineState.Modified;
 								if (snapshot.FileDetails.State[lineIndex] == LineState.Modified) {
-									snapshot.FileDetails.Birth[lineIndex] = snapshot.Index;
 
 									var lineBaseId = CodeFile.LineBase.Count + 1;
 									snapshot.FileDetails.LineHistory[lineIndex] = lineBaseId;
@@ -415,7 +408,6 @@ namespace TimeLapseView {
 							case ChangeType.Inserted:
 								snapshot.FileDetails.State[lineIndex] |= LineState.Inserted;
 								if (snapshot.FileDetails.State[lineIndex] == LineState.Inserted) {
-									snapshot.FileDetails.Birth[lineIndex] = snapshot.Index;
 
 									var lineBaseId = CodeFile.LineBase.Count + 1;
 									snapshot.FileDetails.LineHistory[lineIndex] = lineBaseId;
@@ -430,8 +422,6 @@ namespace TimeLapseView {
 								break;
 							default:
 								// Already unchanged
-								snapshot.FileDetails.Birth[lineIndex] = parent.FileDetails.Birth[parentLineNumber];
-
 								// Initial commit wasn't added to history and as result, 
 								// line could be unchanged for two parents.
 								if (snapshot.FileDetails.State[lineIndex] == LineState.Unchanged) {
@@ -469,7 +459,7 @@ namespace TimeLapseView {
 			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
 			int position = 1;
 			for (int i = 1; i < maxBranchoffset + 1; i++) {
-				if (snapshots.Any(e => dictionary[e.Sha].IsCommitVisible && dictionary[e.Sha].TreeOffset == i)) {
+				if (snapshots.Any(e => Snapshot.All[e.Sha].IsCommitVisible && Snapshot.All[e.Sha].TreeOffset == i)) {
 					foreach (var snapshot in snapshots.Where(e => e.TreeOffset == i)) snapshot.TreeOffset = position;
 					position++;
 				}

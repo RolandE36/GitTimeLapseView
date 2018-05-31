@@ -34,8 +34,6 @@ namespace WpfUI {
 
 		ViewData View;
 
-		FileHistoryManager manager;
-
 		class MovieData {
 			public string Title { get; set; }
 			public string ImageData { get; set; }
@@ -50,26 +48,14 @@ namespace WpfUI {
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
 			if (View == null) return;
-			SelectedCommitIndexChanged((int)(slHistoy.Maximum - slHistoy.Value));
+			View.SetViewIndex((int)(slHistoy.Maximum - slHistoy.Value));
 		}
 
 		private void lvVerticalHistoryPanel_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-			SelectedCommitIndexChanged(lvVerticalHistoryPanel.SelectedIndex);
+			View.SetViewIndex(lvVerticalHistoryPanel.SelectedIndex);
 		}
-
-		/// <summary>
-		/// On changed current view index event handler.
-		/// </summary>
-		/// <param name="index">new selected index</param>
-		private void SelectedCommitIndexChanged(int index) {
-			if (View == null || index < 0 || View.Snapshots.Count == 0) return;
-
-			View.SnapshotIndex = index;
-			tbCode.Text = View.Snapshots[index].File;
-			slHistoy.Value = slHistoy.Maximum - index;
-			lvVerticalHistoryPanel.SelectedIndex = index;
-			UpdateCommitDetails(View.Snapshots[index]);
-		}
+		
+		public CanvasTreeRenderer cr;
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
 			OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -79,7 +65,7 @@ namespace WpfUI {
 				try {
 					var filename = openFileDialog.FileNames.FirstOrDefault();
 
-					manager = new FileHistoryManager(filename);
+					var manager = new FileHistoryManager(filename);
 					Title = APP_TITLE + ": " + manager.filePath;
 					View = new ViewData(manager.GetCommitsHistory());
 					slHistoy.Maximum = View.Snapshots.Count;
@@ -89,8 +75,17 @@ namespace WpfUI {
 					lblCommitDetailsSection.Visibility = Visibility.Visible;
 					SetBackgroundRendererMode(RendererMode.TimeLapse);
 
-					var cr = new CanvasTreeRenderer(View, Canvas1);
+					cr = new CanvasTreeRenderer(View, Canvas1);
 					cr.BuildTree();
+
+					// TODO: Mediator patern????
+					// TODO: View should exist without snapshots
+					View.OnViewIndexChangedEvent = (index, snapshot) => {
+						tbCode.Text = snapshot.File;
+						slHistoy.Value = slHistoy.Maximum - index;
+						lvVerticalHistoryPanel.SelectedIndex = index;
+						UpdateCommitDetails(snapshot);
+					};
 
 					// TODO: Implement Search by commits
 					// TODO: Highlight code on hover
@@ -118,7 +113,10 @@ namespace WpfUI {
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
 			try {
-				if (View.SelectedSnapshotIndex == View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Birth) {
+				if (View.SelectedSnapshotIndex == View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1)) {
+
+					cr.DrawRelated(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]], 1);
+
 					View.SelectedSnapshotIndex = -1;
 					View.SelectedLine = -1;
 					View.SelectedLineLID = -1;
@@ -128,15 +126,16 @@ namespace WpfUI {
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
-					View.SelectedSnapshotIndex = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Birth;
+					View.SelectedSnapshotIndex = View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
 					View.SelectedLineLID = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 
+					cr.DrawRelated(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]], 2);
 					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
 
 					slHistoy.IsSelectionRangeEnabled = true;
-					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Birth;
-					slHistoy.SelectionEnd = slHistoy.Maximum - View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].Death;
+					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
+					slHistoy.SelectionEnd = slHistoy.Maximum - View.Snapshot.GetLineDeath(tbCode.TextArea.Caret.Line - 1);
 				}
 
 				tbCode.TextArea.TextView.Redraw();
@@ -183,7 +182,7 @@ namespace WpfUI {
 		private void UpdateCommitDetails(Snapshot snapshot) {
 			var commit                = snapshot.Commit;
 			lblCommitSha.Text         = commit.Sha;
-			lblCommitAuthor.Text = commit.Author;
+			lblCommitAuthor.Text      = commit.Author;
 			lblCommitDate.Text        = commit.Date.ToString();
 			lblCommitMessageText.Text = commit.Description;
 			lblFilePath.Text          = snapshot.FilePath;

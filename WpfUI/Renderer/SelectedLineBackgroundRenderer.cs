@@ -41,7 +41,7 @@ namespace WpfUI.Renderer {
 
 				var brush = default(Brush);
 
-				if (host.SelectedSnapshotIndex != -1 && host.Snapshot.FileDetails[linenum].Birth == host.SelectedSnapshotIndex) {
+				if (host.SelectedSnapshotIndex != -1 && host.Snapshot.GetLineBirth(linenum) == host.SelectedSnapshotIndex) {
 					brush = selectedCommitBackground;
 				}
 

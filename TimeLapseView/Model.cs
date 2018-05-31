@@ -5,7 +5,18 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace TimeLapseView {
-	public class Snapshot {
+	public class Snapshot : IDisposable {
+		public static Dictionary<string, Snapshot> All = new Dictionary<string, Snapshot>();
+
+		public Snapshot this[string sha] {
+			get => All[sha];
+			set => All[sha] = value;
+		}
+
+		public Snapshot(string sha) {
+			All[sha] = this;
+		}
+
 		public int Index { get; set; }
 		public string File { get; set; }
 		public string FilePath { get; set; }
@@ -48,6 +59,40 @@ namespace TimeLapseView {
 
 		public bool IsFirstInLine { get; set; }
 		public bool IsLastInLine { get; set; }
+
+		/// <summary>
+		/// Index of the first commit with provided line nuber
+		/// </summary>
+		public int GetLineBirth(int lineID) {
+			var selectedLineId = FileDetails.LineHistory[lineID];
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId];
+			return selectedLineCommits.Max(e => Snapshot.All[e].Index);
+		}
+
+		/// <summary>
+		/// Index of the last commit with provided line nuber
+		/// </summary>
+		public int GetLineDeath(int lineID) {
+			var selectedLineId = FileDetails.LineHistory[lineID];
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId];
+			return selectedLineCommits.Min(e => Snapshot.All[e].Index);
+		}
+
+		private bool disposed = false;
+
+		public void Dispose() {
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void Dispose(bool disposing) {
+			if (!this.disposed) {
+				if (disposing) {
+					All.Remove(Sha);
+				}
+				disposed = true;
+			}
+		}
 	}
 
 	public class Branch {
@@ -119,18 +164,6 @@ namespace TimeLapseView {
 		public LineState[] State;
 
 		/// <summary>
-		/// Index of the first commit with current line
-		/// </summary>
-		[Obsolete]
-		public int[] Birth;
-
-		/// <summary>
-		/// Index of the last commit with current line
-		/// </summary>
-		[Obsolete]
-		public int[] Death;
-
-		/// <summary>
 		/// Static variable for unique id's generation
 		/// </summary>
 		private static int uniqueId;
@@ -150,12 +183,11 @@ namespace TimeLapseView {
 		/// </summary>
 		public static Dictionary<int, HashSet<string>> LineBase;
 
+
 		/// <param name="lines">Lines count in file</param>
 		public CodeFile(int lines) {
 			Lid = new int[lines];
 			State = new LineState[lines];
-			Birth = new int[lines];
-			Death = new int[lines];
 			LineHistory = new int[lines];
 			Count = lines;
 			if (LineBase == null) LineBase = new Dictionary<int, HashSet<string>>();
@@ -163,7 +195,6 @@ namespace TimeLapseView {
 			for (int i = 0; i < lines; i++) {
 				Lid[i] = uniqueId++;
 				State[i] = LineState.Unknown;
-				Death[i] = 0;
 			}
 		}
 
@@ -208,22 +239,6 @@ namespace TimeLapseView {
 		public LineState State {
 			get { return ParentFile.State[Number]; }
 			set { ParentFile.State[Number] = value; }
-		}
-
-		/// <summary>
-		/// Index of the first commit with current line
-		/// </summary>
-		public int Birth {
-			get { return ParentFile.Birth[Number]; }
-			set { ParentFile.Birth[Number] = value; }
-		}
-
-		/// <summary>
-		/// Index of the last commit with current line
-		/// </summary>
-		public int Death {
-			get { return ParentFile.Death[Number]; }
-			set { ParentFile.Death[Number] = value; }
 		}
 	}
 }

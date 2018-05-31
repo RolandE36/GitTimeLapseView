@@ -49,7 +49,23 @@ namespace TimeLapseView {
 			SelectedSnapshotIndex = -1;
 			SelectedLine = -1;
 			SelectedLineLID = -1;
-			//ShowFullAuthorName = false;
+		}
+
+		/// <summary>
+		/// On changed current view index event.
+		/// </summary>
+		/// <param name="index">new selected index</param>
+		public Action<int, Snapshot> OnViewIndexChangedEvent;
+
+		/// <summary>
+		/// Change ative code index
+		/// </summary>
+		/// <param name="index">index in snapshots list</param>
+		public void SetViewIndex(int index) {
+			if (index < 0 || Snapshots.Count == 0) return;
+
+			SnapshotIndex = index;
+			OnViewIndexChangedEvent?.Invoke(index, Snapshot);
 		}
 	}
 }

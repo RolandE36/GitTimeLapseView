@@ -43,7 +43,7 @@ namespace WpfUI {
 				var brush = default(Brush);
 
 				// TODO: Move brush creation to separate class using percentage values (current, max, step)
-				var lineSnapshotsNumber = host.Snapshots.Count - host.Snapshot.FileDetails[linenum].Birth;
+				var lineSnapshotsNumber = host.Snapshots.Count - host.Snapshot.GetLineBirth(linenum);
 				var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.SnapshotIndex)) / 100;
 				// TODO: Fix calcultions
 				if (lineLifeTimePercent > 1) lineLifeTimePercent = 1;

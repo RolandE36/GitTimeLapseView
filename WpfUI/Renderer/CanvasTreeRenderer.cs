@@ -203,7 +203,9 @@ namespace WpfUI.Renderer {
 				ellipse.ToolTip = snapshot.Commit.Description;
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
+				ellipse.MouseLeftButtonDown += Ellipse_MouseLeftButtonDown;
 				ellipse.Tag = snapshot.Index;
+				snapshot.UiCircle = ellipse;
 
 				var x = (SCALE_X - diameter/2) + 2* SCALE_X * snapshot.TreeOffset;
 				var y = (SCALE_Y - diameter/2) + 2* SCALE_Y * snapshot.ViewIndex;
@@ -273,11 +275,34 @@ namespace WpfUI.Renderer {
 			(sender as Ellipse).StrokeThickness = 1;
 
 			var index = (int)(sender as Ellipse).Tag;
+			ViewData.SelectedSnapshotIndex = index;
+			// TODO: em.... nothing will be changed....
+		}
+
+		private void Ellipse_MouseLeftButtonDown(object sender, MouseEventArgs e) {
+			(sender as Ellipse).StrokeThickness = 1;
+
+			var index = (int)(sender as Ellipse).Tag;
 			var s = ViewData.Snapshots.First(f => f.Index == index);
 			foreach (var element in s.UiElements) {
 				(element as Shape).StrokeThickness = 1;
 			}
+
+			ViewData.SetViewIndex(index);
 		}
+
+		public void DrawRelated(HashSet<string> items, int size) {
+			// TODO: Rewrite this. We shouldn't have additional dictionary
+			var dictionary = new Dictionary<string, Snapshot>();
+			foreach (var snapshot in ViewData.Snapshots) {
+				dictionary[snapshot.Sha] = snapshot;
+			}
+
+			foreach (var item in items) {
+				(dictionary[item].UiCircle as Ellipse).StrokeThickness = size;
+			}
+		}
+
 
 		#region Tree preparation
 
