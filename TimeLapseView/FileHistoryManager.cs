@@ -116,17 +116,6 @@ namespace TimeLapseView {
 						}
 					}
 				});
-
-				// TODO: Probably it's not required
-				// Unlink unvisible commits
-				foreach (var snapshot in snapshots) {
-					foreach (var p in snapshot.Commit.Parents.ToList()) {
-						var parent = dictionary[p];
-						if (!parent.IsCommitVisible) snapshot.Commit.Parents.Remove(p);
-					}
-
-					// TODO: Probably childs also
-				}
 				*/
 
 				//SimpleBranchesArchivation();

@@ -53,12 +53,6 @@ namespace WpfUI.Renderer {
 		public void BuildTree() {
 			var rnd = new Random();
 
-			// TODO: Rewrite this. We shouldn't have additional dictionary
-			var dictionary = new Dictionary<string, Snapshot>();
-			foreach (var snapshot in ViewData.Snapshots) {
-				dictionary[snapshot.Sha] = snapshot;
-			}
-
 			foreach (var snapshot in ViewData.Snapshots) {
 				snapshot.ViewIndex = snapshot.Index;
 			}
@@ -85,7 +79,7 @@ namespace WpfUI.Renderer {
 				if (!snapshot.IsCommitVisible) continue;
 
 				foreach (var p in snapshot.Commit.Parents) {
-					var parent = dictionary[p];
+					var parent = Snapshot.All[p];
 					if (!parent.IsCommitVisible) continue;
 
 					var x1 = SCALE_X + 2 * SCALE_X * snapshot.TreeOffset;

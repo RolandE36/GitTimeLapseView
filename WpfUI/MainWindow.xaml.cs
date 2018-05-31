@@ -122,7 +122,7 @@ namespace WpfUI {
 					View.SelectedLineLID = -1;
 					int index = (int)(slHistoy.Maximum - slHistoy.Value);
 
-					UpdateCommitDetails(View.Snapshots[index]);
+					UpdateCommitDetails(View.Snapshot);
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
