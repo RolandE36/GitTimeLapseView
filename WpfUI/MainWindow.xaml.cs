@@ -99,6 +99,14 @@ namespace WpfUI {
 			}
 		}
 
+		private void Canvas_MouseDown(object sender, MouseButtonEventArgs e) {
+			Keyboard.ClearFocus();
+		}
+
+		private void MainWindow_KeyUp(object sender, KeyEventArgs e) {
+			
+		}
+
 		private void btnTimeLapseViewMode_Click(object sender, RoutedEventArgs e) {
 			SetBackgroundRendererMode(RendererMode.TimeLapse);
 		}

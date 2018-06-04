@@ -13,9 +13,15 @@ using System.Windows.Shapes;
 using TimeLapseView;
 
 namespace WpfUI.Renderer {
+	public class SnapshotCanvasModel {
+		public Ellipse Ellipse;
+		public List<Shape> Paths = new List<Shape>();
+	}
+
 	public class CanvasTreeRenderer {
 		public ViewData ViewData;
 		public Canvas Canvas;
+		private Dictionary<string, SnapshotCanvasModel> UiElements;
 
 		private const int SCALE_Y = 10;
 		private const int SCALE_X = 30;
@@ -46,9 +52,12 @@ namespace WpfUI.Renderer {
 		public CanvasTreeRenderer(ViewData viewData, Canvas canvas) {
 			ViewData = viewData;
 			Canvas = canvas;
-		}
+			UiElements = new Dictionary<string, SnapshotCanvasModel>();
 
-		public List<Ellipse> Ellipses = new List<Ellipse>();
+			foreach (var snapshot in ViewData.Snapshots) {
+				UiElements[snapshot.Sha] = new SnapshotCanvasModel();
+			}
+		}
 
 		public void BuildTree() {
 			var rnd = new Random();
@@ -103,9 +112,8 @@ namespace WpfUI.Renderer {
 						line.StrokeThickness = 1;
 
 						Canvas.Children.Add(line);
-
-						parent.UiElements.Add(line);
-						snapshot.UiElements.Add(line);
+						UiElements[parent.Sha].Paths.Add(line);
+						UiElements[snapshot.Sha].Paths.Add(line);
 					} else {
 						PathFigure figure = new PathFigure();
 
@@ -173,9 +181,8 @@ namespace WpfUI.Renderer {
 						path.Opacity = 1;
 
 						Canvas.Children.Add(path);
-
-						parent.UiElements.Add(path);
-						snapshot.UiElements.Add(path);
+						UiElements[parent.Sha].Paths.Add(path);
+						UiElements[snapshot.Sha].Paths.Add(path);
 
 						Canvas.SetLeft(path, x1);
 						Canvas.SetTop(path,  y1);
@@ -198,13 +205,12 @@ namespace WpfUI.Renderer {
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
 				ellipse.MouseLeftButtonDown += Ellipse_MouseLeftButtonDown;
-				ellipse.Tag = snapshot.Index;
-				snapshot.UiCircle = ellipse;
+				ellipse.Tag = snapshot.Sha;
 
 				var x = (SCALE_X - diameter/2) + 2* SCALE_X * snapshot.TreeOffset;
 				var y = (SCALE_Y - diameter/2) + 2* SCALE_Y * snapshot.ViewIndex;
 
-				Ellipses.Add(ellipse);
+				UiElements[snapshot.Sha].Ellipse = ellipse;
 				Canvas.Children.Add(ellipse);
 				Canvas.SetLeft(ellipse, x);
 				Canvas.SetTop(ellipse, y);
@@ -256,44 +262,34 @@ namespace WpfUI.Renderer {
 		}
 
 		private void Ellipse_OnMouseEnter(object sender, MouseEventArgs e) {
-			(sender as Ellipse).StrokeThickness = 2;
-			
-			var index = (int)(sender as Ellipse).Tag;
-			var s = ViewData.Snapshots.First(f => f.Index == index);
-			foreach (var element in s.UiElements) {
-				(element as Shape).StrokeThickness = 2;
+			var sha = (string)(sender as Ellipse).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 2;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = 2;
 			}
 		}
 
 		private void Ellipse_OnMouseLeave(object sender, MouseEventArgs e) {
-			(sender as Ellipse).StrokeThickness = 1;
-
-			var index = (int)(sender as Ellipse).Tag;
-			ViewData.SelectedSnapshotIndex = index;
-			// TODO: em.... nothing will be changed....
+			var sha = (string)(sender as Ellipse).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 1;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = 1;
+			}
 		}
 
 		private void Ellipse_MouseLeftButtonDown(object sender, MouseEventArgs e) {
-			(sender as Ellipse).StrokeThickness = 1;
-
-			var index = (int)(sender as Ellipse).Tag;
-			var s = ViewData.Snapshots.First(f => f.Index == index);
-			foreach (var element in s.UiElements) {
-				(element as Shape).StrokeThickness = 1;
+			var sha = (string)(sender as Ellipse).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 2;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = 2;
 			}
 
-			ViewData.SetViewIndex(index);
+			ViewData.SetViewIndex(Snapshot.All[sha].Index);
 		}
 
 		public void DrawRelated(HashSet<string> items, int size) {
-			// TODO: Rewrite this. We shouldn't have additional dictionary
-			var dictionary = new Dictionary<string, Snapshot>();
-			foreach (var snapshot in ViewData.Snapshots) {
-				dictionary[snapshot.Sha] = snapshot;
-			}
-
-			foreach (var item in items) {
-				(dictionary[item].UiCircle as Ellipse).StrokeThickness = size;
+			foreach (var sha in items) {
+				UiElements[sha].Ellipse.StrokeThickness = size;
 			}
 		}
 

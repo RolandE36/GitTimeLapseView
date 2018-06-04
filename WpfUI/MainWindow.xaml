@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:WpfUI"
         mc:Ignorable="d"
         Title="Git Time Lapse View" Height="350" Width="525"
+		KeyUp="MainWindow_KeyUp"
 >
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -83,9 +84,9 @@
 				</ListView.View>
 			</ListView>
 
-			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Name="CanvasScrollViewer" Focusable="False">
 				<Grid x:Name="drawingGrid">
-					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" >
+					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown">
 					</Canvas>
 				</Grid>
 			</ScrollViewer>

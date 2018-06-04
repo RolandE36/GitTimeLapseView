@@ -53,10 +53,6 @@ namespace TimeLapseView {
 
 		public double ViewIndex { get; set; }
 
-		//TODO: Incorrect place. Use view model
-		public List<object> UiElements { get; set; }
-		public object UiCircle { get; set; }
-
 		public bool IsFirstInLine { get; set; }
 		public bool IsLastInLine { get; set; }
 
