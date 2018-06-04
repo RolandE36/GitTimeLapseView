@@ -69,8 +69,7 @@ namespace TimeLapseView {
 						TreeOffset = -1,
 						BranchLineId = -1,
 						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile),
-						IsCommitVisible = true,
-						UiElements = new List<object>()
+						IsCommitVisible = true
 					};
 
 					snapshots.Add(snapshot);
@@ -87,14 +86,19 @@ namespace TimeLapseView {
 					}*/
 				}
 
-				RemoveNotExistingParents();
+				RemoveNotExistingParentsAndChilds();
 				LinkParentsWithChilds();
 				UnlinkCommitsWithoutChanges();
 				FindAllCommitAncestors();
 				RemoveNotValuableLinks();
 				RemoveUnvisibleCommits();
+
 				FindRelatedLines();
 				AdvancedBranchesArchivation();
+
+				FindRelatedLines();
+				AdvancedBranchesArchivation();
+
 				ReadFilesContent(treeFile);
 				FindLifeTimeForEachLine();
 
@@ -154,10 +158,13 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Remove links to parent commits which not in the current sample (for performance reasons).
 		/// </summary>
-		private void RemoveNotExistingParents() {
+		private void RemoveNotExistingParentsAndChilds() {
 			Parallel.ForEach(snapshots, (snapshot) => {
 				foreach (var p in snapshot.Commit.Parents.ToList()) {
 					if (!Snapshot.All.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
+				}
+				foreach (var c in snapshot.Commit.Childs.ToList()) {
+					if (!Snapshot.All.ContainsKey(c)) snapshot.Commit.Childs.Remove(c);
 				}
 			});
 		}
@@ -212,7 +219,7 @@ namespace TimeLapseView {
 			for (int i = 0; i < snapshots.Count; i++) {
 				snapshots[i].Index = i;
 			}
-			RemoveNotExistingParents();
+			RemoveNotExistingParentsAndChilds();
 		}
 
 		/// <summary>
@@ -222,6 +229,12 @@ namespace TimeLapseView {
 			// Find related lines
 			var offset = 0;
 			var branch = 0;
+
+			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+				snapshot.TreeOffset = -1;
+				snapshot.BranchLineId = -1;
+			}
+
 			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
 				// Set new offset is not yet defined
 				if (snapshot.TreeOffset == -1) {
