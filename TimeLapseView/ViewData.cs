@@ -35,15 +35,20 @@ namespace TimeLapseView {
 		public int SelectedLine;
 		public int SelectedLineLID;
 
-		// TODO: Probably add current state
-		//public RendererMode RendererMode;
+		#region Events
 
 		/// <summary>
-		/// Show long name: Roman Lytvyn
-		/// Or only initials: RL
+		/// On changed current view index event.
 		/// </summary>
-		//public bool ShowFullAuthorName;
+		/// <param name="index">new selected index</param>
+		public Action<int, Snapshot> OnViewIndexChangedEvent;
 
+		/// <summary>
+		/// On snapshot selection changed
+		/// </summary>
+		public Action OnSelectionChanged;
+
+		#endregion
 		public ViewData(List<Snapshot> snapshots) {
 			Snapshots = snapshots;
 			SelectedSnapshotIndex = -1;
@@ -51,11 +56,6 @@ namespace TimeLapseView {
 			SelectedLineLID = -1;
 		}
 
-		/// <summary>
-		/// On changed current view index event.
-		/// </summary>
-		/// <param name="index">new selected index</param>
-		public Action<int, Snapshot> OnViewIndexChangedEvent;
 
 		/// <summary>
 		/// Change ative code index
@@ -66,6 +66,29 @@ namespace TimeLapseView {
 
 			SnapshotIndex = index;
 			OnViewIndexChangedEvent?.Invoke(index, Snapshot);
+		}
+
+		/// <summary>
+		/// Unselected all snapshots
+		/// </summary>
+		public void UnselectSnapshots(bool redraw = true) {
+			foreach (var snapshot in Snapshot.All) {
+				snapshot.Value.IsSelected = false;
+			}
+
+			if (redraw) OnSelectionChanged?.Invoke();
+		}
+
+		/// <summary>
+		/// Select provided snapshots
+		/// </summary>
+		public void SelectSnapshots(HashSet<string> items) {
+			UnselectSnapshots(false);
+			foreach (var sha in items) {
+				Snapshot.All[sha].IsSelected = true;
+			}
+
+			OnSelectionChanged?.Invoke();
 		}
 	}
 }

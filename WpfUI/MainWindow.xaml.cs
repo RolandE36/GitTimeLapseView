@@ -87,6 +87,10 @@ namespace WpfUI {
 						UpdateCommitDetails(snapshot);
 					};
 
+					View.OnSelectionChanged = () => {
+						cr.Draw();
+					};
+
 					// TODO: Implement Search by commits
 					// TODO: Highlight code on hover
 					lvVerticalHistoryPanel.ItemsSource = View.Snapshots;
@@ -123,7 +127,7 @@ namespace WpfUI {
 			try {
 				if (View.SelectedSnapshotIndex == View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1)) {
 
-					cr.DrawRelated(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]], 1);
+					View.UnselectSnapshots();
 
 					View.SelectedSnapshotIndex = -1;
 					View.SelectedLine = -1;
@@ -138,7 +142,7 @@ namespace WpfUI {
 					View.SelectedLineLID = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 
-					cr.DrawRelated(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]], 2);
+					View.SelectSnapshots(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]]);
 					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
 
 					slHistoy.IsSelectionRangeEnabled = true;

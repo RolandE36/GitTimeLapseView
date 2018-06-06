@@ -267,6 +267,7 @@ namespace WpfUI.Renderer {
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = 2;
 			}
+			Draw();
 		}
 
 		private void Ellipse_OnMouseLeave(object sender, MouseEventArgs e) {
@@ -275,6 +276,7 @@ namespace WpfUI.Renderer {
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = 1;
 			}
+			Draw();
 		}
 
 		private void Ellipse_MouseLeftButtonDown(object sender, MouseEventArgs e) {
@@ -287,9 +289,11 @@ namespace WpfUI.Renderer {
 			ViewData.SetViewIndex(Snapshot.All[sha].Index);
 		}
 
-		public void DrawRelated(HashSet<string> items, int size) {
-			foreach (var sha in items) {
-				UiElements[sha].Ellipse.StrokeThickness = size;
+		public void Draw() {
+			foreach (var item in Snapshot.All) {
+				var sha = item.Key;
+				var snapshot = item.Value;
+				UiElements[sha].Ellipse.StrokeThickness = snapshot.IsSelected ? 2 : 1;
 			}
 		}
 
