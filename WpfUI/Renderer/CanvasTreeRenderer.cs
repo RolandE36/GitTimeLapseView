@@ -22,9 +22,12 @@ namespace WpfUI.Renderer {
 		public ViewData ViewData;
 		public Canvas Canvas;
 		private Dictionary<string, SnapshotCanvasModel> UiElements;
+		private Dictionary<string, Shape> UiChildParentPaths; // TODO: Investigate more advanced solution
 
 		private const int SCALE_Y = 10;
 		private const int SCALE_X = 30;
+		private const int SELECTED_LINE_WIDTH = 3;
+		private const int NOT_SELECTED_LINE_WIDTH = 1;
 
 		private readonly SolidColorBrush BlackBrush = new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x10));
 		private readonly SolidColorBrush BlueBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x82, 0xc8));
@@ -53,6 +56,7 @@ namespace WpfUI.Renderer {
 			ViewData = viewData;
 			Canvas = canvas;
 			UiElements = new Dictionary<string, SnapshotCanvasModel>();
+			UiChildParentPaths = new Dictionary<string, Shape>();
 
 			foreach (var snapshot in ViewData.Snapshots) {
 				UiElements[snapshot.Sha] = new SnapshotCanvasModel();
@@ -114,6 +118,7 @@ namespace WpfUI.Renderer {
 						Canvas.Children.Add(line);
 						UiElements[parent.Sha].Paths.Add(line);
 						UiElements[snapshot.Sha].Paths.Add(line);
+						UiChildParentPaths[snapshot.Sha + "|" + parent.Sha] = line;
 					} else {
 						PathFigure figure = new PathFigure();
 
@@ -183,6 +188,7 @@ namespace WpfUI.Renderer {
 						Canvas.Children.Add(path);
 						UiElements[parent.Sha].Paths.Add(path);
 						UiElements[snapshot.Sha].Paths.Add(path);
+						UiChildParentPaths[snapshot.Sha + "|" + parent.Sha] = path;
 
 						Canvas.SetLeft(path, x1);
 						Canvas.SetTop(path,  y1);
@@ -199,7 +205,7 @@ namespace WpfUI.Renderer {
 				ellipse.Fill = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
 				ellipse.Height = diameter;
 				ellipse.Width = diameter;
-				ellipse.StrokeThickness = 1;
+				ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 				ellipse.Stroke = color;
 				ellipse.ToolTip = snapshot.Commit.Description;
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
@@ -261,42 +267,75 @@ namespace WpfUI.Renderer {
 			return sb.ToString().ToLower();
 		}
 
-		private void Ellipse_OnMouseEnter(object sender, MouseEventArgs e) {
-			var sha = (string)(sender as Ellipse).Tag;
-			UiElements[sha].Ellipse.StrokeThickness = 2;
-			foreach (var path in UiElements[sha].Paths) {
-				path.StrokeThickness = 2;
-			}
-			Draw();
-		}
-
-		private void Ellipse_OnMouseLeave(object sender, MouseEventArgs e) {
-			var sha = (string)(sender as Ellipse).Tag;
-			UiElements[sha].Ellipse.StrokeThickness = 1;
-			foreach (var path in UiElements[sha].Paths) {
-				path.StrokeThickness = 1;
-			}
-			Draw();
-		}
-
-		private void Ellipse_MouseLeftButtonDown(object sender, MouseEventArgs e) {
-			var sha = (string)(sender as Ellipse).Tag;
-			UiElements[sha].Ellipse.StrokeThickness = 2;
-			foreach (var path in UiElements[sha].Paths) {
-				path.StrokeThickness = 2;
-			}
-
-			ViewData.SetViewIndex(Snapshot.All[sha].Index);
-		}
-
+		/// <summary>
+		/// Update all elements highlighting
+		/// </summary>
 		public void Draw() {
 			foreach (var item in Snapshot.All) {
 				var sha = item.Key;
 				var snapshot = item.Value;
-				UiElements[sha].Ellipse.StrokeThickness = snapshot.IsSelected ? 2 : 1;
+				UiElements[sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
+			}
+
+			// Select path between two snapshots
+			var selectedSnapshots = Snapshot.All.Values.Where(e => e.IsSelected).OrderBy(e => e.Index);
+			if (selectedSnapshots.Count() == 2) {
+				var c = selectedSnapshots.First().Commit.Sha;
+				var p = selectedSnapshots.Last().Commit.Sha;
+				UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 		}
 
+		public void ClearHighlighting() {
+			foreach (var item in Snapshot.All) {
+				var sha = item.Key;
+				UiElements[sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+				foreach(var path in UiElements[sha].Paths) {
+					path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+				}
+			}
+		}
+
+		#region Mouse Events
+
+		/// <summary>
+		/// Highlight paths for hovered snapshot
+		/// </summary>
+		private void Ellipse_OnMouseEnter(object sender, MouseEventArgs e) {
+			var sha = (string)(sender as Ellipse).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 2;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = SELECTED_LINE_WIDTH;
+			}
+			Draw();
+		}
+
+		/// <summary>
+		/// Revert paths highlighting for hovered snapshot
+		/// </summary>
+		private void Ellipse_OnMouseLeave(object sender, MouseEventArgs e) {
+			var sha = (string)(sender as Ellipse).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+			}
+			Draw();
+		}
+
+		/// <summary>
+		/// Select snapshot
+		/// </summary>
+		private void Ellipse_MouseLeftButtonDown(object sender, MouseEventArgs e) {
+			var sha = (string)(sender as Ellipse).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 2;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = SELECTED_LINE_WIDTH;
+			}
+
+			ViewData.SelectSnapshot(Snapshot.All[sha].Index);
+		}
+
+		#endregion
 
 		#region Tree preparation
 

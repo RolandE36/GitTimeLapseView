@@ -84,9 +84,9 @@
 				</ListView.View>
 			</ListView>
 
-			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Name="CanvasScrollViewer" Focusable="False">
+			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Name="CanvasScrollViewer" Focusable="False" PreviewKeyDown="CanvasScrollViewer_PreviewKeyDown" >
 				<Grid x:Name="drawingGrid">
-					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown">
+					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown" Focusable="True">
 					</Canvas>
 				</Grid>
 			</ScrollViewer>

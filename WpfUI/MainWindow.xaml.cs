@@ -48,11 +48,11 @@ namespace WpfUI {
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
 			if (View == null) return;
-			View.SetViewIndex((int)(slHistoy.Maximum - slHistoy.Value));
+			View.SelectSnapshot((int)(slHistoy.Maximum - slHistoy.Value));
 		}
 
 		private void lvVerticalHistoryPanel_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-			View.SetViewIndex(lvVerticalHistoryPanel.SelectedIndex);
+			View.SelectSnapshot(lvVerticalHistoryPanel.SelectedIndex);
 		}
 		
 		public CanvasTreeRenderer cr;
@@ -80,7 +80,7 @@ namespace WpfUI {
 
 					// TODO: Mediator patern????
 					// TODO: View should exist without snapshots
-					View.OnViewIndexChangedEvent = (index, snapshot) => {
+					View.OnViewIndexChanged = (index, snapshot) => {
 						tbCode.Text = snapshot.File;
 						slHistoy.Value = slHistoy.Maximum - index;
 						lvVerticalHistoryPanel.SelectedIndex = index;
@@ -88,6 +88,7 @@ namespace WpfUI {
 					};
 
 					View.OnSelectionChanged = () => {
+						cr.ClearHighlighting();
 						cr.Draw();
 					};
 
@@ -103,12 +104,29 @@ namespace WpfUI {
 			}
 		}
 
+		/// <summary>
+		/// Prevent scrolling after keyboard events
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void CanvasScrollViewer_PreviewKeyDown(object sender, KeyEventArgs e) {
+			e.Handled = true;
+		}
+
 		private void Canvas_MouseDown(object sender, MouseButtonEventArgs e) {
 			Keyboard.ClearFocus();
+			Canvas1.Focus();
 		}
 
 		private void MainWindow_KeyUp(object sender, KeyEventArgs e) {
-			
+			switch (e.Key) {
+				case Key.Down: View.MoveToNextSnapshot(); break;
+				case Key.Up: View.MoveToPrevSnapshot(); break;
+				case Key.Left: View.MoveToLeftSnapshot(); break;
+				case Key.Right: View.MoveToRightSnapshot(); break;
+			}
+
+			e.Handled = true;
 		}
 
 		private void btnTimeLapseViewMode_Click(object sender, RoutedEventArgs e) {
