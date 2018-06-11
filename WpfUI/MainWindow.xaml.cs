@@ -77,6 +77,7 @@ namespace WpfUI {
 
 					cr = new CanvasTreeRenderer(View, Canvas1);
 					cr.BuildTree();
+					cr.Draw();
 
 					// TODO: Mediator patern????
 					// TODO: View should exist without snapshots
@@ -145,7 +146,7 @@ namespace WpfUI {
 			try {
 				if (View.SelectedSnapshotIndex == View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1)) {
 
-					View.UnselectSnapshots();
+					View.ResetSnapshotsSelection();
 
 					View.SelectedSnapshotIndex = -1;
 					View.SelectedLine = -1;

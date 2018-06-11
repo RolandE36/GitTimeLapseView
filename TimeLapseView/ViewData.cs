@@ -32,7 +32,8 @@ namespace TimeLapseView {
 		/// <summary>
 		/// For storing history of viewing snapshots
 		/// </summary>
-		private Dictionary<string, string> preferredNextWay;
+		private Dictionary<string, string> preferredDowntWay;
+		private Dictionary<string, string> preferredUpWay;
 
 		#region Events
 
@@ -54,7 +55,8 @@ namespace TimeLapseView {
 			SelectedSnapshotIndex = -1;
 			SelectedLine = -1;
 			SelectedLineLID = -1;
-			preferredNextWay = new Dictionary<string, string>();
+			preferredDowntWay = new Dictionary<string, string>();
+			preferredUpWay = new Dictionary<string, string>();
 		}
 
 
@@ -64,11 +66,11 @@ namespace TimeLapseView {
 		/// <param name="index">index in snapshots list</param>
 		public void SelectSnapshot(int index) {
 			if (index < 0 || Snapshots.Count == 0) return;
-			UnselectSnapshots(false);
+			ResetSnapshotsSelection(false);
 
 			SnapshotIndex = index;
 			Snapshot.IsSelected = true;
-			FindPreferredWay(Snapshot);
+			FindPreferredDownWay(Snapshot);
 
 			OnViewIndexChanged?.Invoke(index, Snapshot);
 			OnSelectionChanged?.Invoke();
@@ -94,17 +96,11 @@ namespace TimeLapseView {
 			var selected = Snapshot.All.Where(e => e.Value.IsSelected);
 			if (selected.Count() > 2) return;
 
-			if (Snapshot.Commit.Childs.Count > 0) {
-				// Try to fin next snapshot from the same line
-				var c = Snapshot.Commit.Childs.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
-				// In other case take first snapshot
-				if (c == null) c = Snapshot.Commit.Childs.First();
-				// Do nothing if is't first snapshot
-				if (c == null) return;
+			var c = FindPreferredUpWay(Snapshot);
+			if (c == null) return;
 
-				UpdatePreferredWay(c, Snapshot.Sha);
-				SelectSnapshot(Snapshot.All[c].Index);
-			}
+			UpdatePreferredWay(c.Commit.Sha, Snapshot.Sha);
+			SelectSnapshot(c.Index);
 		}
 
 		/// <summary>
@@ -123,7 +119,7 @@ namespace TimeLapseView {
 
 				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
 
-				UnselectSnapshots(false);
+				ResetSnapshotsSelection(false);
 				Snapshot.IsSelected = true;
 				newNextElement.IsSelected = true;
 				OnSelectionChanged?.Invoke();
@@ -146,7 +142,7 @@ namespace TimeLapseView {
 
 				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
 
-				UnselectSnapshots(false);
+				ResetSnapshotsSelection(false);
 				Snapshot.IsSelected = true;
 				newNextElement.IsSelected = true;
 				OnSelectionChanged?.Invoke();
@@ -157,17 +153,18 @@ namespace TimeLapseView {
 		/// Remember user choices
 		/// </summary>
 		private void UpdatePreferredWay(string from, string to) {
-			preferredNextWay[from] = to;
+			preferredDowntWay[from] = to;
+			preferredUpWay[to] = from;
 		}
 
 		/// <summary>
 		/// Select next snapshot according to viewed history
 		/// </summary>
-		private void FindPreferredWay(Snapshot snapshot) {
+		private void FindPreferredDownWay(Snapshot snapshot) {
 			if (Snapshot.Commit.Parents.Count > 0) {
 				string p = "";
 				// Try to find next snapshot from history
-				if (preferredNextWay.Keys.Contains(snapshot.Sha)) p = preferredNextWay[snapshot.Sha];
+				if (preferredDowntWay.Keys.Contains(snapshot.Sha)) p = preferredDowntWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
 				if (string.IsNullOrEmpty(p)) p = Snapshot.Commit.Parents.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
@@ -177,12 +174,35 @@ namespace TimeLapseView {
 		}
 
 		/// <summary>
-		/// Unselected all snapshots
+		/// Select previous snapshot according to viewed history
 		/// </summary>
-		public void UnselectSnapshots(bool redraw = true) {
+		private Snapshot FindPreferredUpWay(Snapshot snapshot) {
+			if (Snapshot.Commit.Childs.Count > 0) {
+				string c = "";
+				// Try to find next snapshot from history
+				if (preferredUpWay.Keys.Contains(snapshot.Sha)) c = preferredUpWay[snapshot.Sha];
+				// Try to fin next snapshot from the same line
+				if (string.IsNullOrEmpty(c)) c = Snapshot.Commit.Childs.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
+				// In other case take first snapshot
+				if (string.IsNullOrEmpty(c)) c = Snapshot.Commit.Childs.First();
+				Snapshot.All[c].IsSelected = true;
+
+				return Snapshot.All[c];
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Reset selection
+		/// </summary>
+		public void ResetSnapshotsSelection(bool redraw = true) {
 			foreach (var snapshot in Snapshot.All) {
 				snapshot.Value.IsSelected = false;
 			}
+
+			Snapshot.IsSelected = true;
+			FindPreferredDownWay(Snapshot);
 
 			if (redraw) OnSelectionChanged?.Invoke();
 		}
@@ -191,7 +211,7 @@ namespace TimeLapseView {
 		/// Select provided snapshots
 		/// </summary>
 		public void SelectSnapshots(HashSet<string> items) {
-			UnselectSnapshots(false);
+			ResetSnapshotsSelection(false);
 			foreach (var sha in items) {
 				Snapshot.All[sha].IsSelected = true;
 			}
