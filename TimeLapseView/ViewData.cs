@@ -9,7 +9,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// List of all snapshots related to file
 		/// </summary>
-		public readonly List<Snapshot> Snapshots;
+		public List<Snapshot> Snapshots;
 
 		/// <summary>
 		/// Currently viewed commit
@@ -50,8 +50,7 @@ namespace TimeLapseView {
 
 		#endregion
 
-		public ViewData(List<Snapshot> snapshots) {
-			Snapshots = snapshots;
+		public ViewData() {
 			SelectedSnapshotIndex = -1;
 			SelectedLine = -1;
 			SelectedLineLID = -1;

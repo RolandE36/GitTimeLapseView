@@ -67,17 +67,26 @@ namespace WpfUI {
 
 					var manager = new FileHistoryManager(filename);
 					Title = APP_TITLE + ": " + manager.filePath;
-					View = new ViewData(manager.GetCommitsHistory());
-					slHistoy.Maximum = View.Snapshots.Count;
-					slHistoy.Value = View.Snapshots.Count;
-					slHistoy.Minimum = 1;
-					tbCode.Text = View.Snapshots[0].File;
-					lblCommitDetailsSection.Visibility = Visibility.Visible;
-					SetBackgroundRendererMode(RendererMode.TimeLapse);
+					View = new ViewData();
 
-					cr = new CanvasTreeRenderer(View, Canvas1);
-					cr.BuildTree();
-					cr.Draw();
+					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
+						View.Snapshots = snapshots;
+						slHistoy.Maximum = View.Snapshots.Count;
+						slHistoy.Value = View.Snapshots.Count;
+						slHistoy.Minimum = 1;
+						tbCode.Text = View.Snapshots[0].File;
+						lblCommitDetailsSection.Visibility = Visibility.Visible;
+						SetBackgroundRendererMode(RendererMode.TimeLapse);
+
+						Canvas1.Children.Clear();
+						cr = new CanvasTreeRenderer(View, Canvas1);
+						cr.BuildTree();
+						cr.Draw();
+					};
+					manager.GetCommitsHistory(0);
+					//manager.GetCommitsHistory(1);
+
+					
 
 					// TODO: Mediator patern????
 					// TODO: View should exist without snapshots

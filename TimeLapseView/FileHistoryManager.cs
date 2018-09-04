@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public class FileHistoryManager {
+		private const int PAGE_SIZE = 1000;
+
 		/// <summary>
 		/// Helper object for receiving differences between two files
 		/// </summary>
@@ -26,6 +28,8 @@ namespace TimeLapseView {
 		/// Path to investigated file (based on root dir path)
 		/// </summary>
 		public readonly string filePath;
+
+		public Action<List<Snapshot>> OnSnapshotsHistoryUpdated;
 
 		private List<Snapshot> snapshots;
 
@@ -48,8 +52,8 @@ namespace TimeLapseView {
 			}
 		}
 
-		public List<Snapshot> GetCommitsHistory() {
-			snapshots = new List<Snapshot>();
+		public void  GetCommitsHistory(int page) {
+			if (snapshots == null) snapshots = new List<Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
@@ -59,7 +63,7 @@ namespace TimeLapseView {
 				// TODO: Investigate:
 				// https://github.com/libgit2/libgit2sharp/issues/1074
 				// var commits = repo.Commits.QueryBy(parameters.FilePath.Replace(_repository, "")).ToList();
-				foreach (var commit in repo.Commits.Take(1000)) {
+				foreach (var commit in repo.Commits.Skip(page * PAGE_SIZE).Take(PAGE_SIZE)) {
 
 					// Observable commit
 					var snapshot = new Snapshot(commit.Sha) {
@@ -125,7 +129,7 @@ namespace TimeLapseView {
 				//SimpleBranchesArchivation();
 			}
 
-			return snapshots;
+			OnSnapshotsHistoryUpdated.Invoke(snapshots);
 		}
 
 		/// <summary>
