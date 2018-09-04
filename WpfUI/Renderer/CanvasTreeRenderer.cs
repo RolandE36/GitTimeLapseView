@@ -25,7 +25,7 @@ namespace WpfUI.Renderer {
 		private Dictionary<string, Shape> UiChildParentPaths; // TODO: Investigate more advanced solution
 
 		private const int SCALE_Y = 10;
-		private const int SCALE_X = 30;
+		private const int SCALE_X = 10;
 		private const int SELECTED_LINE_WIDTH = 3;
 		private const int NOT_SELECTED_LINE_WIDTH = 1;
 
@@ -33,24 +33,28 @@ namespace WpfUI.Renderer {
 		private readonly SolidColorBrush BlueBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x82, 0xc8));
 		private readonly SolidColorBrush GreenBrush = new SolidColorBrush(Color.FromRgb(0x3c, 0xb4, 0x4b));
 
-		private readonly List<SolidColorBrush> Brushes = new List<SolidColorBrush>() {
-			new SolidColorBrush(Color.FromRgb(0xe6, 0x19, 0x4b)),
-			new SolidColorBrush(Color.FromRgb(0x3c, 0xb4, 0x4b)),
-			new SolidColorBrush(Color.FromRgb(0xff, 0xe1, 0x19)),
-			new SolidColorBrush(Color.FromRgb(0x00, 0x82, 0xc8)),
-			new SolidColorBrush(Color.FromRgb(0xf5, 0x82, 0x31)),
-			new SolidColorBrush(Color.FromRgb(0x91, 0x1e, 0xb4)),
-			new SolidColorBrush(Color.FromRgb(0x46, 0xf0, 0xf0)),
-			new SolidColorBrush(Color.FromRgb(0xf0, 0x32, 0xe6)),
-			new SolidColorBrush(Color.FromRgb(0xd2, 0xf5, 0x3c)),
-			new SolidColorBrush(Color.FromRgb(0x00, 0x80, 0x80)),
-			new SolidColorBrush(Color.FromRgb(0xaa, 0x6e, 0x28)),
-			new SolidColorBrush(Color.FromRgb(0x80, 0x00, 0x00)),
-			new SolidColorBrush(Color.FromRgb(0xaa, 0xff, 0xc3)),
-			new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x00)),
-			new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x80)),
-			new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x80))
+		private readonly List<Color> baseColors = new List<Color>() {
+			Color.FromRgb(0xe6, 0x19, 0x4b),
+			Color.FromRgb(0x3c, 0xb4, 0x4b),
+			Color.FromRgb(0xff, 0xe1, 0x19),
+			Color.FromRgb(0x00, 0x82, 0xc8),
+			Color.FromRgb(0xf5, 0x82, 0x31),
+			Color.FromRgb(0x91, 0x1e, 0xb4),
+			Color.FromRgb(0x46, 0xf0, 0xf0),
+			Color.FromRgb(0xf0, 0x32, 0xe6),
+			Color.FromRgb(0xd2, 0xf5, 0x3c),
+			Color.FromRgb(0x00, 0x80, 0x80),
+			Color.FromRgb(0xaa, 0x6e, 0x28),
+			Color.FromRgb(0x80, 0x00, 0x00),
+			Color.FromRgb(0xaa, 0xff, 0xc3),
+			Color.FromRgb(0x80, 0x80, 0x00),
+			Color.FromRgb(0x00, 0x00, 0x80),
+			Color.FromRgb(0x80, 0x80, 0x80)
 		};
+
+		private readonly List<SolidColorBrush> LinesBrushes = new List<SolidColorBrush>();
+		private readonly List<SolidColorBrush> BackgroundBrushes = new List<SolidColorBrush>();
+		private readonly List<SolidColorBrush> HoverBackgroundBrushes = new List<SolidColorBrush>();
 
 		public CanvasTreeRenderer(ViewData viewData, Canvas canvas) {
 			ViewData = viewData;
@@ -61,10 +65,17 @@ namespace WpfUI.Renderer {
 			foreach (var snapshot in ViewData.Snapshots) {
 				UiElements[snapshot.Sha] = new SnapshotCanvasModel();
 			}
+
+			foreach (var color in baseColors) {
+				LinesBrushes.Add(new SolidColorBrush(color));
+				BackgroundBrushes.Add(new SolidColorBrush(ChangeBrightness(color, 0.9)));
+				HoverBackgroundBrushes.Add(new SolidColorBrush(ChangeBrightness(color, 0.8)));
+			}
 		}
 
 		public void BuildTree() {
 			var rnd = new Random();
+			var textOffset = 0;
 
 			foreach (var snapshot in ViewData.Snapshots) {
 				snapshot.ViewIndex = snapshot.Index;
@@ -89,7 +100,26 @@ namespace WpfUI.Renderer {
 			}
 
 			foreach (var snapshot in ViewData.Snapshots) {
-				if (!snapshot.IsCommitVisible) continue;
+				var diameter = SCALE_Y;
+				if (!snapshot.IsImportantCommit) diameter = SCALE_Y / 2;
+				var x = (SCALE_X - diameter / 2) + 2 * SCALE_X * snapshot.TreeOffset;
+				var y = (SCALE_Y - diameter / 2) + 2 * SCALE_Y * snapshot.ViewIndex;
+
+				var rectangle = new Rectangle();
+				rectangle.Fill = BackgroundBrushes[snapshot.BranchLineId % LinesBrushes.Count];
+				rectangle.Width = 999999;
+				rectangle.Height = SCALE_Y * 3;
+				Canvas.SetLeft(rectangle, x * 0);
+				Canvas.SetTop(rectangle, 2 * SCALE_Y * snapshot.ViewIndex);
+
+				if (!snapshot.IsImportantCommit) {
+					previousSmall = true;
+				} else {
+					previousSmall = false;
+				}
+
+				Canvas.Children.Add(rectangle);
+				Canvas.SetZIndex(rectangle, -2);
 
 				foreach (var p in snapshot.Commit.Parents) {
 					var parent = Snapshot.All[p];
@@ -108,7 +138,7 @@ namespace WpfUI.Renderer {
 
 					if (IsCommitsInOneLine(snapshot, parent)) {
 						var line = new Line();
-						line.Stroke = Brushes[snapshot.BranchLineId % Brushes.Count];
+						line.Stroke = LinesBrushes[snapshot.BranchLineId % LinesBrushes.Count];
 						line.X1 = x1;
 						line.Y1 = y1;
 						line.X2 = x2;
@@ -181,7 +211,7 @@ namespace WpfUI.Renderer {
 						}
 
 						Path path = new Path();
-						path.Stroke = Brushes[parent.BranchLineId % Brushes.Count];
+						path.Stroke = LinesBrushes[parent.BranchLineId % LinesBrushes.Count];
 						path.Data = new PathGeometry(new PathFigure[] { figure });
 						path.Opacity = 1;
 
@@ -198,9 +228,6 @@ namespace WpfUI.Renderer {
 				// Circle (Commit)
 				var color = !snapshot.IsCommitRelatedToFile ? BlueBrush : GreenBrush;
 
-				var diameter = SCALE_Y;
-				if (!snapshot.IsImportantCommit) diameter = SCALE_Y / 2;
-
 				var ellipse = new Ellipse();
 				ellipse.Fill = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
 				ellipse.Height = diameter;
@@ -212,9 +239,6 @@ namespace WpfUI.Renderer {
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
 				ellipse.MouseLeftButtonDown += Ellipse_MouseLeftButtonDown;
 				ellipse.Tag = snapshot.Sha;
-
-				var x = (SCALE_X - diameter/2) + 2* SCALE_X * snapshot.TreeOffset;
-				var y = (SCALE_Y - diameter/2) + 2* SCALE_Y * snapshot.ViewIndex;
 
 				UiElements[snapshot.Sha].Ellipse = ellipse;
 				Canvas.Children.Add(ellipse);
@@ -237,13 +261,23 @@ namespace WpfUI.Renderer {
 				Canvas.SetTop(clippedImage, y);*/
 
 				//if (!snapshot.IsCommitRelatedToFile) continue;
+				if (snapshot.Commit.Parents.Count > 0) {
+					var maxOffset = snapshot.Commit.Parents.Max(e => Snapshot.All[e].TreeOffset);
+					if (textOffset < maxOffset) textOffset = maxOffset;
+				}
+				if (textOffset < snapshot.TreeOffset) textOffset = snapshot.TreeOffset;
+
 				if (!snapshot.IsImportantCommit) continue;
 
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.Commit.DateString + " " + snapshot.Commit.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
-				Canvas.SetLeft(textBlock, SCALE_X * 7);
-				Canvas.SetTop(textBlock, y);
+				textBlock.Tag = snapshot.Sha;
+				textBlock.MouseEnter += TextBlock_MouseEnter;
+				textBlock.MouseLeave += TextBlock_MouseLeave;
+				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;
+				Canvas.SetLeft(textBlock, 2 * SCALE_X * (textOffset + 1));
+				Canvas.SetTop(textBlock, y - SCALE_Y / 2);
 				Canvas.Children.Add(textBlock);
 			}
 
@@ -251,20 +285,39 @@ namespace WpfUI.Renderer {
 			Canvas.Height = ViewData.Snapshots.Count* SCALE_Y * 2 + SCALE_Y;
 		}
 
-		// TODO: Move to separate class
-		public string CalculateMD5Hash(string input) {
-			// step 1, calculate MD5 hash from input
-			MD5 md5 = System.Security.Cryptography.MD5.Create();
-			byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-			byte[] hash = md5.ComputeHash(inputBytes);
-
-			// step 2, convert byte array to hex string
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < hash.Length; i++) {
-				sb.Append(hash[i].ToString("X2"));
+		private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+			// TODO: Copy / paste
+			var sha = (string)(sender as TextBlock).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 2;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			return sb.ToString().ToLower();
+			ViewData.SelectSnapshot(Snapshot.All[sha].Index);
+		}
+
+		private void TextBlock_MouseLeave(object sender, MouseEventArgs e) {
+			var tb = (sender as TextBlock);
+			tb.FontWeight = FontWeights.Normal;
+
+			var sha = (string)(sender as TextBlock).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+			}
+			Draw();
+		}
+
+		private void TextBlock_MouseEnter(object sender, MouseEventArgs e) {
+			var tb = (sender as TextBlock);
+			tb.FontWeight = FontWeights.SemiBold;
+
+			var sha = (string)(sender as TextBlock).Tag;
+			UiElements[sha].Ellipse.StrokeThickness = 2;
+			foreach (var path in UiElements[sha].Paths) {
+				path.StrokeThickness = SELECTED_LINE_WIDTH;
+			}
+			Draw();
 		}
 
 		/// <summary>
@@ -272,6 +325,9 @@ namespace WpfUI.Renderer {
 		/// </summary>
 		public void Draw() {
 			foreach (var item in Snapshot.All) {
+
+				if (string.IsNullOrEmpty(item.Value.Commit.Description)) continue;
+
 				var sha = item.Key;
 				var snapshot = item.Value;
 				UiElements[sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
@@ -282,7 +338,9 @@ namespace WpfUI.Renderer {
 			if (selectedSnapshots.Count() == 2) {
 				var c = selectedSnapshots.First().Commit.Sha;
 				var p = selectedSnapshots.Last().Commit.Sha;
-				UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
+				if (UiChildParentPaths.Keys.Contains(c + "|" + p)) {
+					UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
+				}
 			}
 		}
 
@@ -408,5 +466,38 @@ namespace WpfUI.Renderer {
 		}
 
 		#endregion
+
+		/// <summary>
+		/// Change color brightness
+		/// </summary>
+		/// <param name="brightness">0..1</param>
+		/// <returns>New color based on initial color and brightness</returns>
+		public static Color ChangeBrightness(Color color, double brightness) {
+			var r = (double)color.R;
+			var g = (double)color.G;
+			var b = (double)color.B;
+
+			r = (255 - r) * brightness + r;
+			g = (255 - g) * brightness + g;
+			b = (255 - b) * brightness + b;
+
+			return Color.FromArgb(color.A, (byte)r, (byte)g, (byte)b);
+		}
+
+		// TODO: Move to separate class
+		public string CalculateMD5Hash(string input) {
+			// step 1, calculate MD5 hash from input
+			MD5 md5 = System.Security.Cryptography.MD5.Create();
+			byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+			byte[] hash = md5.ComputeHash(inputBytes);
+
+			// step 2, convert byte array to hex string
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < hash.Length; i++) {
+				sb.Append(hash[i].ToString("X2"));
+			}
+
+			return sb.ToString().ToLower();
+		}
 	}
 }
