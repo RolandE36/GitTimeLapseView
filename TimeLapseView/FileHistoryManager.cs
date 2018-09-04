@@ -123,10 +123,6 @@ namespace TimeLapseView {
 				*/
 
 				//SimpleBranchesArchivation();
-
-				for (var i = 1; i < snapshots.Count; i++) {
-					var snapshot = snapshots[i];
-				}
 			}
 
 			return snapshots;
@@ -160,6 +156,7 @@ namespace TimeLapseView {
 		/// </summary>
 		private void RemoveNotExistingParentsAndChilds() {
 			Parallel.ForEach(snapshots, (snapshot) => {
+				// .ToList() - for preventing collection modification
 				foreach (var p in snapshot.Commit.Parents.ToList()) {
 					if (!Snapshot.All.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
 				}
@@ -380,6 +377,9 @@ namespace TimeLapseView {
 
 			for (var i = snapshots.Count - 2; i >= 0; i--) {
 				var snapshot = snapshots[i];
+
+				// Already processed
+				if (snapshot.FileDetails != null) continue;
 
 				// TODO: Calculate file size after read
 				snapshot.FileDetails = new CodeFile(snapshot.File.Split('\n').Count());
