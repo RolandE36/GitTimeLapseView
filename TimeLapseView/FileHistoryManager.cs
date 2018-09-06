@@ -32,6 +32,7 @@ namespace TimeLapseView {
 		public Action<List<Snapshot>> OnSnapshotsHistoryUpdated;
 
 		private List<Snapshot> snapshots;
+		private List<Snapshot> visibleSnapshots;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
@@ -54,6 +55,7 @@ namespace TimeLapseView {
 
 		public void  GetCommitsHistory(int page) {
 			if (snapshots == null) snapshots = new List<Snapshot>();
+			if (visibleSnapshots == null) visibleSnapshots = new List<Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
@@ -67,13 +69,9 @@ namespace TimeLapseView {
 
 					// Observable commit
 					var snapshot = new Snapshot(commit.Sha) {
-						Index = snapshots.Count,
 						FilePath = treeFile,
 						Commit = new Commit(commit),
-						TreeOffset = -1,
-						BranchLineId = -1,
-						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile),
-						IsCommitVisible = true
+						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile)
 					};
 
 					snapshots.Add(snapshot);
@@ -90,12 +88,15 @@ namespace TimeLapseView {
 					}*/
 				}
 
-				RemoveNotExistingParentsAndChilds();
+				// TODO: Error in case of snapshots.Count() == 0
+
+				InitializeNewSnapshotsRelations();
+				RemoveNotExistingParentsAndChilds(snapshots);
 				LinkParentsWithChilds();
 				UnlinkCommitsWithoutChanges();
 				FindAllCommitAncestors();
 				RemoveNotValuableLinks();
-				RemoveUnvisibleCommits();
+				GetSnapshotsWithChanges();
 
 				FindRelatedLines();
 				AdvancedBranchesArchivation();
@@ -103,11 +104,11 @@ namespace TimeLapseView {
 				FindRelatedLines();
 				AdvancedBranchesArchivation();
 
-				ReadFilesContent(treeFile);
+				ReadFilesContent();
 				FindLifeTimeForEachLine();
 
 				// TODO: Related only to rendering. Move to other place
-				var lineGroup = snapshots.Where(e => e.IsCommitVisible).GroupBy(e => e.BranchLineId);
+				var lineGroup = visibleSnapshots.GroupBy(e => e.BranchLineId);
 				Parallel.ForEach(lineGroup, (commitsGroup) => {
 					// Find line start/end
 					commitsGroup.First().IsFirstInLine = true;
@@ -129,7 +130,7 @@ namespace TimeLapseView {
 				//SimpleBranchesArchivation();
 			}
 
-			OnSnapshotsHistoryUpdated.Invoke(snapshots);
+			OnSnapshotsHistoryUpdated.Invoke(visibleSnapshots);
 		}
 
 		/// <summary>
@@ -156,16 +157,46 @@ namespace TimeLapseView {
 		}
 
 		/// <summary>
+		/// For rebuilding tree, we should clear all relations.
+		/// </summary>
+		private void InitializeNewSnapshotsRelations() {
+			Parallel.ForEach(snapshots, (snapshot) => {
+				snapshot.Childs.Clear();
+				snapshot.Parents.Clear();
+				snapshot.Commit.Base.Clear();
+				snapshot.IsCommitVisible = true;
+				foreach (var p in snapshot.Commit.Parents) {
+					snapshot.Parents.Add(p);
+				}
+			});
+		}
+
+		/// <summary>
 		/// Remove links to parent commits which not in the current sample (for performance reasons).
 		/// </summary>
-		private void RemoveNotExistingParentsAndChilds() {
-			Parallel.ForEach(snapshots, (snapshot) => {
+		private void RemoveNotExistingParentsAndChilds(List<Snapshot> items) {
+			Parallel.ForEach(items, (snapshot) => {
 				// .ToList() - for preventing collection modification
-				foreach (var p in snapshot.Commit.Parents.ToList()) {
-					if (!Snapshot.All.ContainsKey(p)) snapshot.Commit.Parents.Remove(p);
+				foreach (var p in snapshot.Parents.ToList()) {
+					if (!Snapshot.All.ContainsKey(p)) snapshot.Parents.Remove(p);
 				}
-				foreach (var c in snapshot.Commit.Childs.ToList()) {
-					if (!Snapshot.All.ContainsKey(c)) snapshot.Commit.Childs.Remove(c);
+				foreach (var c in snapshot.Childs.ToList()) {
+					if (!Snapshot.All.ContainsKey(c)) snapshot.Childs.Remove(c);
+				}
+			});
+		}
+
+		/// <summary>
+		/// Remove links to parent commits without changes
+		/// </summary>
+		public void RemoveParentsAndChildsWithoutChanges(List<Snapshot> items) {
+			Parallel.ForEach(items, (snapshot) => {
+				// .ToList() - for preventing collection modification
+				foreach (var p in snapshot.Parents.ToList()) {
+					if (!Snapshot.All[p].IsCommitVisible) snapshot.Parents.Remove(p);
+				}
+				foreach (var c in snapshot.Childs.ToList()) {
+					if (!Snapshot.All[c].IsCommitVisible) snapshot.Childs.Remove(c);
 				}
 			});
 		}
@@ -175,8 +206,8 @@ namespace TimeLapseView {
 		/// </summary>
 		private void LinkParentsWithChilds() {
 			foreach (var snapshot in snapshots) {
-				foreach (var sha in snapshot.Commit.Parents) {
-					Snapshot.All[sha].Commit.Childs.Add(snapshot.Sha);
+				foreach (var sha in snapshot.Parents) {
+					Snapshot.All[sha].Childs.Add(snapshot.Sha);
 				}
 			}
 		}
@@ -189,17 +220,17 @@ namespace TimeLapseView {
 				var snapshot = snapshots[i];
 				if (snapshot.IsCommitRelatedToFile) continue;
 
-				foreach (var c in snapshot.Commit.Childs) {
+				foreach (var c in snapshot.Childs) {
 					var child = Snapshot.All[c];
-					foreach (var sha in snapshot.Commit.Parents) {
-						if (!child.Commit.Parents.Contains(sha)) child.Commit.Parents.Add(sha);
+					foreach (var sha in snapshot.Parents) {
+						if (!child.Parents.Contains(sha)) child.Parents.Add(sha);
 					}
 				}
 
-				foreach (var p in snapshot.Commit.Parents) {
+				foreach (var p in snapshot.Parents) {
 					var parent = Snapshot.All[p];
-					foreach (var sha in snapshot.Commit.Childs) {
-						if (!parent.Commit.Childs.Contains(sha)) parent.Commit.Childs.Add(sha);
+					foreach (var sha in snapshot.Childs) {
+						if (!parent.Childs.Contains(sha)) parent.Childs.Add(sha);
 					}
 				}
 
@@ -210,17 +241,16 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Remove not valuable commits
 		/// </summary>
-		private void RemoveUnvisibleCommits() {
-			foreach (var snapshot in snapshots.Where(e => !e.IsCommitVisible)) {
-				snapshot.Dispose();
-			}
+		private void GetSnapshotsWithChanges() {
+			visibleSnapshots.Clear();
+			visibleSnapshots.AddRange(snapshots.Where(e => e.IsCommitVisible));
 
 			// Remove unvisible snapshots
-			snapshots = snapshots.Where(e => e.IsCommitVisible).ToList();
-			for (int i = 0; i < snapshots.Count; i++) {
-				snapshots[i].Index = i;
+			for (int i = 0; i < visibleSnapshots.Count; i++) {
+				visibleSnapshots[i].VisibleIndex = i;
 			}
-			RemoveNotExistingParentsAndChilds();
+
+			 RemoveParentsAndChildsWithoutChanges(visibleSnapshots);
 		}
 
 		/// <summary>
@@ -231,28 +261,28 @@ namespace TimeLapseView {
 			var offset = 0;
 			var branch = 0;
 
-			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+			foreach (var snapshot in visibleSnapshots) {
 				snapshot.TreeOffset = -1;
 				snapshot.BranchLineId = -1;
 			}
 
-			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
+			foreach (var snapshot in visibleSnapshots) {
 				// Set new offset is not yet defined
 				if (snapshot.TreeOffset == -1) {
 					snapshot.TreeOffset = offset++;
 					snapshot.BranchLineId = branch++;
 				}
 
-				if (snapshot.Commit.Parents.Count == 0) continue;    // Do nothing if no parents
+				if (snapshot.Parents.Count == 0) continue;    // Do nothing if no parents
 				
-				foreach (var p in snapshot.Commit.Parents) {
+				foreach (var p in snapshot.Parents) {
 					var parent = Snapshot.All[p];
-					if (parent.TreeOffset != -1) continue;           // Do nothing if offset already defined
+					if (parent.TreeOffset != -1) continue;    // Do nothing if offset already defined
 
-					if (snapshot.Commit.Parents.Count == 1 &&        // If commit has only one parrent 
-						parent.Commit.Childs.Count != 1 &&           // and parent has several chils 
-						parent.Commit.Childs.Last() == snapshot.Sha)
-						continue;                                    // than set only values from last child
+					if (snapshot.Parents.Count == 1 &&        // If commit has only one parrent 
+						parent.Childs.Count != 1 &&           // and parent has several chils 
+						parent.Childs.Last() == snapshot.Sha)
+						continue;                             // than set only values from last child
 
 					parent.TreeOffset = snapshot.TreeOffset;
 					parent.BranchLineId = snapshot.BranchLineId;
@@ -281,7 +311,7 @@ namespace TimeLapseView {
 				var snapshot = snapshots[i];
 				if (!snapshot.IsCommitVisible) continue;
 
-				foreach (var psha in snapshot.Commit.Parents) {
+				foreach (var psha in snapshot.Parents) {
 					AddAncestorToCommit(snapshot, psha);
 
 					foreach (var bsha in Snapshot.All[psha].Commit.Base) {
@@ -298,29 +328,30 @@ namespace TimeLapseView {
 			// TODO: Investigate matrix (Parent cross Childs) perfomance
 			// Remove not Important parents based on Base History
 			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
-				foreach (var p in snapshot.Commit.Parents.ToList()) {
+				foreach (var p in snapshot.Parents.ToList()) {
 					if (snapshot.Commit.Base[p] != 1) {
-						snapshot.Commit.Parents.Remove(p);
+						snapshot.Parents.Remove(p);
 					}
 				}
 			}
 		}
 
 		private void AdvancedBranchesArchivation() {
-			var maxBranchoffset = snapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
+			// Where(e => e.TreeOffset != int.MaxValue) ???? Is it could be??
+			var maxBranchoffset = visibleSnapshots.Where(e => e.TreeOffset != int.MaxValue).Max(e => e.TreeOffset);
 
 			for (int i = 1; i < maxBranchoffset + 1; i++) {
 				// Find line Y
-				var miny = snapshots.Where(e => e.BranchLineId == i).Min(e => e.Index);
-				var maxy = snapshots.Where(e => e.BranchLineId == i).Max(e => e.Index);
+				var miny = visibleSnapshots.Where(e => e.BranchLineId == i).Min(e => e.Id); // VisibleOrder ~= ID
+				var maxy = visibleSnapshots.Where(e => e.BranchLineId == i).Max(e => e.Id);// ~= ID
 
 				// Check lines before current
 				for (int j = 0; j < i; j++) {
-					var linesInOffset = snapshots.Where(e => e.TreeOffset == j).GroupBy(e => e.BranchLineId);
+					var linesInOffset = visibleSnapshots.Where(e => e.TreeOffset == j).GroupBy(e => e.BranchLineId);
 					var canChangeOffset = true;
 					foreach (var line in linesInOffset) {
-						var lmin = snapshots.Where(e => e.BranchLineId == line.Key).Min(e => e.Index);
-						var lmax = snapshots.Where(e => e.BranchLineId == line.Key).Max(e => e.Index);
+						var lmin = visibleSnapshots.Where(e => e.BranchLineId == line.Key).Min(e => e.Id);// ~= ID
+						var lmax = visibleSnapshots.Where(e => e.BranchLineId == line.Key).Max(e => e.Id);// ~= ID
 
 						// Is place empty
 						if ((lmax >= miny || lmin >= miny) && (lmax <= maxy || lmin <= maxy)) {
@@ -330,7 +361,7 @@ namespace TimeLapseView {
 					}
 
 					if (canChangeOffset) {
-						foreach (var snapshot in snapshots.Where(e => e.BranchLineId == i)) snapshot.TreeOffset = j;
+						foreach (var snapshot in visibleSnapshots.Where(e => e.BranchLineId == i)) snapshot.TreeOffset = j;
 						break;
 					}
 				}
@@ -340,8 +371,8 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Read file content
 		/// </summary>
-		private string GetFileContent(Snapshot snapshot, string file) {
-			var blob = (Blob)snapshot.Commit.GitCommit[file].Target;
+		private string LoadFileContent(Snapshot snapshot) {
+			var blob = (Blob)snapshot.Commit.GitCommit[snapshot.FilePath].Target;
 			// TODO: probably use commit.Encoding
 			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
 				return reader.ReadToEnd();
@@ -351,11 +382,26 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Reead files content
 		/// </summary>
-		/// <param name="treeFile">File name</param>
-		private void ReadFilesContent(string treeFile) {
-			Parallel.ForEach(snapshots, (snapshot) => {
-				snapshot.File = GetFileContent(snapshot, treeFile);
+		private void ReadFilesContent() {
+			Parallel.ForEach(visibleSnapshots, (snapshot) => {
+				snapshot.LoadFileContent();
 			});
+		}
+
+		private void InitializeSnapshotFileDetails(Snapshot snapshot) {
+			// TODO: Calculate file size after read
+			var fileLinesCount = snapshot.File.Split('\n').Count();
+
+			snapshot.FileDetails = new CodeFile(fileLinesCount);
+			for (var i = 0; i < fileLinesCount; i++) {
+				snapshot.FileDetails.State[i] = LineState.Inserted;
+
+				// new aproach
+				var lineBaseId = CodeFile.LineBase.Count + 1;
+				snapshot.FileDetails.LineHistory[i] = lineBaseId;
+				CodeFile.LineBase[lineBaseId] = new HashSet<string>();
+				CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+			}
 		}
 
 		/// <summary>
@@ -363,33 +409,28 @@ namespace TimeLapseView {
 		/// </summary>
 		private void FindLifeTimeForEachLine() {
 			// Set default values for commits without parents
-			foreach (var snapshot in snapshots.Where(e => e.Commit.Parents.Count() == 0)) {
-				// TODO: Calculate file size after read
-				var fileLinesCount = snapshot.File.Split('\n').Count();
-
-				snapshot.FileDetails = new CodeFile(fileLinesCount);
-				for (var i = 0; i < fileLinesCount; i++) {
-					snapshot.FileDetails.State[i] = LineState.Inserted;
-
-					// new aproach
-					var lineBaseId = CodeFile.LineBase.Count + 1;
-					snapshot.FileDetails.LineHistory[i] = lineBaseId;
-					CodeFile.LineBase[lineBaseId] = new HashSet<string>();
-					CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
-				}
+			// visibleSnapshots => snapshots
+			foreach (var snapshot in snapshots.Where(e => e.Parents.Count() == 0)) {
+				InitializeSnapshotFileDetails(snapshot);
 			};
 
-			for (var i = snapshots.Count - 2; i >= 0; i--) {
-				var snapshot = snapshots[i];
+			for (var i = visibleSnapshots.Count - 2; i >= 0; i--) {
+				var snapshot = visibleSnapshots[i];
 
 				// Already processed
+				// TODO: Not working wor second page!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				// We should remember is file was compared
 				if (snapshot.FileDetails != null) continue;
 
 				// TODO: Calculate file size after read
 				snapshot.FileDetails = new CodeFile(snapshot.File.Split('\n').Count());
 
-				foreach (var p in snapshots[i].Commit.Parents) {
+				foreach (var p in visibleSnapshots[i].Parents) {
 					var parent = Snapshot.All[p];
+					if (!parent.IsCommitVisible) continue;
+
+					// TODO: Double check before commit
+					if (parent.FileDetails == null) InitializeSnapshotFileDetails(parent);
 
 					// TODO: OutOfMemoryException with large files in diff class.
 					// TODO: https://github.com/mmanela/diffplex - ISidebySideDiffer 
@@ -471,20 +512,20 @@ namespace TimeLapseView {
 				}
 			}
 		}
-
+		/*
 		/// <summary>
 		/// Reserve position for the current branch. Any branch on the same position should move right.
 		/// </summary>
 		/// <param name="snapshot">Comit that claims position</param>
 		private void ReserveBranchOffset(Snapshot snapshot) {
-			for (int i = snapshot.Index + 1; i < snapshots.Count; i++) {
+			for (int i = snapshot.VisibleOrder + 1; i < snapshots.Where(e => e.IsCommitVisible).Count(); i++) {
 				if (snapshots[i].TreeOffset == snapshot.TreeOffset) {
 					snapshots[i].TreeOffset++;
 					ReserveBranchOffset(snapshots[i]);
 				}
 			}
 		}
-
+		*/
 		/// <summary>
 		/// Verify is file had the same name in the previous commit or was renamed/moved
 		/// </summary>

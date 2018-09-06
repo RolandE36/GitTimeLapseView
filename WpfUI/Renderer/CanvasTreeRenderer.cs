@@ -78,7 +78,7 @@ namespace WpfUI.Renderer {
 			var textOffset = 0;
 
 			foreach (var snapshot in ViewData.Snapshots) {
-				snapshot.ViewIndex = snapshot.Index;
+				snapshot.ViewIndex = snapshot.VisibleIndex;
 			}
 			
 			// Calculate Y coordinates for visible commits
@@ -121,7 +121,7 @@ namespace WpfUI.Renderer {
 				Canvas.Children.Add(rectangle);
 				Canvas.SetZIndex(rectangle, -2);
 
-				foreach (var p in snapshot.Commit.Parents) {
+				foreach (var p in snapshot.Parents) {
 					var parent = Snapshot.All[p];
 					if (!parent.IsCommitVisible) continue;
 
@@ -261,8 +261,8 @@ namespace WpfUI.Renderer {
 				Canvas.SetTop(clippedImage, y);*/
 
 				//if (!snapshot.IsCommitRelatedToFile) continue;
-				if (snapshot.Commit.Parents.Count > 0) {
-					var maxOffset = snapshot.Commit.Parents.Max(e => Snapshot.All[e].TreeOffset);
+				if (snapshot.Parents.Count > 0) {
+					var maxOffset = snapshot.Parents.Max(e => Snapshot.All[e].TreeOffset);
 					if (textOffset < maxOffset) textOffset = maxOffset;
 				}
 				if (textOffset < snapshot.TreeOffset) textOffset = snapshot.TreeOffset;
@@ -293,7 +293,7 @@ namespace WpfUI.Renderer {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			ViewData.SelectSnapshot(Snapshot.All[sha].Index);
+			ViewData.SelectSnapshot(Snapshot.All[sha].VisibleIndex);
 		}
 
 		private void TextBlock_MouseLeave(object sender, MouseEventArgs e) {
@@ -324,17 +324,14 @@ namespace WpfUI.Renderer {
 		/// Update all elements highlighting
 		/// </summary>
 		public void Draw() {
-			foreach (var item in Snapshot.All) {
+			foreach (var snapshot in ViewData.Snapshots) {
+				if (string.IsNullOrEmpty(snapshot.Commit.Description)) continue;
 
-				if (string.IsNullOrEmpty(item.Value.Commit.Description)) continue;
-
-				var sha = item.Key;
-				var snapshot = item.Value;
-				UiElements[sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
+				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
 			}
 
 			// Select path between two snapshots
-			var selectedSnapshots = Snapshot.All.Values.Where(e => e.IsSelected).OrderBy(e => e.Index);
+			var selectedSnapshots = ViewData.Snapshots.Where(e => e.IsSelected).OrderBy(e => e.VisibleIndex);
 			if (selectedSnapshots.Count() == 2) {
 				var c = selectedSnapshots.First().Commit.Sha;
 				var p = selectedSnapshots.Last().Commit.Sha;
@@ -345,10 +342,9 @@ namespace WpfUI.Renderer {
 		}
 
 		public void ClearHighlighting() {
-			foreach (var item in Snapshot.All) {
-				var sha = item.Key;
-				UiElements[sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
-				foreach(var path in UiElements[sha].Paths) {
+			foreach (var snapshot in ViewData.Snapshots) {
+				UiElements[snapshot.Sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+				foreach(var path in UiElements[snapshot.Sha].Paths) {
 					path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 				}
 			}
@@ -390,7 +386,7 @@ namespace WpfUI.Renderer {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			ViewData.SelectSnapshot(Snapshot.All[sha].Index);
+			ViewData.SelectSnapshot(Snapshot.All[sha].VisibleIndex);
 		}
 
 		#endregion
@@ -408,7 +404,7 @@ namespace WpfUI.Renderer {
 			if (p.TreeOffset != a.TreeOffset) return false;
 			if (p.BranchLineId == a.BranchLineId) return true;
 
-			for (int i = a.Index + 1; i < p.Index; i++) {
+			for (int i = a.VisibleIndex + 1; i < p.VisibleIndex; i++) {
 				if (ViewData.Snapshots[i].IsCommitVisible && ViewData.Snapshots[i].TreeOffset == p.TreeOffset) {
 					return false;
 				}

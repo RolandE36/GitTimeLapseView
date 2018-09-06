@@ -85,7 +85,7 @@ namespace TimeLapseView {
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
 
 			UpdatePreferredWay(Snapshot.Sha, nextElement.Value.Sha);
-			SelectSnapshot(nextElement.Value.Index);
+			SelectSnapshot(nextElement.Value.VisibleIndex);
 		}
 
 		/// <summary>
@@ -99,7 +99,7 @@ namespace TimeLapseView {
 			if (c == null) return;
 
 			UpdatePreferredWay(c.Commit.Sha, Snapshot.Sha);
-			SelectSnapshot(c.Index);
+			SelectSnapshot(c.VisibleIndex);
 		}
 
 		/// <summary>
@@ -110,7 +110,7 @@ namespace TimeLapseView {
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-			var orderedParents = Snapshot.Commit.Parents.OrderBy(e => Snapshot.All[e].TreeOffset).ToList();
+			var orderedParents = Snapshot.Parents.OrderBy(e => Snapshot.All[e].TreeOffset).ToList();
 			var pIndex = orderedParents.IndexOf(nextElement.Key);
 
 			if (pIndex > 0) {
@@ -133,7 +133,7 @@ namespace TimeLapseView {
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-			var orderedParents = Snapshot.Commit.Parents.OrderBy(e => Snapshot.All[e].TreeOffset).ToList();
+			var orderedParents = Snapshot.Parents.OrderBy(e => Snapshot.All[e].TreeOffset).ToList();
 			var pIndex = orderedParents.IndexOf(nextElement.Key);
 
 			if (pIndex < orderedParents.Count-1) {
@@ -160,14 +160,14 @@ namespace TimeLapseView {
 		/// Select next snapshot according to viewed history
 		/// </summary>
 		private void FindPreferredDownWay(Snapshot snapshot) {
-			if (Snapshot.Commit.Parents.Count > 0) {
+			if (Snapshot.Parents.Count > 0) {
 				string p = "";
 				// Try to find next snapshot from history
 				if (preferredDowntWay.Keys.Contains(snapshot.Sha)) p = preferredDowntWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
-				if (string.IsNullOrEmpty(p)) p = Snapshot.Commit.Parents.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
+				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
-				if (string.IsNullOrEmpty(p)) p = Snapshot.Commit.Parents.First();
+				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.First();
 				Snapshot.All[p].IsSelected = true;
 			}
 		}
@@ -176,14 +176,14 @@ namespace TimeLapseView {
 		/// Select previous snapshot according to viewed history
 		/// </summary>
 		private Snapshot FindPreferredUpWay(Snapshot snapshot) {
-			if (Snapshot.Commit.Childs.Count > 0) {
+			if (Snapshot.Childs.Count > 0) {
 				string c = "";
 				// Try to find next snapshot from history
 				if (preferredUpWay.Keys.Contains(snapshot.Sha)) c = preferredUpWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
-				if (string.IsNullOrEmpty(c)) c = Snapshot.Commit.Childs.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
+				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
-				if (string.IsNullOrEmpty(c)) c = Snapshot.Commit.Childs.First();
+				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.First();
 				Snapshot.All[c].IsSelected = true;
 
 				return Snapshot.All[c];

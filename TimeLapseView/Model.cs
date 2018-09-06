@@ -1,5 +1,7 @@
-﻿using System;
+﻿using LibGit2Sharp;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,15 +17,21 @@ namespace TimeLapseView {
 
 		public Snapshot(string sha) {
 			All[sha] = this;
+			Id = All.Count;
+			TreeOffset = -1;
+			BranchLineId = -1;
+			Childs = new HashSet<string>();
+			Parents = new HashSet<string>();
 		}
 
-		public int Index { get; set; }
-		public string File { get; set; }
+		public int Id { get; set; }
 		public string FilePath { get; set; }
 		public FilePathState FilePathState { get; set; }
 		public string PreviousFilePath { get; set; }
 		public CodeFile FileDetails { get; set; }
 		public Commit Commit { get; set; }
+		public HashSet<string> Parents { get; set; }
+		public HashSet<string> Childs { get; set; }
 		public string Sha { get { return Commit.Sha; } }
 		/// <summary>
 		/// Commit position in branches tree
@@ -31,18 +39,25 @@ namespace TimeLapseView {
 		public int TreeOffset { get; set; }
 		public int BranchLineId { get; set; }
 		public bool IsCommitRelatedToFile { get; set; }
+		// TODO: TBD: Rename Visible to File Changhed.
 		public bool IsCommitVisible { get; set; }
 
 		public bool IsSelected { get; set; }
 
 		public bool IsImportantCommit {
-			get { return IsCommitVisible && IsCommitRelatedToFile && Commit.Parents.Count == 1; }
+			get { return IsCommitVisible && IsCommitRelatedToFile && Parents.Count == 1; }
 		}
+
+		/// <summary>
+		/// Snanapshot order in visible list
+		/// </summary>
+		public int VisibleIndex { get; set; }
 
 		public bool IsMerge {
-			get { return Commit.Parents.Count > 1; }
+			get { return Parents.Count > 1; }
 		}
 
+		//TODO: Rename. It's represend offset in the tree on view
 		public double ViewIndex { get; set; }
 
 		public bool IsFirstInLine { get; set; }
@@ -53,8 +68,11 @@ namespace TimeLapseView {
 		/// </summary>
 		public int GetLineBirth(int lineID) {
 			var selectedLineId = FileDetails.LineHistory[lineID];
+
+			if (selectedLineId == 0) return 0;
+
 			var selectedLineCommits = CodeFile.LineBase[selectedLineId];
-			return selectedLineCommits.Max(e => Snapshot.All[e].Index);
+			return selectedLineCommits.Max(e => Snapshot.All[e].VisibleIndex);
 		}
 
 		/// <summary>
@@ -63,7 +81,29 @@ namespace TimeLapseView {
 		public int GetLineDeath(int lineID) {
 			var selectedLineId = FileDetails.LineHistory[lineID];
 			var selectedLineCommits = CodeFile.LineBase[selectedLineId];
-			return selectedLineCommits.Min(e => Snapshot.All[e].Index);
+			return selectedLineCommits.Min(e => Snapshot.All[e].VisibleIndex);
+		}
+
+
+		private string file;
+		public string File {
+			get {
+				if (string.IsNullOrEmpty(file)) LoadFileContent();
+				return file;
+			}
+		}
+
+		/// <summary>
+		/// Read file content
+		/// </summary>
+		public void LoadFileContent() {
+			if (!string.IsNullOrEmpty(file)) return;
+
+			var blob = (Blob)Commit.GitCommit[FilePath].Target;
+			// TODO: probably use commit.Encoding
+			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
+				file = reader.ReadToEnd();
+			}
 		}
 
 		private bool disposed = false;
@@ -110,8 +150,7 @@ namespace TimeLapseView {
 		public string Description { get; set; }
 		public string DescriptionShort { get; set; }
 		public DateTimeOffset Date { get; set; }
-		public HashSet<string> Parents { get; set; }
-		public HashSet<string> Childs { get; set; }
+		public HashSet<string> Parents { get; }
 		public Dictionary<string, int> Base { get; set; }
 		public string DateString {
 			get	{
@@ -129,7 +168,6 @@ namespace TimeLapseView {
 			DescriptionShort = commit.MessageShort.Replace("\n", " ");
 			Date = commit.Author.When;
 			Parents = new HashSet<string>();
-			Childs = new HashSet<string>();
 			Base = new Dictionary<string, int>();
 			foreach (var parent in commit.Parents) {
 				Parents.Add(string.Join("", parent.Sha));
