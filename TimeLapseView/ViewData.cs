@@ -196,8 +196,8 @@ namespace TimeLapseView {
 		/// Reset selection
 		/// </summary>
 		public void ResetSnapshotsSelection(bool redraw = true) {
-			foreach (var snapshot in Snapshot.All) {
-				snapshot.Value.IsSelected = false;
+			foreach (var snapshot in Snapshots) {
+				snapshot.IsSelected = false;
 			}
 
 			Snapshot.IsSelected = true;

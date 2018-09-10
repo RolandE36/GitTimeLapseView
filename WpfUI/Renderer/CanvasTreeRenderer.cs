@@ -20,6 +20,7 @@ namespace WpfUI.Renderer {
 
 	public class CanvasTreeRenderer {
 		public ViewData ViewData;
+		List<Snapshot> Snapshots;
 		public Canvas Canvas;
 		private Dictionary<string, SnapshotCanvasModel> UiElements;
 		private Dictionary<string, Shape> UiChildParentPaths; // TODO: Investigate more advanced solution
@@ -56,13 +57,14 @@ namespace WpfUI.Renderer {
 		private readonly List<SolidColorBrush> BackgroundBrushes = new List<SolidColorBrush>();
 		private readonly List<SolidColorBrush> HoverBackgroundBrushes = new List<SolidColorBrush>();
 
-		public CanvasTreeRenderer(ViewData viewData, Canvas canvas) {
+		public CanvasTreeRenderer(ViewData viewData, List<Snapshot> snapshots, Canvas canvas) {
 			ViewData = viewData;
+			Snapshots = snapshots;
 			Canvas = canvas;
 			UiElements = new Dictionary<string, SnapshotCanvasModel>();
 			UiChildParentPaths = new Dictionary<string, Shape>();
 
-			foreach (var snapshot in ViewData.Snapshots) {
+			foreach (var snapshot in Snapshots) {
 				UiElements[snapshot.Sha] = new SnapshotCanvasModel();
 			}
 
@@ -77,14 +79,14 @@ namespace WpfUI.Renderer {
 			var rnd = new Random();
 			var textOffset = 0;
 
-			foreach (var snapshot in ViewData.Snapshots) {
+			foreach (var snapshot in Snapshots) {
 				snapshot.ViewIndex = snapshot.VisibleIndex;
 			}
 			
 			// Calculate Y coordinates for visible commits
 			double index = 0;
 			bool previousSmall = false;
-			foreach (var snapshot in ViewData.Snapshots) {
+			foreach (var snapshot in Snapshots) {
 				if (!snapshot.IsCommitVisible) {
 					index += 0;
 					snapshot.ViewIndex = index;
@@ -99,7 +101,7 @@ namespace WpfUI.Renderer {
 				}
 			}
 
-			foreach (var snapshot in ViewData.Snapshots) {
+			foreach (var snapshot in Snapshots) {
 				var diameter = SCALE_Y;
 				if (!snapshot.IsImportantCommit) diameter = SCALE_Y / 2;
 				var x = (SCALE_X - diameter / 2) + 2 * SCALE_X * snapshot.TreeOffset;
@@ -281,8 +283,8 @@ namespace WpfUI.Renderer {
 				Canvas.Children.Add(textBlock);
 			}
 
-			Canvas.Width = ViewData.Snapshots.Max(e => e.TreeOffset)*SCALE_X+SCALE_X;
-			Canvas.Height = ViewData.Snapshots.Count* SCALE_Y * 2 + SCALE_Y;
+			Canvas.Width = Snapshots.Max(e => e.TreeOffset)*SCALE_X+SCALE_X;
+			Canvas.Height = Snapshots.Count* SCALE_Y * 2 + SCALE_Y;
 		}
 
 		private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
@@ -324,14 +326,14 @@ namespace WpfUI.Renderer {
 		/// Update all elements highlighting
 		/// </summary>
 		public void Draw() {
-			foreach (var snapshot in ViewData.Snapshots) {
+			foreach (var snapshot in Snapshots) {
 				if (string.IsNullOrEmpty(snapshot.Commit.Description)) continue;
 
 				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
 			}
 
 			// Select path between two snapshots
-			var selectedSnapshots = ViewData.Snapshots.Where(e => e.IsSelected).OrderBy(e => e.VisibleIndex);
+			var selectedSnapshots = Snapshots.Where(e => e.IsSelected).OrderBy(e => e.VisibleIndex);
 			if (selectedSnapshots.Count() == 2) {
 				var c = selectedSnapshots.First().Commit.Sha;
 				var p = selectedSnapshots.Last().Commit.Sha;
@@ -342,7 +344,7 @@ namespace WpfUI.Renderer {
 		}
 
 		public void ClearHighlighting() {
-			foreach (var snapshot in ViewData.Snapshots) {
+			foreach (var snapshot in Snapshots) {
 				UiElements[snapshot.Sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 				foreach(var path in UiElements[snapshot.Sha].Paths) {
 					path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
@@ -405,7 +407,7 @@ namespace WpfUI.Renderer {
 			if (p.BranchLineId == a.BranchLineId) return true;
 
 			for (int i = a.VisibleIndex + 1; i < p.VisibleIndex; i++) {
-				if (ViewData.Snapshots[i].IsCommitVisible && ViewData.Snapshots[i].TreeOffset == p.TreeOffset) {
+				if (Snapshots[i].IsCommitVisible && Snapshots[i].TreeOffset == p.TreeOffset) {
 					return false;
 				}
 			}
@@ -427,8 +429,7 @@ namespace WpfUI.Renderer {
 			if (p.TreeOffset == s.TreeOffset) return false;
 
 			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) * 0.6;
-			if (ViewData
-					.Snapshots
+			if (Snapshots
 					.Where(e => e.IsCommitVisible)
 					.Where(e => p.ViewIndex - requiredEmptySpace < e.ViewIndex && e.ViewIndex < p.ViewIndex)
 					.Any(e => e.TreeOffset == p.TreeOffset)
@@ -451,8 +452,7 @@ namespace WpfUI.Renderer {
 			if (p.TreeOffset == s.TreeOffset) return false;
 
 			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) * 0.6;
-			if (ViewData
-					.Snapshots
+			if (Snapshots
 					.Where(e => e.IsCommitVisible)
 					.Where(e => s.ViewIndex < e.ViewIndex && e.ViewIndex < s.ViewIndex + requiredEmptySpace)
 					.Any(e => e.TreeOffset == s.TreeOffset)

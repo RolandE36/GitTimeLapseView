@@ -55,7 +55,7 @@ namespace TimeLapseView {
 
 		public void  GetCommitsHistory(int page) {
 			if (snapshots == null) snapshots = new List<Snapshot>();
-			if (visibleSnapshots == null) visibleSnapshots = new List<Snapshot>();
+			visibleSnapshots = new List<Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
@@ -97,6 +97,11 @@ namespace TimeLapseView {
 				FindAllCommitAncestors();
 				RemoveNotValuableLinks();
 				GetSnapshotsWithChanges();
+
+				if (visibleSnapshots.Count() == 0) {
+					OnSnapshotsHistoryUpdated.Invoke(visibleSnapshots);
+					return;
+				}
 
 				FindRelatedLines();
 				AdvancedBranchesArchivation();
@@ -417,10 +422,10 @@ namespace TimeLapseView {
 			for (var i = visibleSnapshots.Count - 2; i >= 0; i--) {
 				var snapshot = visibleSnapshots[i];
 
-				// Already processed
-				// TODO: Not working wor second page!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				// We should remember is file was compared
-				if (snapshot.FileDetails != null) continue;
+				if (snapshot.FileDetails != null &&  // Check is already processed
+					snapshot.Parents.Count() == 0) { // New snapshots could be added after previous loop
+					continue;
+				}
 
 				// TODO: Calculate file size after read
 				snapshot.FileDetails = new CodeFile(snapshot.File.Split('\n').Count());

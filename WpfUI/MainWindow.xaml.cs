@@ -19,6 +19,7 @@ using TimeLapseView;
 using ICSharpCode.AvalonEdit.Document;
 using Microsoft.Win32;
 using WpfUI.Renderer;
+using System.Threading;
 
 namespace WpfUI {
 	/// <summary>
@@ -27,6 +28,10 @@ namespace WpfUI {
 	public partial class MainWindow : Window {
 
 		private const string APP_TITLE = "Git Time Lapse View";
+
+		private FileHistoryManager manager;
+		private CanvasTreeRenderer treeRenderer;
+		private int page = 0;
 
 		public MainWindow() {
 			InitializeComponent();
@@ -54,8 +59,7 @@ namespace WpfUI {
 		private void lvVerticalHistoryPanel_SelectionChanged(object sender, SelectionChangedEventArgs e) {
 			View.SelectSnapshot(lvVerticalHistoryPanel.SelectedIndex);
 		}
-		
-		public CanvasTreeRenderer cr;
+
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
 			OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -65,41 +69,62 @@ namespace WpfUI {
 				try {
 					var filename = openFileDialog.FileNames.FirstOrDefault();
 
-					var manager = new FileHistoryManager(filename);
+					manager = new FileHistoryManager(filename);
 					Title = APP_TITLE + ": " + manager.filePath;
 					View = new ViewData();
 
 					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
-						View.Snapshots = snapshots;
-						slHistoy.Maximum = View.Snapshots.Count;
-						slHistoy.Value = View.Snapshots.Count;
-						slHistoy.Minimum = 1;
-						tbCode.Text = View.Snapshots[0].File;
-						lblCommitDetailsSection.Visibility = Visibility.Visible;
-						SetBackgroundRendererMode(RendererMode.TimeLapse);
+						this.Dispatcher.BeginInvoke(new Action(() => {
+							if (snapshots.Count() == 0) return;
 
-						Canvas1.Children.Clear();
-						cr = new CanvasTreeRenderer(View, Canvas1);
-						cr.BuildTree();
-						cr.Draw();
+							//View = new ViewData();
+							View.Snapshots = snapshots;
+							slHistoy.Maximum = View.Snapshots.Count;
+							slHistoy.Value = View.Snapshots.Count - View.Snapshot.ViewIndex;
+							tbCode.Text = View.Snapshot.File;
+							slHistoy.Minimum = 1;
+							SetBackgroundRendererMode(RendererMode.TimeLapse);
+							lblCommitDetailsSection.Visibility = Visibility.Visible;
+
+							Canvas1.Children.Clear();
+							var crt = new CanvasTreeRenderer(View, snapshots, Canvas1);
+
+							crt.BuildTree();
+							crt.Draw();
+
+							treeRenderer = crt;
+						}));
 					};
-					manager.GetCommitsHistory(0);
-					//manager.GetCommitsHistory(1);
-
 					
+					
+
+					new Thread(() => {
+						while (page < 5) {
+							manager.GetCommitsHistory(page);
+							page++;
+						}
+					}
+					).Start();
+					// TODO: Stop ).Start();
+
+
 
 					// TODO: Mediator patern????
 					// TODO: View should exist without snapshots
 					View.OnViewIndexChanged = (index, snapshot) => {
-						tbCode.Text = snapshot.File;
-						slHistoy.Value = slHistoy.Maximum - index;
-						lvVerticalHistoryPanel.SelectedIndex = index;
-						UpdateCommitDetails(snapshot);
+						this.Dispatcher.BeginInvoke(new Action(() => {
+							tbCode.Text = snapshot.File;
+							slHistoy.Value = slHistoy.Maximum - index;
+							lvVerticalHistoryPanel.SelectedIndex = index;
+							UpdateCommitDetails(snapshot);
+						}));
 					};
 
 					View.OnSelectionChanged = () => {
-						cr.ClearHighlighting();
-						cr.Draw();
+						this.Dispatcher.BeginInvoke(new Action(() => {
+							treeRenderer.ClearHighlighting();
+							treeRenderer.Draw();
+						}));
 					};
 
 					// TODO: Implement Search by commits
