@@ -44,10 +44,11 @@ namespace WpfUI {
 
 				// TODO: Move brush creation to separate class using percentage values (current, max, step)
 				var lineSnapshotsNumber = host.Snapshots.Count - host.Snapshot.GetLineBirth(linenum);
+				if (lineSnapshotsNumber < 0) lineSnapshotsNumber = 0; // In case if host.Snapshot not yet updated with new commits.
 				var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.SnapshotIndex)) / 100;
 				// TODO: Fix calcultions
 				if (lineLifeTimePercent > 1) lineLifeTimePercent = 1;
-				var byteColor = Convert.ToByte(255 - (40 + 150 * lineLifeTimePercent));
+				var byteColor = Convert.ToByte(255 - (5 + 249 * lineLifeTimePercent));
 
 				brush = new SolidColorBrush(Color.FromRgb(byteColor, 0xff, byteColor));
 				
