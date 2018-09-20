@@ -53,13 +53,17 @@ namespace TimeLapseView {
 			}
 		}
 
-		public void  GetCommitsHistory(int page) {
+		public void  GetCommitsHistory(int page, ref bool isScanningDone) {
 			if (snapshots == null) snapshots = new List<Snapshot>();
 			visibleSnapshots = new List<Snapshot>();
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
 				// TODO: Add progress infomation
+
+				if (repo.Commits.Count() < page * PAGE_SIZE) {
+					isScanningDone = true;
+				}
 
 				var treeFile = filePath;
 				// TODO: Investigate:

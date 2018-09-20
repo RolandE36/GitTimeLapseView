@@ -71,7 +71,7 @@ namespace TimeLapseView {
 
 			if (selectedLineId == 0) return 0;
 
-			var selectedLineCommits = CodeFile.LineBase[selectedLineId];
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList(); // TODO: Investigate .ToList() 
 			return selectedLineCommits.Max(e => Snapshot.All[e].VisibleIndex);
 		}
 
@@ -80,7 +80,7 @@ namespace TimeLapseView {
 		/// </summary>
 		public int GetLineDeath(int lineID) {
 			var selectedLineId = FileDetails.LineHistory[lineID];
-			var selectedLineCommits = CodeFile.LineBase[selectedLineId];
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList(); // TODO: Investigate .ToList() 
 			return selectedLineCommits.Min(e => Snapshot.All[e].VisibleIndex);
 		}
 

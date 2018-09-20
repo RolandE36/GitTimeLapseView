@@ -123,7 +123,7 @@ namespace WpfUI.Renderer {
 				Canvas.Children.Add(rectangle);
 				Canvas.SetZIndex(rectangle, -2);
 
-				foreach (var p in snapshot.Parents) {
+				foreach (var p in snapshot.Parents.ToList()) { // TODO: Investigate .ToList();
 					var parent = Snapshot.All[p];
 					if (!parent.IsCommitVisible) continue;
 

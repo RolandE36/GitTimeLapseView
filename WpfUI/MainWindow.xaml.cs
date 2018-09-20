@@ -31,13 +31,16 @@ namespace WpfUI {
 
 		private FileHistoryManager manager;
 		private CanvasTreeRenderer treeRenderer;
-		private int page = 0;
+		private ViewData View;
+
+		private int page = 0; // TODO: Move to viewdata
+		private bool isFirstRendering;
+		private Thread scanningThread;
+		private bool isScanningDone = false; // TODO: Move to viewdata
 
 		public MainWindow() {
 			InitializeComponent();
 		}
-
-		ViewData View;
 
 		class MovieData {
 			public string Title { get; set; }
@@ -52,7 +55,7 @@ namespace WpfUI {
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
-			if (View == null) return;
+			if (View == null || View.Snapshots == null || View.Snapshots.Count == 0) return;
 			View.SelectSnapshot((int)(slHistoy.Maximum - slHistoy.Value));
 		}
 
@@ -72,19 +75,28 @@ namespace WpfUI {
 					manager = new FileHistoryManager(filename);
 					Title = APP_TITLE + ": " + manager.filePath;
 					View = new ViewData();
+					isFirstRendering = true;
+					page = 0;
+					isScanningDone = false;
 
 					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
 							if (snapshots.Count() == 0) return;
 
 							//View = new ViewData();
+							var addedSnaphots = View.Snapshots == null ? 0 : snapshots.Count - View.Snapshots.Count;
 							View.Snapshots = snapshots;
 							slHistoy.Maximum = View.Snapshots.Count;
-							slHistoy.Value = View.Snapshots.Count - View.Snapshot.ViewIndex;
-							tbCode.Text = View.Snapshot.File;
-							slHistoy.Minimum = 1;
-							SetBackgroundRendererMode(RendererMode.TimeLapse);
-							lblCommitDetailsSection.Visibility = Visibility.Visible;
+							if (isFirstRendering) {
+								isFirstRendering = false;
+								slHistoy.Value = View.Snapshots.Count;
+								tbCode.Text = View.Snapshot.File;
+
+								SetBackgroundRendererMode(RendererMode.TimeLapse);
+								lblCommitDetailsSection.Visibility = Visibility.Visible;
+							} else {
+								slHistoy.Value += addedSnaphots;
+							}
 
 							Canvas1.Children.Clear();
 							var crt = new CanvasTreeRenderer(View, snapshots, Canvas1);
@@ -95,17 +107,16 @@ namespace WpfUI {
 							treeRenderer = crt;
 						}));
 					};
-					
-					
 
-					new Thread(() => {
-						while (page < 5) {
-							manager.GetCommitsHistory(page);
+
+					if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
+					scanningThread = new Thread(() => {
+						while (!isScanningDone) {
+							manager.GetCommitsHistory(page, ref isScanningDone);
 							page++;
 						}
-					}
-					).Start();
-					// TODO: Stop ).Start();
+					});
+					scanningThread.Start();
 
 
 
@@ -288,6 +299,10 @@ namespace WpfUI {
 			tbCode.TextArea.Caret.Line = i;
 			tbCode.TextArea.Caret.Column = 1;
 			tbCode.TextArea.Focus();
+		}
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+			if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
 		}
 	}
 }

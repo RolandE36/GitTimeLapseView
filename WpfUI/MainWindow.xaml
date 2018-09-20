@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:WpfUI"
         mc:Ignorable="d"
         Title="Git Time Lapse View" Height="350" Width="525"
-		KeyUp="MainWindow_KeyUp"
+		KeyUp="MainWindow_KeyUp" Closing="Window_Closing"
 >
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -48,6 +48,9 @@
 
 			IsSelectionRangeEnabled="True"  
 			Foreground="Blue"
+			
+			Minimum="1"
+			Maximum="1"
 			
 			Grid.Column="0" 
 			Grid.Row="1" 

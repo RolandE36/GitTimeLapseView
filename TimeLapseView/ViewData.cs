@@ -65,11 +65,12 @@ namespace TimeLapseView {
 		/// <param name="index">index in snapshots list</param>
 		public void SelectSnapshot(int index) {
 			if (index < 0 || Snapshots.Count == 0) return;
-			ResetSnapshotsSelection(false);
 
 			SnapshotIndex = index;
 			Snapshot.IsSelected = true;
-			FindPreferredDownWay(Snapshot);
+			//FindPreferredDownWay(Snapshot);
+
+			ResetSnapshotsSelection(false);
 
 			OnViewIndexChanged?.Invoke(index, Snapshot);
 			OnSelectionChanged?.Invoke();
