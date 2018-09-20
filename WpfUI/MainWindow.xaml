@@ -99,7 +99,6 @@
 			<avalonEdit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
 				Name="tbCode" 
 				FontFamily="Consolas"
-				SyntaxHighlighting="C#"
 				FontSize="10pt"
 				ShowLineNumbers="True"
 				Text="" 

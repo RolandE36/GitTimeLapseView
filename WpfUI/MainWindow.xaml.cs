@@ -20,6 +20,7 @@ using ICSharpCode.AvalonEdit.Document;
 using Microsoft.Win32;
 using WpfUI.Renderer;
 using System.Threading;
+using System.IO;
 
 namespace WpfUI {
 	/// <summary>
@@ -78,6 +79,10 @@ namespace WpfUI {
 					isFirstRendering = true;
 					page = 0;
 					isScanningDone = false;
+
+					var typeConverter = new HighlightingDefinitionTypeConverter();
+					var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
+					tbCode.SyntaxHighlighting = syntaxHighlighter;
 
 					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
@@ -303,6 +308,51 @@ namespace WpfUI {
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
 			if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
+		}
+
+		private const string XML = "XML";
+		private const string VB = "VB";
+		private const string TEX = "TeX";
+		private const string TSQL = "TSQL";
+		private const string PYTHON = "Python";
+		private const string POWERSHELL = "PowerShell";
+		private const string PATCH = "Patch";
+		private const string PHP = "PHP";
+		private const string MARKDOWN = "MarkDown";
+		private const string JAVASCRIPT = "JavaScript";
+		private const string JAVA = "Java";
+		private const string HTML = "HTML";
+		private const string COCO = "Coco";
+		private const string CSH = "C#";
+		private const string CSS = "CSS";
+		private const string CPP = "C++";
+		private const string BOO = "Boo";
+		private const string ASPXHTML = "ASP/XHTML";
+
+		private string GetSyntax(string filename) {
+			var file = new FileInfo(filename);
+			switch (file.Extension.Replace(".", "")) {
+				case "xml": case "xsl": case "xslt": case "xsd": case "manifest": case "config": case "addin": case "xshd": case "wxs": case "wxi": case "wxl": case "proj": case "csproj": case "vbproj": case "ilproj": case "booproj": case "build": case "xfrm": case "targets": case "xaml": case "xpt": case "xft": case "map": case "wsdl": case "disco": case "ps1xml": case "nuspec": return XML;
+				case "vb": return VB;
+				case "tex": return TEX;
+				case "sql": return TSQL;
+				case "py": case "pyw": return PYTHON;
+				case "ps1": case "psm1": case "psd1": return POWERSHELL;
+				case "patch": case "diff": return PATCH;
+				case "php": return PHP;
+				case "md": return MARKDOWN;
+				case "js": return JAVASCRIPT;
+				case "java": return JAVA;
+				case "htm": case "html": return HTML;
+				case "atg": return COCO;
+				case "cs": return CSH;
+				case "css": return CSS;
+				case "c": case "h": case "cc": case "cpp": case "hpp": return CPP;
+				case "boo": return BOO;
+				case "asp": case "aspx": case "asax": case "asmx": case "ascx": case "master": return ASPXHTML;
+			}
+
+			return "";
 		}
 	}
 }
