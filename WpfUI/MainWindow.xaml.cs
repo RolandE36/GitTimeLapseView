@@ -120,6 +120,7 @@ namespace WpfUI {
 							manager.GetCommitsHistory(page, ref isScanningDone);
 							page++;
 						}
+						MessageBox.Show("Done. Page = " + page);
 					});
 					scanningThread.Start();
 
