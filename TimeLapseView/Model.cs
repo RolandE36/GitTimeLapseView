@@ -99,10 +99,18 @@ namespace TimeLapseView {
 		public void LoadFileContent() {
 			if (!string.IsNullOrEmpty(file)) return;
 
-			var blob = (Blob)Commit.GitCommit[FilePath].Target;
-			// TODO: probably use commit.Encoding
-			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-				file = reader.ReadToEnd();
+			var gitFile = Commit.GitCommit[FilePath];
+
+			if (gitFile == null) {
+				// TODO: Compare with previous file path/name
+				// File was renamed or moved.
+				file = string.Empty;
+			} else {
+				var blob = (Blob)Commit.GitCommit[FilePath].Target;
+				// TODO: probably use commit.Encoding
+				using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
+					file = reader.ReadToEnd();
+				}
 			}
 		}
 

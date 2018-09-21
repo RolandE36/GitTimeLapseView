@@ -61,8 +61,10 @@ namespace TimeLapseView {
 				// TODO: History in different branches
 				// TODO: Add progress infomation
 
+				// Full seek done
 				if (repo.Commits.Count() < page * PAGE_SIZE) {
 					isScanningDone = true;
+					return;
 				}
 
 				var treeFile = filePath;
@@ -78,7 +80,10 @@ namespace TimeLapseView {
 						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile)
 					};
 
-					snapshots.Add(snapshot);
+					// Skip all commits before first changes
+					if (snapshot.IsCommitRelatedToFile || snapshots.Count() != 0) {
+						snapshots.Add(snapshot);
+					}
 
 
 					// TODO: Not working for tree. Should revrite code for files renaming
@@ -92,7 +97,8 @@ namespace TimeLapseView {
 					}*/
 				}
 
-				// TODO: Error in case of snapshots.Count() == 0
+				// Do nothing in case if no changes found 
+				if (snapshots.Count(e => e.IsCommitRelatedToFile) == 0) return;
 
 				InitializeNewSnapshotsRelations();
 				RemoveNotExistingParentsAndChilds(snapshots);
