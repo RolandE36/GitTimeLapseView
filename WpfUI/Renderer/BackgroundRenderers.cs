@@ -7,17 +7,16 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using TimeLapseView;
+using WpfUI.Renderer;
 
 namespace WpfUI {
 
 	// TODO: Code cleanup. Move to separate folder
 	
-	public class TimeLapseLineBackgroundRenderer : IBackgroundRenderer {
+	public class TimeLapseLineBackgroundRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
 		static Pen pen;
 
 		private static SolidColorBrush selectedBackground = new SolidColorBrush(Color.FromRgb(0xff, 0xd8, 0x1A));
-
-		ViewData host;
 
 		static TimeLapseLineBackgroundRenderer() {
 			var blackBrush = new SolidColorBrush(Color.FromRgb(0, 0, 0)); blackBrush.Freeze();
@@ -40,20 +39,7 @@ namespace WpfUI {
 				var linenum = v.FirstDocumentLine.LineNumber - 1;
 				if (linenum >= host.Snapshot.FileDetails.Count) continue;
 
-				var brush = default(Brush);
-
-				// TODO: Move brush creation to separate class using percentage values (current, max, step)
-				var lineSnapshotsNumber = host.Snapshots.Count - host.Snapshot.GetLineBirth(linenum);
-				if (lineSnapshotsNumber < 0) lineSnapshotsNumber = 0; // In case if host.Snapshot not yet updated with new commits.
-				var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.SnapshotIndex)) / 100;
-				// TODO: Fix calcultions
-				if (lineLifeTimePercent > 1) lineLifeTimePercent = 1;
-				var byteColor = Convert.ToByte(255 - (5 + 249 * lineLifeTimePercent));
-
-				brush = new SolidColorBrush(Color.FromRgb(byteColor, 0xff, byteColor));
-				
-
-				drawingContext.DrawRectangle(brush, pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
+				drawingContext.DrawRectangle(GetLineBackgroundBrush(linenum), pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
 			}
 		}
 	}

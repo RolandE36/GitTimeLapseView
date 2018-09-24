@@ -189,6 +189,11 @@ namespace WpfUI {
 			SetBackgroundRendererMode(RendererMode.IncrementalDiff);
 		}
 
+		private void menuShowBlame_Click(object sender, RoutedEventArgs e) {
+			canvasBlame.Visibility = menuShowBlame.IsChecked ? Visibility.Visible : Visibility.Hidden;
+			colBlame.Width = new GridLength(menuShowBlame.IsChecked ? 150 : 0);
+		}
+
 		private void btnExit_Click(object sender, RoutedEventArgs e) {
 			Close();
 		}
@@ -242,6 +247,7 @@ namespace WpfUI {
 			}
 			
 			tbCode.TextArea.TextView.BackgroundRenderers.Add(new SelectedLineBackgroundRenderer(View));
+			tbCode.TextArea.TextView.BackgroundRenderers.Add(new LineDetailsRenderer(View, canvasBlame));
 			tbCode.TextArea.TextView.Redraw();
 
 			// Set Menu Check Boxes
