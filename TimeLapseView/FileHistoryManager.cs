@@ -56,6 +56,7 @@ namespace TimeLapseView {
 		public void  GetCommitsHistory(int page, ref bool isScanningDone) {
 			if (snapshots == null) snapshots = new List<Snapshot>();
 			visibleSnapshots = new List<Snapshot>();
+			var commitsRelatedToFile = snapshots.Count(e => e.IsCommitRelatedToFile);
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
@@ -99,6 +100,9 @@ namespace TimeLapseView {
 
 				// Do nothing in case if no changes found 
 				if (snapshots.Count(e => e.IsCommitRelatedToFile) == 0) return;
+
+				// Do nothing in case if no new changes found 
+				if (commitsRelatedToFile == snapshots.Count(e => e.IsCommitRelatedToFile)) return;
 
 				InitializeNewSnapshotsRelations();
 				RemoveNotExistingParentsAndChilds(snapshots);
