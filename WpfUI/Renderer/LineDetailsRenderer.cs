@@ -30,7 +30,7 @@ namespace WpfUI.Renderer {
 				var linenum = textView.VisualLines[i].FirstDocumentLine.LineNumber - 1;
 				if (linenum >= host.Snapshot.FileDetails.Count) continue;
 
-				var snapshot = host.Snapshots[host.Snapshot.GetLineBirth(linenum)];
+				var snapshot = host.Snapshots[host.GetLineBirth(linenum)];
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, textView.VisualLines[i], 0, 1000).First();
 
 				TextBlock textBlock = new TextBlock();

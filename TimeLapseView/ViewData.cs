@@ -9,7 +9,22 @@ namespace TimeLapseView {
 		/// <summary>
 		/// List of all snapshots related to file
 		/// </summary>
-		public List<Snapshot> Snapshots;
+		public List<Snapshot> Snapshots {
+			get { return snapshots; }
+			set {
+				All.Clear();
+				foreach (var val in value) {
+					All[val.Sha] = val;
+				}
+				snapshots = value;
+			}
+		}
+		private List<Snapshot> snapshots;
+
+		/// <summary>
+		/// Key based access to available snapshots
+		/// </summary>
+		public Dictionary<string, Snapshot> All;
 
 		/// <summary>
 		/// Currently viewed commit
@@ -30,7 +45,7 @@ namespace TimeLapseView {
 		public int SelectedLineLID;
 
 		/// <summary>
-		/// For storing history of viewing snapshots
+		/// For storing history of viewed snapshots
 		/// </summary>
 		private Dictionary<string, string> preferredDowntWay;
 		private Dictionary<string, string> preferredUpWay;
@@ -56,31 +71,42 @@ namespace TimeLapseView {
 			SelectedLineLID = -1;
 			preferredDowntWay = new Dictionary<string, string>();
 			preferredUpWay = new Dictionary<string, string>();
+			All = new Dictionary<string, Snapshot>();
 		}
-
 
 		/// <summary>
-		/// Change selected sanpshot
+		/// Index of the first commit with provided line nuber
 		/// </summary>
-		/// <param name="index">index in snapshots list</param>
-		public void SelectSnapshot(int index) {
-			if (index < 0 || Snapshots.Count == 0) return;
+		public int GetLineBirth(int lineID) {
+			var selectedLineId = Snapshot.FileDetails.LineHistory[lineID];
 
-			SnapshotIndex = index;
-			Snapshot.IsSelected = true;
-			//FindPreferredDownWay(Snapshot);
+			if (selectedLineId == 0) return 0;
 
-			ResetSnapshotsSelection(false);
-
-			OnViewIndexChanged?.Invoke(index, Snapshot);
-			OnSelectionChanged?.Invoke();
+			// TODO: Investigate how to avoid .ToList() 
+			// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => All.ContainsKey(e));
+			return selectedLineCommits.Max(e => All[e].VisibleIndex);
 		}
+
+		/// <summary>
+		/// Index of the last commit with provided line nuber
+		/// </summary>
+		public int GetLineDeath(int lineID) {
+			var selectedLineId = Snapshot.FileDetails.LineHistory[lineID];
+
+			// TODO: Investigate how to avoid .ToList() 
+			// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => All.ContainsKey(e));
+			return selectedLineCommits.Min(e => All[e].VisibleIndex);
+		}
+
+		#region Snapshots navigation
 
 		/// <summary>
 		/// Step down
 		/// </summary>
 		public void MoveToNextSnapshot() {
-			var selected = Snapshot.All.Where(e => e.Value.IsSelected);
+			var selected = All.Where(e => e.Value.IsSelected);
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
@@ -93,7 +119,7 @@ namespace TimeLapseView {
 		/// Step up
 		/// </summary
 		public void MoveToPrevSnapshot() {
-			var selected = Snapshot.All.Where(e => e.Value.IsSelected);
+			var selected = All.Where(e => e.Value.IsSelected);
 			if (selected.Count() > 2) return;
 
 			var c = FindPreferredUpWay(Snapshot);
@@ -107,15 +133,15 @@ namespace TimeLapseView {
 		/// Step left
 		/// </summary
 		public void MoveToLeftSnapshot() {
-			var selected = Snapshot.All.Where(e => e.Value.IsSelected);
+			var selected = All.Where(e => e.Value.IsSelected);
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-			var orderedParents = Snapshot.Parents.OrderBy(e => Snapshot.All[e].TreeOffset).ToList();
+			var orderedParents = Snapshot.Parents.OrderBy(e => All[e].TreeOffset).ToList();
 			var pIndex = orderedParents.IndexOf(nextElement.Key);
 
 			if (pIndex > 0) {
-				var newNextElement = Snapshot.All[orderedParents[pIndex - 1]];
+				var newNextElement = All[orderedParents[pIndex - 1]];
 
 				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
 
@@ -130,15 +156,15 @@ namespace TimeLapseView {
 		/// Step right
 		/// </summary
 		public void MoveToRightSnapshot() {
-			var selected = Snapshot.All.Where(e => e.Value.IsSelected);
+			var selected = All.Where(e => e.Value.IsSelected);
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-			var orderedParents = Snapshot.Parents.OrderBy(e => Snapshot.All[e].TreeOffset).ToList();
+			var orderedParents = Snapshot.Parents.OrderBy(e => All[e].TreeOffset).ToList();
 			var pIndex = orderedParents.IndexOf(nextElement.Key);
 
 			if (pIndex < orderedParents.Count-1) {
-				var newNextElement = Snapshot.All[orderedParents[pIndex + 1]];
+				var newNextElement = All[orderedParents[pIndex + 1]];
 
 				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
 
@@ -166,10 +192,10 @@ namespace TimeLapseView {
 				// Try to find next snapshot from history
 				if (preferredDowntWay.Keys.Contains(snapshot.Sha)) p = preferredDowntWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
-				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
+				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.FirstOrDefault(e => All[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
 				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.First();
-				Snapshot.All[p].IsSelected = true;
+				All[p].IsSelected = true;
 			}
 		}
 
@@ -182,16 +208,18 @@ namespace TimeLapseView {
 				// Try to find next snapshot from history
 				if (preferredUpWay.Keys.Contains(snapshot.Sha)) c = preferredUpWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
-				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.FirstOrDefault(e => Snapshot.All[e].TreeOffset == Snapshot.TreeOffset);
+				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.FirstOrDefault(e => All[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
 				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.First();
-				Snapshot.All[c].IsSelected = true;
+				All[c].IsSelected = true;
 
-				return Snapshot.All[c];
+				return All[c];
 			}
 
 			return null;
 		}
+
+		#endregion
 
 		/// <summary>
 		/// Reset selection
@@ -213,9 +241,26 @@ namespace TimeLapseView {
 		public void SelectSnapshots(HashSet<string> items) {
 			ResetSnapshotsSelection(false);
 			foreach (var sha in items) {
-				Snapshot.All[sha].IsSelected = true;
+				All[sha].IsSelected = true;
 			}
 
+			OnSelectionChanged?.Invoke();
+		}
+
+		/// <summary>
+		/// Change selected sanpshot
+		/// </summary>
+		/// <param name="index">index in snapshots list</param>
+		public void SelectSnapshot(int index) {
+			if (index < 0 || Snapshots.Count == 0) return;
+
+			SnapshotIndex = index;
+			Snapshot.IsSelected = true;
+			//FindPreferredDownWay(Snapshot);
+
+			ResetSnapshotsSelection(false);
+
+			OnViewIndexChanged?.Invoke(index, Snapshot);
 			OnSelectionChanged?.Invoke();
 		}
 	}

@@ -63,28 +63,6 @@ namespace TimeLapseView {
 		public bool IsFirstInLine { get; set; }
 		public bool IsLastInLine { get; set; }
 
-		/// <summary>
-		/// Index of the first commit with provided line nuber
-		/// </summary>
-		public int GetLineBirth(int lineID) {
-			var selectedLineId = FileDetails.LineHistory[lineID];
-
-			if (selectedLineId == 0) return 0;
-
-			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList(); // TODO: Investigate .ToList() 
-			return selectedLineCommits.Max(e => Snapshot.All[e].VisibleIndex);
-		}
-
-		/// <summary>
-		/// Index of the last commit with provided line nuber
-		/// </summary>
-		public int GetLineDeath(int lineID) {
-			var selectedLineId = FileDetails.LineHistory[lineID];
-			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList(); // TODO: Investigate .ToList() 
-			return selectedLineCommits.Min(e => Snapshot.All[e].VisibleIndex);
-		}
-
-
 		private string file;
 		public string File {
 			get {

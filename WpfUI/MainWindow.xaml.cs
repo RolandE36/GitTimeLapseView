@@ -104,7 +104,7 @@ namespace WpfUI {
 							}
 
 							Canvas1.Children.Clear();
-							var crt = new CanvasTreeRenderer(View, snapshots, Canvas1);
+							var crt = new CanvasTreeRenderer(View, Canvas1);
 
 							crt.BuildTree();
 							crt.Draw();
@@ -200,7 +200,7 @@ namespace WpfUI {
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
 			try {
-				if (View.SelectedSnapshotIndex == View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1)) {
+				if (View.SelectedSnapshotIndex == View.GetLineBirth(tbCode.TextArea.Caret.Line - 1)) {
 
 					View.ResetSnapshotsSelection();
 
@@ -213,7 +213,7 @@ namespace WpfUI {
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
-					View.SelectedSnapshotIndex = View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
+					View.SelectedSnapshotIndex = View.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
 					View.SelectedLineLID = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].LID;
 					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
 
@@ -221,8 +221,8 @@ namespace WpfUI {
 					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
 
 					slHistoy.IsSelectionRangeEnabled = true;
-					slHistoy.SelectionStart = slHistoy.Maximum - View.Snapshot.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
-					slHistoy.SelectionEnd = slHistoy.Maximum - View.Snapshot.GetLineDeath(tbCode.TextArea.Caret.Line - 1);
+					slHistoy.SelectionStart = slHistoy.Maximum - View.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
+					slHistoy.SelectionEnd = slHistoy.Maximum - View.GetLineDeath(tbCode.TextArea.Caret.Line - 1);
 				}
 
 				tbCode.TextArea.TextView.Redraw();
