@@ -21,6 +21,7 @@ using Microsoft.Win32;
 using WpfUI.Renderer;
 using System.Threading;
 using System.IO;
+using TimeLapseView.Model;
 
 namespace WpfUI {
 	/// <summary>

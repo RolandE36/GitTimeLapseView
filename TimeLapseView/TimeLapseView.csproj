@@ -106,8 +106,13 @@
   <ItemGroup>
     <Compile Include="Enums.cs" />
     <Compile Include="FileHistoryManager.cs" />
+    <Compile Include="Model\CodeFile.cs" />
+    <Compile Include="Model\CodeLine.cs" />
+    <Compile Include="Model\Commit.cs" />
+    <Compile Include="Model\CommitsAnalyzingStatus.cs" />
+    <Compile Include="Model\Snapshot.cs" />
+    <Compile Include="Model\SnapshotVM.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Model.cs" />
     <Compile Include="ViewData.cs" />
   </ItemGroup>
   <ItemGroup>

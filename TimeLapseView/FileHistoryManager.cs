@@ -10,6 +10,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using TimeLapseView.Model;
 
 namespace TimeLapseView {
 	public class FileHistoryManager {
@@ -83,7 +84,7 @@ namespace TimeLapseView {
 					// Observable commit
 					var snapshot = new Snapshot(commit.Sha) {
 						FilePath = treeFile,
-						Commit = new Commit(commit),
+						Commit = new Model.Commit(commit),
 						IsCommitRelatedToFile = IsFileWasUpdated(commit, treeFile)
 					};
 
