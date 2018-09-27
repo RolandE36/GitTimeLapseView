@@ -4,6 +4,7 @@ using DiffPlex.DiffBuilder.Model;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -53,7 +54,7 @@ namespace TimeLapseView {
 			}
 		}
 
-		public void  GetCommitsHistory(int page, ref bool isScanningDone) {
+		public void GetCommitsHistory(CommitsAnalyzingStatus status) {
 			if (snapshots == null) snapshots = new List<Snapshot>();
 			visibleSnapshots = new List<Snapshot>();
 			var commitsRelatedToFile = snapshots.Count(e => e.IsCommitRelatedToFile);
@@ -62,9 +63,11 @@ namespace TimeLapseView {
 				// TODO: History in different branches
 				// TODO: Add progress infomation
 
+				status.ItemsTotal = repo.Commits.Count();
+
 				// Full seek done
-				if (repo.Commits.Count() < page * PAGE_SIZE) {
-					isScanningDone = true;
+				if (repo.Commits.Count() < status.ItemsProcessed) {
+					status.IsSeekCompleted = true;
 					return;
 				}
 
@@ -72,7 +75,8 @@ namespace TimeLapseView {
 				// TODO: Investigate:
 				// https://github.com/libgit2/libgit2sharp/issues/1074
 				// var commits = repo.Commits.QueryBy(parameters.FilePath.Replace(_repository, "")).ToList();
-				foreach (var commit in repo.Commits.Skip(page * PAGE_SIZE).Take(PAGE_SIZE)) {
+				foreach (var commit in repo.Commits.Skip(status.ItemsProcessed).Take(status.ItemsPerPage)) {
+					status.ItemsProcessed++;
 
 					// Observable commit
 					var snapshot = new Snapshot(commit.Sha) {

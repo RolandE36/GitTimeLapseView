@@ -44,6 +44,8 @@ namespace TimeLapseView {
 		public int SelectedLine;
 		public int SelectedLineLID;
 
+		public CommitsAnalyzingStatus SeekStatus { get; set; }
+
 		/// <summary>
 		/// For storing history of viewed snapshots
 		/// </summary>
@@ -72,6 +74,7 @@ namespace TimeLapseView {
 			preferredDowntWay = new Dictionary<string, string>();
 			preferredUpWay = new Dictionary<string, string>();
 			All = new Dictionary<string, Snapshot>();
+			SeekStatus = new CommitsAnalyzingStatus() { ItemsPerPage = 100 };
 		}
 
 		/// <summary>
@@ -125,7 +128,7 @@ namespace TimeLapseView {
 			var c = FindPreferredUpWay(Snapshot);
 			if (c == null) return;
 
-			UpdatePreferredWay(c.Commit.Sha, Snapshot.Sha);
+			UpdatePreferredWay(c.Sha, Snapshot.Sha);
 			SelectSnapshot(c.VisibleIndex);
 		}
 

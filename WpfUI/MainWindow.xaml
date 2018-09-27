@@ -18,6 +18,7 @@
 			<RowDefinition Height="auto"></RowDefinition>
 			<RowDefinition Height="*"></RowDefinition>
 			<RowDefinition Height="auto"></RowDefinition>
+			<RowDefinition Height="auto"></RowDefinition>
 		</Grid.RowDefinitions>
 
 		<Menu Height="20" VerticalAlignment="Top" Grid.Column="0"
@@ -138,6 +139,18 @@
 				<Run Name="lblCommitMessageLabel" Text="Message" Foreground="Gray"/>
 				<Run Name="lblCommitMessageText" Text=""/>
 				</TextBlock>
-			</Label>
+		</Label>
+
+		<StatusBar 
+			Grid.Column="0"
+			Grid.Row="4"
+			Grid.ColumnSpan="2">
+			<StatusBarItem>
+				<ProgressBar Value="0" Minimum="0" Maximum="100" Width="100" Height="16" Name="statusProgressBar" />
+			</StatusBarItem>
+			<StatusBarItem>
+				<TextBlock Name="statusTbProgressBar" />
+			</StatusBarItem>
+		</StatusBar>
 	</Grid>
 </Window>

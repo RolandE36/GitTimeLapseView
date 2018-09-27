@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace TimeLapseView {
 	public class Snapshot : IDisposable {
-		public static Dictionary<string, Snapshot> All = new Dictionary<string, Snapshot>();
+		internal static Dictionary<string, Snapshot> All = new Dictionary<string, Snapshot>();
 
 		public Snapshot this[string sha] {
 			get => All[sha];
@@ -252,5 +252,15 @@ namespace TimeLapseView {
 			get { return ParentFile.State[Number]; }
 			set { ParentFile.State[Number] = value; }
 		}
+	}
+
+	/// <summary>
+	/// Represent current commits analyzing progress
+	/// </summary>
+	public class CommitsAnalyzingStatus {
+		public int ItemsPerPage { get; set; }
+		public int ItemsProcessed { get; set; }
+		public int ItemsTotal { get; set; }
+		public bool IsSeekCompleted { get; set; }
 	}
 }

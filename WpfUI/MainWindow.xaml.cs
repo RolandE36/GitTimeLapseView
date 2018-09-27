@@ -34,10 +34,8 @@ namespace WpfUI {
 		private CanvasTreeRenderer treeRenderer;
 		private ViewData View;
 
-		private int page = 0; // TODO: Move to viewdata
 		private bool isFirstRendering;
 		private Thread scanningThread;
-		private bool isScanningDone = false; // TODO: Move to viewdata
 
 		public MainWindow() {
 			InitializeComponent();
@@ -77,8 +75,6 @@ namespace WpfUI {
 					Title = APP_TITLE + ": " + manager.filePath;
 					View = new ViewData();
 					isFirstRendering = true;
-					page = 0;
-					isScanningDone = false;
 
 					var typeConverter = new HighlightingDefinitionTypeConverter();
 					var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
@@ -116,11 +112,14 @@ namespace WpfUI {
 
 					if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
 					scanningThread = new Thread(() => {
-						while (!isScanningDone) {
-							manager.GetCommitsHistory(page, ref isScanningDone);
-							page++;
+						while (!View.SeekStatus.IsSeekCompleted) {
+							manager.GetCommitsHistory(View.SeekStatus);
+							View.SeekStatus.ItemsPerPage *= 2;
+							this.Dispatcher.BeginInvoke(new Action(() => {
+								statusProgressBar.Value = (int)View.SeekStatus.ItemsProcessed * 100.0 / View.SeekStatus.ItemsTotal;
+								statusTbProgressBar.Text = View.SeekStatus.ItemsProcessed + "/" + View.SeekStatus.ItemsTotal;
+							}));
 						}
-						MessageBox.Show("Done. Page = " + page);
 					});
 					scanningThread.Start();
 
