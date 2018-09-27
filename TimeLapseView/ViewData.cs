@@ -12,9 +12,11 @@ namespace TimeLapseView {
 		public List<SnapshotVM> Snapshots {
 			get { return snapshots; }
 			set {
-				All.Clear();
+				ShaDictionary.Clear();
+				IdDictionary.Clear();
 				foreach (var val in value) {
-					All[val.Sha] = val;
+					ShaDictionary[val.Sha] = val;
+					IdDictionary[val.Id] = val;
 				}
 				snapshots = value;
 			}
@@ -24,7 +26,8 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Key based access to available snapshots
 		/// </summary>
-		public Dictionary<string, SnapshotVM> All;
+		public Dictionary<string, SnapshotVM> ShaDictionary;
+		public Dictionary<int, SnapshotVM> IdDictionary;
 
 		/// <summary>
 		/// Currently viewed commit
@@ -73,7 +76,8 @@ namespace TimeLapseView {
 			SelectedLineLID = -1;
 			preferredDowntWay = new Dictionary<string, string>();
 			preferredUpWay = new Dictionary<string, string>();
-			All = new Dictionary<string, SnapshotVM>();
+			ShaDictionary = new Dictionary<string, SnapshotVM>();
+			IdDictionary = new Dictionary<int, SnapshotVM>();
 			SeekStatus = new CommitsAnalyzingStatus() { ItemsPerPage = 100 };
 		}
 
@@ -87,8 +91,8 @@ namespace TimeLapseView {
 
 			// TODO: Investigate how to avoid .ToList() 
 			// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
-			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => All.ContainsKey(e));
-			return selectedLineCommits.Max(e => All[e].VisibleIndex);
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => IdDictionary.ContainsKey(e));
+			return selectedLineCommits.Max(e => IdDictionary[e].VisibleIndex);
 		}
 
 		/// <summary>
@@ -99,8 +103,8 @@ namespace TimeLapseView {
 
 			// TODO: Investigate how to avoid .ToList() 
 			// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
-			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => All.ContainsKey(e));
-			return selectedLineCommits.Min(e => All[e].VisibleIndex);
+			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => IdDictionary.ContainsKey(e));
+			return selectedLineCommits.Min(e => IdDictionary[e].VisibleIndex);
 		}
 
 		#region Snapshots navigation
@@ -109,7 +113,7 @@ namespace TimeLapseView {
 		/// Step down
 		/// </summary>
 		public void MoveToNextSnapshot() {
-			var selected = All.Where(e => e.Value.IsSelected);
+			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
@@ -122,7 +126,7 @@ namespace TimeLapseView {
 		/// Step up
 		/// </summary
 		public void MoveToPrevSnapshot() {
-			var selected = All.Where(e => e.Value.IsSelected);
+			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
 			if (selected.Count() > 2) return;
 
 			var c = FindPreferredUpWay(Snapshot);
@@ -136,15 +140,15 @@ namespace TimeLapseView {
 		/// Step left
 		/// </summary
 		public void MoveToLeftSnapshot() {
-			var selected = All.Where(e => e.Value.IsSelected);
+			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-			var orderedParents = Snapshot.Parents.OrderBy(e => All[e].TreeOffset).ToList();
+			var orderedParents = Snapshot.Parents.OrderBy(e => ShaDictionary[e].TreeOffset).ToList();
 			var pIndex = orderedParents.IndexOf(nextElement.Key);
 
 			if (pIndex > 0) {
-				var newNextElement = All[orderedParents[pIndex - 1]];
+				var newNextElement = ShaDictionary[orderedParents[pIndex - 1]];
 
 				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
 
@@ -159,15 +163,15 @@ namespace TimeLapseView {
 		/// Step right
 		/// </summary
 		public void MoveToRightSnapshot() {
-			var selected = All.Where(e => e.Value.IsSelected);
+			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
 			if (selected.Count() != 2) return;
 
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-			var orderedParents = Snapshot.Parents.OrderBy(e => All[e].TreeOffset).ToList();
+			var orderedParents = Snapshot.Parents.OrderBy(e => ShaDictionary[e].TreeOffset).ToList();
 			var pIndex = orderedParents.IndexOf(nextElement.Key);
 
 			if (pIndex < orderedParents.Count-1) {
-				var newNextElement = All[orderedParents[pIndex + 1]];
+				var newNextElement = ShaDictionary[orderedParents[pIndex + 1]];
 
 				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
 
@@ -195,10 +199,10 @@ namespace TimeLapseView {
 				// Try to find next snapshot from history
 				if (preferredDowntWay.Keys.Contains(snapshot.Sha)) p = preferredDowntWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
-				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.FirstOrDefault(e => All[e].TreeOffset == Snapshot.TreeOffset);
+				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.FirstOrDefault(e => ShaDictionary[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
 				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.First();
-				All[p].IsSelected = true;
+				ShaDictionary[p].IsSelected = true;
 			}
 		}
 
@@ -211,12 +215,12 @@ namespace TimeLapseView {
 				// Try to find next snapshot from history
 				if (preferredUpWay.Keys.Contains(snapshot.Sha)) c = preferredUpWay[snapshot.Sha];
 				// Try to fin next snapshot from the same line
-				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.FirstOrDefault(e => All[e].TreeOffset == Snapshot.TreeOffset);
+				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.FirstOrDefault(e => ShaDictionary[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
 				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.First();
-				All[c].IsSelected = true;
+				ShaDictionary[c].IsSelected = true;
 
-				return All[c];
+				return ShaDictionary[c];
 			}
 
 			return null;
@@ -241,10 +245,10 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Select provided snapshots
 		/// </summary>
-		public void SelectSnapshots(HashSet<string> items) {
+		public void SelectSnapshots(HashSet<int> items) {
 			ResetSnapshotsSelection(false);
 			foreach (var sha in items) {
-				All[sha].IsSelected = true;
+				IdDictionary[sha].IsSelected = true;
 			}
 
 			OnSelectionChanged?.Invoke();

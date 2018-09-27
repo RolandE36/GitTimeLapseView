@@ -128,7 +128,7 @@ namespace WpfUI.Renderer {
 				Canvas.SetZIndex(rectangle, -2);
 
 				foreach (var p in snapshot.Parents.ToList()) { // TODO: Investigate .ToList();
-					var parent = ViewData.All[p];
+					var parent = ViewData.ShaDictionary[p];
 					if (!parent.IsCommitVisible) continue;
 
 					var x1 = SCALE_X + 2 * SCALE_X * snapshot.TreeOffset;
@@ -269,8 +269,8 @@ namespace WpfUI.Renderer {
 				//if (!snapshot.IsCommitRelatedToFile) continue;
 				if (snapshot.Parents.Count > 0) {
 					// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
-					var ellements = snapshot.Parents.Where(e => ViewData.All.ContainsKey(e));
-					var maxOffset = ellements.Count() > 0 ? ellements.Max(e => ViewData.All[e].TreeOffset) : 0;
+					var ellements = snapshot.Parents.Where(e => ViewData.ShaDictionary.ContainsKey(e));
+					var maxOffset = ellements.Count() > 0 ? ellements.Max(e => ViewData.ShaDictionary[e].TreeOffset) : 0;
 					if (textOffset < maxOffset) textOffset = maxOffset;
 				}
 				if (textOffset < snapshot.TreeOffset) textOffset = snapshot.TreeOffset;
@@ -301,7 +301,7 @@ namespace WpfUI.Renderer {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			ViewData.SelectSnapshot(ViewData.All[sha].VisibleIndex);
+			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].VisibleIndex);
 		}
 
 		private void TextBlock_MouseLeave(object sender, MouseEventArgs e) {
@@ -394,7 +394,7 @@ namespace WpfUI.Renderer {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			ViewData.SelectSnapshot(ViewData.All[sha].VisibleIndex);
+			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].VisibleIndex);
 		}
 
 		#endregion

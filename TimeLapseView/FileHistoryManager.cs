@@ -52,6 +52,8 @@ namespace TimeLapseView {
 			} else {
 				throw new Exception($"Git repository wasn't found.");
 			}
+
+			Snapshot.All.Clear();
 		}
 
 		public void GetCommitsHistory(CommitsAnalyzingStatus status) {
@@ -322,11 +324,11 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Add sha as ancestor for commit
 		/// </summary>
-		private void AddAncestorToCommit(Snapshot snapshot, string sha) {
-			if (!snapshot.Commit.Base.Keys.Contains(sha)) {
-				snapshot.Commit.Base[sha] = 1;
+		private void AddAncestorToCommit(Snapshot snapshot, int id) {
+			if (!snapshot.Commit.Base.Keys.Contains(id)) {
+				snapshot.Commit.Base[id] = 1;
 			} else {
-				snapshot.Commit.Base[sha]++;
+				snapshot.Commit.Base[id]++;
 			}
 		}
 
@@ -340,7 +342,7 @@ namespace TimeLapseView {
 				if (!snapshot.IsCommitVisible) continue;
 
 				foreach (var psha in snapshot.Parents) {
-					AddAncestorToCommit(snapshot, psha);
+					AddAncestorToCommit(snapshot, Snapshot.All[psha].Id);
 
 					foreach (var bsha in Snapshot.All[psha].Commit.Base) {
 						AddAncestorToCommit(snapshot, bsha.Key);
@@ -357,7 +359,7 @@ namespace TimeLapseView {
 			// Remove not Important parents based on Base History
 			foreach (var snapshot in snapshots.Where(e => e.IsCommitVisible)) {
 				foreach (var p in snapshot.Parents.ToList()) {
-					if (snapshot.Commit.Base[p] != 1) {
+					if (snapshot.Commit.Base[Snapshot.All[p].Id] != 1) {
 						snapshot.Parents.Remove(p);
 					}
 				}
@@ -427,8 +429,8 @@ namespace TimeLapseView {
 				// new aproach
 				var lineBaseId = CodeFile.LineBase.Count + 1;
 				snapshot.FileDetails.LineHistory[i] = lineBaseId;
-				CodeFile.LineBase[lineBaseId] = new HashSet<string>();
-				CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+				CodeFile.LineBase[lineBaseId] = new HashSet<int>();
+				CodeFile.LineBase[lineBaseId].Add(snapshot.Id);
 			}
 		}
 
@@ -475,8 +477,8 @@ namespace TimeLapseView {
 
 									var lineBaseId = CodeFile.LineBase.Count + 1;
 									snapshot.FileDetails.LineHistory[lineIndex] = lineBaseId;
-									CodeFile.LineBase[lineBaseId] = new HashSet<string>();
-									CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+									CodeFile.LineBase[lineBaseId] = new HashSet<int>();
+									CodeFile.LineBase[lineBaseId].Add(snapshot.Id);
 								}
 								lineIndex++;
 								break;
@@ -486,8 +488,8 @@ namespace TimeLapseView {
 
 									var lineBaseId = CodeFile.LineBase.Count + 1;
 									snapshot.FileDetails.LineHistory[lineIndex] = lineBaseId;
-									CodeFile.LineBase[lineBaseId] = new HashSet<string>();
-									CodeFile.LineBase[lineBaseId].Add(snapshot.Sha);
+									CodeFile.LineBase[lineBaseId] = new HashSet<int>();
+									CodeFile.LineBase[lineBaseId].Add(snapshot.Id);
 								}
 								--parentLineNumber;
 								lineIndex++;
@@ -519,7 +521,7 @@ namespace TimeLapseView {
 									snapshot.FileDetails.State[lineIndex] |= LineState.Unchanged;
 									var parentLineBaseId = parent.FileDetails.LineHistory[parentLineNumber];
 									snapshot.FileDetails.LineHistory[lineIndex] = parentLineBaseId;
-									CodeFile.LineBase[parentLineBaseId].Add(snapshot.Sha);
+									CodeFile.LineBase[parentLineBaseId].Add(snapshot.Id);
 								}
 
 								lineIndex++;

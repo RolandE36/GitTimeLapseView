@@ -169,12 +169,11 @@ namespace TimeLapseView {
 		public string DescriptionShort { get; set; }
 		public DateTimeOffset Date { get; set; }
 		public HashSet<string> Parents { get; }
-		public Dictionary<string, int> Base { get; set; }
+		public Dictionary<int, int> Base { get; set; }
 		public string DateString {
 			get	{
 				return Date.ToLocalTime().ToString(Constants.DATE_TIME_FORMAT);
 			}
-			set { }
 		}
 
 		public Commit(LibGit2Sharp.Commit commit) {
@@ -186,7 +185,7 @@ namespace TimeLapseView {
 			DescriptionShort = commit.MessageShort.Replace("\n", " ");
 			Date = commit.Author.When;
 			Parents = new HashSet<string>();
-			Base = new Dictionary<string, int>();
+			Base = new Dictionary<int, int>();
 			foreach (var parent in commit.Parents) {
 				Parents.Add(string.Join("", parent.Sha));
 			}
@@ -225,7 +224,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Life of each unique line sequence
 		/// </summary>
-		public static Dictionary<int, HashSet<string>> LineBase;
+		public static Dictionary<int, HashSet<int>> LineBase;
 
 
 		/// <param name="lines">Lines count in file</param>
@@ -234,7 +233,7 @@ namespace TimeLapseView {
 			State = new LineState[lines];
 			LineHistory = new int[lines];
 			Count = lines;
-			if (LineBase == null) LineBase = new Dictionary<int, HashSet<string>>();
+			if (LineBase == null) LineBase = new Dictionary<int, HashSet<int>>();
 
 			for (int i = 0; i < lines; i++) {
 				Lid[i] = uniqueId++;
