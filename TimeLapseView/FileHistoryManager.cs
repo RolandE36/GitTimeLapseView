@@ -30,7 +30,7 @@ namespace TimeLapseView {
 		/// </summary>
 		public readonly string filePath;
 
-		public Action<List<Snapshot>> OnSnapshotsHistoryUpdated;
+		public Action<List<SnapshotVM>> OnSnapshotsHistoryUpdated;
 
 		private List<Snapshot> snapshots;
 		private List<Snapshot> visibleSnapshots;
@@ -66,7 +66,7 @@ namespace TimeLapseView {
 				status.ItemsTotal = repo.Commits.Count();
 
 				// Full seek done
-				if (repo.Commits.Count() < status.ItemsProcessed) {
+				if (repo.Commits.Count() <= status.ItemsProcessed) {
 					status.IsSeekCompleted = true;
 					return;
 				}
@@ -117,7 +117,7 @@ namespace TimeLapseView {
 				GetSnapshotsWithChanges();
 
 				if (visibleSnapshots.Count() == 0) {
-					OnSnapshotsHistoryUpdated.Invoke(visibleSnapshots);
+					OnSnapshotsHistoryUpdated.Invoke(MapSnapshotVM(visibleSnapshots));
 					return;
 				}
 
@@ -153,7 +153,7 @@ namespace TimeLapseView {
 				//SimpleBranchesArchivation();
 			}
 
-			OnSnapshotsHistoryUpdated.Invoke(visibleSnapshots);
+			OnSnapshotsHistoryUpdated.Invoke(MapSnapshotVM(visibleSnapshots));
 		}
 
 		/// <summary>
@@ -198,13 +198,18 @@ namespace TimeLapseView {
 		/// Remove links to parent commits which not in the current sample (for performance reasons).
 		/// </summary>
 		private void RemoveNotExistingParentsAndChilds(List<Snapshot> items) {
+			var keys = items.Select(e => e.Sha).ToList();
 			Parallel.ForEach(items, (snapshot) => {
 				// .ToList() - for preventing collection modification
 				foreach (var p in snapshot.Parents.ToList()) {
-					if (!Snapshot.All.ContainsKey(p)) snapshot.Parents.Remove(p);
+					if (!keys.Contains(p)) {
+						snapshot.Parents.Remove(p);
+					}
 				}
 				foreach (var c in snapshot.Childs.ToList()) {
-					if (!Snapshot.All.ContainsKey(c)) snapshot.Childs.Remove(c);
+					if (!keys.Contains(c)) {
+						snapshot.Childs.Remove(c);
+					}
 				}
 			});
 		}
@@ -603,6 +608,44 @@ namespace TimeLapseView {
 			// No path/name changes was found.
 			snapshot.FilePathState = FilePathState.NotChanged;
 			return name;
+		}
+
+		/// <summary>
+		/// Map Snapshots list to Snapshots View Model list
+		/// </summary>
+		public List<SnapshotVM> MapSnapshotVM(List<Snapshot> items) {
+			var result = new List<SnapshotVM>();
+			foreach (var item in items) {
+				result.Add(new SnapshotVM() {
+					Id = item.Id,
+					FilePath = item.FilePath,
+					FilePathState = item.FilePathState,
+					PreviousFilePath = item.PreviousFilePath,
+					FileDetails = item.FileDetails,
+					Parents = new HashSet<string>(item.Parents),
+					Childs = new HashSet<string>(item.Childs),
+					Sha = item.Sha,
+					TreeOffset = item.TreeOffset,
+					BranchLineId = item.BranchLineId,
+					IsCommitRelatedToFile = item.IsCommitRelatedToFile,
+					IsCommitVisible = item.IsCommitVisible,
+					IsSelected = item.IsSelected,
+					IsImportantCommit = item.IsImportantCommit,
+					VisibleIndex = item.VisibleIndex,
+					IsMerge = item.IsMerge,
+					ViewIndex = item.ViewIndex,
+					IsFirstInLine = item.IsFirstInLine,
+					IsLastInLine = item.IsLastInLine,
+					File = item.File,
+					Author = item.Commit.Author,
+					Date = item.Commit.Date,
+					Description = item.Commit.Description,
+					DescriptionShort = item.Commit.DescriptionShort,
+					DateString = item.Commit.DateString
+				});
+			}
+
+			return result;
 		}
 	}
 }

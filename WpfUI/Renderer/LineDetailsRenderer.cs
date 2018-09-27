@@ -34,9 +34,8 @@ namespace WpfUI.Renderer {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, textView.VisualLines[i], 0, 1000).First();
 
 				TextBlock textBlock = new TextBlock();
-				// TODO: Use windows DateTime Format settings
-				textBlock.Text = snapshot.Commit.Date.ToString("dd.MM.yyyy") + " " + Truncate(snapshot.Commit.Author, 10);
-				textBlock.ToolTip = snapshot.Commit.Date.ToString("dd.MM.yyyy hh:mm") + " " + snapshot.Commit.Author + "\n" + snapshot.Commit.Description;
+				textBlock.Text = snapshot.Date.ToString(Constants.DATE_FORMAT) + " " + Truncate(snapshot.Author, 10);
+				textBlock.ToolTip = snapshot.Date.ToString(Constants.DATE_TIME_FORMAT) + " " + snapshot.Author + "\n" + snapshot.Description;
 				textBlock.Foreground = BlackBrush;
 				textBlock.Background = GetLineBackgroundBrush(linenum);
 				textBlock.Width = canvas.Width;

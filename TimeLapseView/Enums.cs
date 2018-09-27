@@ -5,6 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace TimeLapseView {
+	public class Constants {
+		// TODO: Use windows DateTime Format settings
+		public const string DATE_TIME_FORMAT = "dd.MM.yyyy hh:mm";
+		public const string DATE_FORMAT = "dd.MM.yyyy";
+	}
+
 	public enum LineState {
 		Unknown   = 0x0000,
 		Deleted   = 0x0001,

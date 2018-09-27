@@ -266,12 +266,11 @@ namespace WpfUI {
 		/// Show information about commit
 		/// </summary>
 		/// <param name="commit">Selected commit</param>
-		private void UpdateCommitDetails(Snapshot snapshot) {
-			var commit                = snapshot.Commit;
-			lblCommitSha.Text         = commit.Sha;
-			lblCommitAuthor.Text      = commit.Author;
-			lblCommitDate.Text        = commit.Date.ToString();
-			lblCommitMessageText.Text = commit.Description;
+		private void UpdateCommitDetails(SnapshotVM snapshot) {
+			lblCommitSha.Text         = snapshot.Sha;
+			lblCommitAuthor.Text      = snapshot.Author;
+			lblCommitDate.Text        = snapshot.Date.ToString();
+			lblCommitMessageText.Text = snapshot.Description;
 			lblFilePath.Text          = snapshot.FilePath;
 			// TODO: Multiline description not working
 		}

@@ -9,7 +9,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// List of all snapshots related to file
 		/// </summary>
-		public List<Snapshot> Snapshots {
+		public List<SnapshotVM> Snapshots {
 			get { return snapshots; }
 			set {
 				All.Clear();
@@ -19,17 +19,17 @@ namespace TimeLapseView {
 				snapshots = value;
 			}
 		}
-		private List<Snapshot> snapshots;
+		private List<SnapshotVM> snapshots;
 
 		/// <summary>
 		/// Key based access to available snapshots
 		/// </summary>
-		public Dictionary<string, Snapshot> All;
+		public Dictionary<string, SnapshotVM> All;
 
 		/// <summary>
 		/// Currently viewed commit
 		/// </summary>
-		public Snapshot Snapshot {
+		public SnapshotVM Snapshot {
 			get {
 				return Snapshots[SnapshotIndex];
 			}
@@ -58,7 +58,7 @@ namespace TimeLapseView {
 		/// On changed current view index
 		/// </summary>
 		/// <param name="index">new selected index</param>
-		public Action<int, Snapshot> OnViewIndexChanged;
+		public Action<int, SnapshotVM> OnViewIndexChanged;
 
 		/// <summary>
 		/// On snapshot selection changed
@@ -73,7 +73,7 @@ namespace TimeLapseView {
 			SelectedLineLID = -1;
 			preferredDowntWay = new Dictionary<string, string>();
 			preferredUpWay = new Dictionary<string, string>();
-			All = new Dictionary<string, Snapshot>();
+			All = new Dictionary<string, SnapshotVM>();
 			SeekStatus = new CommitsAnalyzingStatus() { ItemsPerPage = 100 };
 		}
 
@@ -189,7 +189,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Select next snapshot according to viewed history
 		/// </summary>
-		private void FindPreferredDownWay(Snapshot snapshot) {
+		private void FindPreferredDownWay(SnapshotVM snapshot) {
 			if (Snapshot.Parents.Count > 0) {
 				string p = "";
 				// Try to find next snapshot from history
@@ -205,7 +205,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Select previous snapshot according to viewed history
 		/// </summary>
-		private Snapshot FindPreferredUpWay(Snapshot snapshot) {
+		private SnapshotVM FindPreferredUpWay(SnapshotVM snapshot) {
 			if (Snapshot.Childs.Count > 0) {
 				string c = "";
 				// Try to find next snapshot from history

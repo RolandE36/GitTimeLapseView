@@ -27,7 +27,7 @@ namespace WpfUI.Renderer {
 		/// <summary>
 		/// List of already rendered snapshots
 		/// </summary>
-		private List<Snapshot> RenderedSnapshots { get; set; }
+		private List<SnapshotVM> RenderedSnapshots { get; set; }
 
 		private const int SCALE_Y = 10;
 		private const int SCALE_X = 10;
@@ -240,7 +240,7 @@ namespace WpfUI.Renderer {
 				ellipse.Width = diameter;
 				ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 				ellipse.Stroke = color;
-				ellipse.ToolTip = snapshot.Commit.Description;
+				ellipse.ToolTip = snapshot.Description;
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
 				ellipse.MouseLeftButtonDown += Ellipse_MouseLeftButtonDown;
@@ -278,7 +278,7 @@ namespace WpfUI.Renderer {
 				if (!snapshot.IsImportantCommit) continue;
 
 				TextBlock textBlock = new TextBlock();
-				textBlock.Text = snapshot.Commit.DateString + " " + snapshot.DescriptionShort;
+				textBlock.Text = snapshot.DateString + " " + snapshot.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
 				textBlock.Tag = snapshot.Sha;
 				textBlock.MouseEnter += TextBlock_MouseEnter;
@@ -333,7 +333,7 @@ namespace WpfUI.Renderer {
 		/// </summary>
 		public void Draw() {
 			foreach (var snapshot in RenderedSnapshots) {
-				if (string.IsNullOrEmpty(snapshot.Commit.Description)) continue;
+				if (string.IsNullOrEmpty(snapshot.Description)) continue;
 
 				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
 			}
@@ -341,8 +341,8 @@ namespace WpfUI.Renderer {
 			// Select path between two snapshots
 			var selectedSnapshots = RenderedSnapshots.Where(e => e.IsSelected).OrderBy(e => e.VisibleIndex);
 			if (selectedSnapshots.Count() == 2) {
-				var c = selectedSnapshots.First().Commit.Sha;
-				var p = selectedSnapshots.Last().Commit.Sha;
+				var c = selectedSnapshots.First().Sha;
+				var p = selectedSnapshots.Last().Sha;
 				if (UiChildParentPaths.Keys.Contains(c + "|" + p)) {
 					UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
 				}
@@ -408,7 +408,7 @@ namespace WpfUI.Renderer {
 		/// |
 		/// *
 		/// </summary>
-		private bool IsCommitsInOneLine(Snapshot a, Snapshot p) {
+		private bool IsCommitsInOneLine(SnapshotVM a, SnapshotVM p) {
 			if (p.TreeOffset != a.TreeOffset) return false;
 			if (p.BranchLineId == a.BranchLineId) return true;
 
@@ -430,7 +430,7 @@ namespace WpfUI.Renderer {
 		/// |
 		/// *
 		/// </summary>
-		private bool IsSimpleUpLine(Snapshot s, Snapshot p) {
+		private bool IsSimpleUpLine(SnapshotVM s, SnapshotVM p) {
 			if (!p.IsFirstInLine) return false;
 			if (p.TreeOffset == s.TreeOffset) return false;
 
@@ -453,7 +453,7 @@ namespace WpfUI.Renderer {
 		///        /
 		/// *____ /
 		/// </summary>
-		private bool IsSimpleDownLine(Snapshot s, Snapshot p) {
+		private bool IsSimpleDownLine(SnapshotVM s, SnapshotVM p) {
 			if (!s.IsLastInLine) return false;
 			if (p.TreeOffset == s.TreeOffset) return false;
 
