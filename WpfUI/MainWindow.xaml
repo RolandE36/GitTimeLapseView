@@ -149,6 +149,9 @@
 				<ProgressBar Value="0" Minimum="0" Maximum="100" Width="100" Height="16" Name="statusProgressBar" />
 			</StatusBarItem>
 			<StatusBarItem>
+				<TextBlock Name="statusTbPausePlay" MouseUp="statusTbPausePlay_MouseUp" />
+			</StatusBarItem>
+			<StatusBarItem>
 				<TextBlock Name="statusTbProgressBar" />
 			</StatusBarItem>
 		</StatusBar>

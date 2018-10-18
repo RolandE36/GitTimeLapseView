@@ -13,5 +13,6 @@ namespace TimeLapseView.Model {
 		public int ItemsProcessed { get; set; }
 		public int ItemsTotal { get; set; }
 		public bool IsSeekCompleted { get; set; }
+		public bool PauseProcessing { get; set; }
 	}
 }

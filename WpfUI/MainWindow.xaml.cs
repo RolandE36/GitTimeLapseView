@@ -74,6 +74,7 @@ namespace WpfUI {
 
 					manager = new FileHistoryManager(filename);
 					Title = APP_TITLE + ": " + manager.filePath;
+					statusTbPausePlay.Text = "⏸";
 					View = new ViewData();
 					isFirstRendering = true;
 
@@ -121,6 +122,11 @@ namespace WpfUI {
 								statusTbProgressBar.Text = View.SeekStatus.ItemsProcessed + "/" + View.SeekStatus.ItemsTotal;
 							}));
 						}
+
+						this.Dispatcher.BeginInvoke(new Action(() => {
+							statusTbPausePlay.Text = "";
+							statusTbProgressBar.Text = "Done";
+						}));
 					});
 					scanningThread.Start();
 
@@ -151,6 +157,7 @@ namespace WpfUI {
 					// TODO: "Try to change end date." - add abilty to choose end dates or commits count.
 					MessageBox.Show("File history too large.");
 				} catch (Exception ex) {
+					File.AppendAllText(string.Format("ERROR_{0}_.txt", DateTime.Now.ToString()), ex.Message + Environment.NewLine + ex.StackTrace + Environment.NewLine);
 					MessageBox.Show("Oops! Something went wrong.");
 				}
 			}
@@ -236,6 +243,7 @@ namespace WpfUI {
 		/// </summary>
 		/// <param name="mode">Rendering mode</param>
 		private void SetBackgroundRendererMode(RendererMode mode) {
+			if (View == null) return;
 			tbCode.TextArea.TextView.BackgroundRenderers.Clear();
 			switch (mode) {
 				case RendererMode.TimeLapse:
@@ -280,6 +288,7 @@ namespace WpfUI {
 		/// Go to the next file diff
 		/// </summary>
 		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
+			if (View == null) return;
 			var lines = View.Snapshot.FileDetails;
 			var i = tbCode.TextArea.Caret.Line;
 			if (i >= lines.Count) i = lines.Count - 1;
@@ -298,6 +307,7 @@ namespace WpfUI {
 		/// Go to the previous file diff
 		/// </summary>
 		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
+			if (View == null) return;
 			var lines = View.Snapshot.FileDetails;
 			var i = tbCode.TextArea.Caret.Line - 1;
 			if (i <= 0) i = 0;
@@ -359,6 +369,24 @@ namespace WpfUI {
 			}
 
 			return "";
+		}
+
+		/// <summary>
+		/// Suspend/Resume scanning thread and update UI controls 
+		/// </summary>
+		private void statusTbPausePlay_MouseUp(object sender, MouseButtonEventArgs e) {
+			if (scanningThread == null || View == null) return;
+			if (View.SeekStatus.ItemsProcessed == View.SeekStatus.ItemsTotal) return;
+
+			View.SeekStatus.PauseProcessing = !View.SeekStatus.PauseProcessing;
+			statusTbPausePlay.Text = View.SeekStatus.PauseProcessing ? "⏵" : "⏸";
+			if (View.SeekStatus.PauseProcessing) {
+				statusTbPausePlay.Text = "⏵";
+				scanningThread.Suspend();
+			} else {
+				statusTbPausePlay.Text = "⏸";
+				scanningThread.Resume();
+			}
 		}
 	}
 }
