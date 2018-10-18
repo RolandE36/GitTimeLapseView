@@ -323,7 +323,10 @@ namespace WpfUI {
 		}
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-			if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
+			if (scanningThread != null && scanningThread.IsAlive) {
+				if (View.SeekStatus.PauseProcessing) scanningThread.Resume();
+				scanningThread.Abort();
+			}
 		}
 
 		private const string XML = "XML";

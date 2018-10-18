@@ -35,6 +35,7 @@ namespace TimeLapseView {
 
 		private List<Snapshot> snapshots;
 		private List<Snapshot> visibleSnapshots;
+		private AvatarManager avatarManager;
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
@@ -54,6 +55,8 @@ namespace TimeLapseView {
 				throw new Exception($"Git repository wasn't found.");
 			}
 
+			avatarManager = new AvatarManager(file);
+
 			Snapshot.All.Clear();
 		}
 
@@ -64,7 +67,6 @@ namespace TimeLapseView {
 
 			using (var repo = new Repository(repositoryPath)) {
 				// TODO: History in different branches
-				// TODO: Add progress infomation
 
 				status.ItemsTotal = repo.Commits.Count();
 
@@ -641,6 +643,8 @@ namespace TimeLapseView {
 					IsLastInLine = item.IsLastInLine,
 					File = item.File,
 					Author = item.Commit.Author,
+					Email = item.Commit.Email,
+					AvatarUrl = avatarManager.GetAvatar(item.Commit.Author, item.Commit.Email),
 					Date = item.Commit.Date,
 					Description = item.Commit.Description,
 					DescriptionShort = item.Commit.DescriptionShort,

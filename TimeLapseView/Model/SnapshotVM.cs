@@ -30,6 +30,8 @@ namespace TimeLapseView.Model {
 		public bool IsLastInLine { get; set; }
 		public string File { get; set; }
 		public string Author { get; set; }
+		public string Email { get; set; }
+		public string AvatarUrl { get; set; }
 		public DateTimeOffset Date { get; set; }
 		public string Description { get; set; }
 		public string DescriptionShort { get; set; }

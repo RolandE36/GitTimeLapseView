@@ -30,14 +30,18 @@ namespace WpfUI.Renderer {
 		/// </summary>
 		private List<SnapshotVM> RenderedSnapshots { get; set; }
 
-		private const int SCALE_Y = 10;
-		private const int SCALE_X = 10;
-		private const int SELECTED_LINE_WIDTH = 3;
+		private const int SCALE_Y = 12;
+		private const int SCALE_X = 12;
+		private const int CIRCLE = 20;
+		private const int SELECTED_LINE_WIDTH = 2;
 		private const int NOT_SELECTED_LINE_WIDTH = 1;
 
 		private readonly SolidColorBrush BlackBrush = new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x10));
 		private readonly SolidColorBrush BlueBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x82, 0xc8));
 		private readonly SolidColorBrush GreenBrush = new SolidColorBrush(Color.FromRgb(0x3c, 0xb4, 0x4b));
+
+		private readonly SolidColorBrush TransparentCircleBrush = new SolidColorBrush(Color.FromArgb(0x00, 0xff, 0xff, 0xff));
+		private readonly SolidColorBrush SolidCircleBrush = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
 
 		private readonly List<Color> baseColors = new List<Color>() {
 			Color.FromRgb(0xe6, 0x19, 0x4b),
@@ -65,6 +69,7 @@ namespace WpfUI.Renderer {
 		public CanvasTreeRenderer(ViewData viewData, Canvas canvas) {
 			ViewData = viewData;
 			Canvas = canvas;
+			//CanvasScrollViewer = canvasScrollViewer;
 			UiElements = new Dictionary<string, SnapshotCanvasModel>();
 			UiChildParentPaths = new Dictionary<string, Shape>();
 			RenderedSnapshots = ViewData.Snapshots.ToList();
@@ -107,10 +112,11 @@ namespace WpfUI.Renderer {
 			}
 
 			foreach (var snapshot in ViewData.Snapshots) {
-				var diameter = SCALE_Y;
-				if (!snapshot.IsImportantCommit) diameter = SCALE_Y / 2;
-				var x = (SCALE_X - diameter / 2) + 2 * SCALE_X * snapshot.TreeOffset;
-				var y = (SCALE_Y - diameter / 2) + 2 * SCALE_Y * snapshot.ViewIndex;
+				var diameter = CIRCLE;
+				if (!snapshot.IsImportantCommit) diameter = CIRCLE / 2;
+				var radius = diameter / 2;
+				var x = (SCALE_X - radius) + 2 * SCALE_X * snapshot.TreeOffset;
+				var y = (SCALE_Y - radius) + 2 * SCALE_Y * snapshot.ViewIndex;
 
 				var rectangle = new Rectangle();
 				rectangle.Fill = BackgroundBrushes[snapshot.BranchLineId % LinesBrushes.Count];
@@ -235,8 +241,25 @@ namespace WpfUI.Renderer {
 				// Circle (Commit)
 				var color = !snapshot.IsCommitRelatedToFile ? BlueBrush : GreenBrush;
 
+				if (snapshot.IsImportantCommit) {
+					BitmapImage bmpImage = new BitmapImage();
+					bmpImage.BeginInit();
+					bmpImage.UriSource = new Uri(snapshot.AvatarUrl + "&s=" + diameter, UriKind.RelativeOrAbsolute);
+					bmpImage.EndInit();
+
+					// Clipped Image
+					Image clippedImage = new Image();
+					clippedImage.Source = bmpImage;
+					EllipseGeometry clipGeometry = new EllipseGeometry(new Point(radius, radius), radius, radius);
+					clippedImage.Clip = clipGeometry;
+
+					Canvas.Children.Add(clippedImage);
+					Canvas.SetLeft(clippedImage, x);
+					Canvas.SetTop(clippedImage, y);
+				}
+
 				var ellipse = new Ellipse();
-				ellipse.Fill = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
+				ellipse.Fill = snapshot.IsImportantCommit ? TransparentCircleBrush : SolidCircleBrush;
 				ellipse.Height = diameter;
 				ellipse.Width = diameter;
 				ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
@@ -251,21 +274,6 @@ namespace WpfUI.Renderer {
 				Canvas.Children.Add(ellipse);
 				Canvas.SetLeft(ellipse, x);
 				Canvas.SetTop(ellipse, y);
-				/*
-				BitmapImage bmpImage = new BitmapImage();
-				bmpImage.BeginInit();
-				bmpImage.UriSource = new Uri($@"https://www.gravatar.com/avatar/{CalculateMD5Hash(snapshot.Commit.Email)}?d=identicon&s={SCALE}", UriKind.RelativeOrAbsolute);
-				bmpImage.EndInit();
- 
-				// Clipped Image
-				Image clippedImage = new Image();
-				clippedImage.Source = bmpImage;
-				EllipseGeometry clipGeometry = new EllipseGeometry(new Point(SCALE/ 2, SCALE / 2), SCALE / 2, SCALE / 2);
-				clippedImage.Clip = clipGeometry;
-				
-				Canvas.Children.Add(clippedImage);
-				Canvas.SetLeft(clippedImage, x);
-				Canvas.SetTop(clippedImage, y);*/
 
 				//if (!snapshot.IsCommitRelatedToFile) continue;
 				if (snapshot.Parents.Count > 0) {
@@ -485,22 +493,6 @@ namespace WpfUI.Renderer {
 			b = (255 - b) * brightness + b;
 
 			return Color.FromArgb(color.A, (byte)r, (byte)g, (byte)b);
-		}
-
-		// TODO: Move to separate class
-		public string CalculateMD5Hash(string input) {
-			// step 1, calculate MD5 hash from input
-			MD5 md5 = System.Security.Cryptography.MD5.Create();
-			byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-			byte[] hash = md5.ComputeHash(inputBytes);
-
-			// step 2, convert byte array to hex string
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < hash.Length; i++) {
-				sb.Append(hash[i].ToString("X2"));
-			}
-
-			return sb.ToString().ToLower();
 		}
 	}
 }
