@@ -91,6 +91,7 @@ namespace WpfUI.Renderer {
 
 			foreach (var snapshot in ViewData.Snapshots) {
 				var diameter = CIRCLE;
+				if (!snapshot.IsImportantCommit) diameter -= CIRCLE / 4;
 				var radius = diameter / 2;
 				var x = (SCALE_X - radius) + 2 * SCALE_X * snapshot.TreeOffset;
 				var y = (SCALE_Y - radius) + 2 * SCALE_Y * snapshot.Index;
