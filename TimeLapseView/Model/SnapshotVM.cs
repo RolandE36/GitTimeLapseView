@@ -35,5 +35,6 @@ namespace TimeLapseView.Model {
 		public string Description { get; set; }
 		public string DescriptionShort { get; set; }
 		public string DateString { get; set; }
+		public string Tooltip { get { return Date.ToString(Constants.DATE_TIME_FORMAT) + " " + Author + "\n" + Description; } }
 	}
 }

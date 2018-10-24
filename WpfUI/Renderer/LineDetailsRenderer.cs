@@ -36,7 +36,7 @@ namespace WpfUI.Renderer {
 
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.Date.ToString(Constants.DATE_FORMAT) + " " + Truncate(snapshot.Author, 10);
-				textBlock.ToolTip = snapshot.Date.ToString(Constants.DATE_TIME_FORMAT) + " " + snapshot.Author + "\n" + snapshot.Description;
+				textBlock.ToolTip = snapshot.Tooltip;
 				textBlock.Foreground = BlackBrush;
 				textBlock.Background = GetLineBackgroundBrush(linenum);
 				textBlock.Width = canvas.Width;

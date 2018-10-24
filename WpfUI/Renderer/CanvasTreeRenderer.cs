@@ -234,7 +234,7 @@ namespace WpfUI.Renderer {
 				ellipse.Width = diameter;
 				ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 				ellipse.Stroke = color;
-				ellipse.ToolTip = snapshot.Description;
+				ellipse.ToolTip = snapshot.Tooltip;
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
 				ellipse.MouseLeftButtonDown += Ellipse_MouseLeftButtonDown;
@@ -250,6 +250,7 @@ namespace WpfUI.Renderer {
 				textBlock.Text = snapshot.DateString + " " + snapshot.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
 				textBlock.Tag = snapshot.Sha;
+				textBlock.ToolTip = snapshot.Tooltip;
 				textBlock.MouseEnter += TextBlock_MouseEnter;
 				textBlock.MouseLeave += TextBlock_MouseLeave;
 				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;

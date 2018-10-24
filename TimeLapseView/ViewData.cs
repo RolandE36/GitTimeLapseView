@@ -62,7 +62,7 @@ namespace TimeLapseView {
 		/// On changed current view index
 		/// </summary>
 		/// <param name="index">new selected index</param>
-		public Action<int, SnapshotVM> OnViewIndexChanged;
+		public Action<int, SnapshotVM, SnapshotVM> OnViewIndexChanged;
 
 		/// <summary>
 		/// On snapshot selection changed
@@ -268,7 +268,8 @@ namespace TimeLapseView {
 
 			ResetSnapshotsSelection(false);
 
-			OnViewIndexChanged?.Invoke(index, Snapshot);
+			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
+			OnViewIndexChanged?.Invoke(index, Snapshot, selected.Count() != 2 ? null : selected.Last().Value);
 			OnSelectionChanged?.Invoke();
 		}
 	}
