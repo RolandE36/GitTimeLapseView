@@ -134,12 +134,13 @@ namespace WpfUI {
 
 					// TODO: Mediator patern????
 					// TODO: View should exist without snapshots
-					View.OnViewIndexChanged = (index, snapshot) => {
+					View.OnViewIndexChanged = (index, csnapshot, psnapshot) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
-							tbCode.Text = snapshot.File;
+							tbCode.Text = csnapshot.File;
+
 							slHistoy.Value = slHistoy.Maximum - index;
 							lvVerticalHistoryPanel.SelectedIndex = index;
-							UpdateCommitDetails(snapshot);
+							UpdateCommitDetails(csnapshot);
 						}));
 					};
 
