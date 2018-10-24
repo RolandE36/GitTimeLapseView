@@ -307,11 +307,11 @@ namespace TimeLapseView {
 				}
 
 				if (snapshot.Parents.Count == 0) continue;    // Do nothing if no parents
-				
-				foreach (var p in snapshot.Parents) {
+
+				foreach (var p in snapshot.Parents.OrderBy(e => Snapshot.All[e].Commit.Author == snapshot.Commit.Author ? 0 : 1)) {
 					var parent = Snapshot.All[p];
 					if (parent.TreeOffset != -1) continue;    // Do nothing if offset already defined
-
+					
 					if (snapshot.Parents.Count == 1 &&        // If commit has only one parrent 
 						parent.Childs.Count != 1 &&           // and parent has several chils 
 						parent.Childs.Last() == snapshot.Sha)
