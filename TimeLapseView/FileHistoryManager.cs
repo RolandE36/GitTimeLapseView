@@ -620,9 +620,11 @@ namespace TimeLapseView {
 		/// </summary>
 		public List<SnapshotVM> MapSnapshotVM(List<Snapshot> items) {
 			var result = new List<SnapshotVM>();
-			foreach (var item in items) {
+			for (int i = 0; i < items.Count; i++) {
+				var item = items[i];
 				result.Add(new SnapshotVM() {
 					Id = item.Id,
+					Index = i,
 					FilePath = item.FilePath,
 					FilePathState = item.FilePathState,
 					PreviousFilePath = item.PreviousFilePath,
@@ -636,9 +638,7 @@ namespace TimeLapseView {
 					IsCommitVisible = item.IsCommitVisible,
 					IsSelected = item.IsSelected,
 					IsImportantCommit = item.IsImportantCommit,
-					VisibleIndex = item.VisibleIndex,
 					IsMerge = item.IsMerge,
-					ViewIndex = item.ViewIndex,
 					IsFirstInLine = item.IsFirstInLine,
 					IsLastInLine = item.IsLastInLine,
 					File = item.File,

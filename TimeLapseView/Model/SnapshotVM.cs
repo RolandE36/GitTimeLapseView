@@ -10,6 +10,7 @@ namespace TimeLapseView.Model {
 	/// </summary>
 	public class SnapshotVM {
 		public int Id { get; set; }
+		public int Index { get; set; }
 		public string FilePath { get; set; }
 		public FilePathState FilePathState { get; set; }
 		public string PreviousFilePath { get; set; }
@@ -23,9 +24,7 @@ namespace TimeLapseView.Model {
 		public bool IsCommitVisible { get; set; }
 		public bool IsSelected { get; set; }
 		public bool IsImportantCommit { get; set; }
-		public int VisibleIndex { get; set; }
 		public bool IsMerge { get; set; }
-		public double ViewIndex { get; set; }
 		public bool IsFirstInLine { get; set; }
 		public bool IsLastInLine { get; set; }
 		public string File { get; set; }

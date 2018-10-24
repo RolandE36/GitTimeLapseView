@@ -93,7 +93,7 @@ namespace TimeLapseView {
 			// TODO: Investigate how to avoid .ToList() 
 			// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
 			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => IdDictionary.ContainsKey(e));
-			return selectedLineCommits.Max(e => IdDictionary[e].VisibleIndex);
+			return selectedLineCommits.Max(e => IdDictionary[e].Index);
 		}
 
 		/// <summary>
@@ -105,7 +105,7 @@ namespace TimeLapseView {
 			// TODO: Investigate how to avoid .ToList() 
 			// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
 			var selectedLineCommits = CodeFile.LineBase[selectedLineId].ToList().Where(e => IdDictionary.ContainsKey(e));
-			return selectedLineCommits.Min(e => IdDictionary[e].VisibleIndex);
+			return selectedLineCommits.Min(e => IdDictionary[e].Index);
 		}
 
 		#region Snapshots navigation
@@ -120,7 +120,7 @@ namespace TimeLapseView {
 			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
 
 			UpdatePreferredWay(Snapshot.Sha, nextElement.Value.Sha);
-			SelectSnapshot(nextElement.Value.VisibleIndex);
+			SelectSnapshot(nextElement.Value.Index);
 		}
 
 		/// <summary>
@@ -134,7 +134,7 @@ namespace TimeLapseView {
 			if (c == null) return;
 
 			UpdatePreferredWay(c.Sha, Snapshot.Sha);
-			SelectSnapshot(c.VisibleIndex);
+			SelectSnapshot(c.Index);
 		}
 
 		/// <summary>

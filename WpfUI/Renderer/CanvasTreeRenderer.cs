@@ -89,47 +89,18 @@ namespace WpfUI.Renderer {
 			var rnd = new Random();
 			var textOffset = 0;
 
-			foreach (var snapshot in RenderedSnapshots) {
-				snapshot.ViewIndex = snapshot.VisibleIndex;
-			}
-			
-			// Calculate Y coordinates for visible commits
-			double index = 0;
-			bool previousSmall = false;
-			foreach (var snapshot in RenderedSnapshots) {
-				if (!snapshot.IsCommitVisible) {
-					index += 0;
-					snapshot.ViewIndex = index;
-				} else if (!snapshot.IsImportantCommit) {
-					index += previousSmall ? 0.5 : 1;
-					snapshot.ViewIndex = index;
-					previousSmall = true;
-				} else {
-					index += 1;
-					snapshot.ViewIndex = index;
-					previousSmall = false;
-				}
-			}
-
 			foreach (var snapshot in ViewData.Snapshots) {
 				var diameter = CIRCLE;
-				if (!snapshot.IsImportantCommit) diameter = CIRCLE / 2;
 				var radius = diameter / 2;
 				var x = (SCALE_X - radius) + 2 * SCALE_X * snapshot.TreeOffset;
-				var y = (SCALE_Y - radius) + 2 * SCALE_Y * snapshot.ViewIndex;
+				var y = (SCALE_Y - radius) + 2 * SCALE_Y * snapshot.Index;
 
 				var rectangle = new Rectangle();
 				rectangle.Fill = BackgroundBrushes[snapshot.BranchLineId % LinesBrushes.Count];
 				rectangle.Width = 999999;
 				rectangle.Height = SCALE_Y * 3;
 				Canvas.SetLeft(rectangle, x * 0);
-				Canvas.SetTop(rectangle, 2 * SCALE_Y * snapshot.ViewIndex);
-
-				if (!snapshot.IsImportantCommit) {
-					previousSmall = true;
-				} else {
-					previousSmall = false;
-				}
+				Canvas.SetTop(rectangle, 2 * SCALE_Y * snapshot.Index);
 
 				Canvas.Children.Add(rectangle);
 				Canvas.SetZIndex(rectangle, -2);
@@ -139,10 +110,10 @@ namespace WpfUI.Renderer {
 					if (!parent.IsCommitVisible) continue;
 
 					var x1 = SCALE_X + 2 * SCALE_X * snapshot.TreeOffset;
-					var y1 = SCALE_Y + 2 * SCALE_Y * snapshot.ViewIndex;
+					var y1 = SCALE_Y + 2 * SCALE_Y * snapshot.Index;
 					
 					var x2 = SCALE_X + 2 * SCALE_X * parent.TreeOffset;
-					var y2 = SCALE_Y + 2 * SCALE_Y * parent.ViewIndex;
+					var y2 = SCALE_Y + 2 * SCALE_Y * parent.Index;
 
 					var x3 = x2;
 					var y3 = y1;
@@ -241,25 +212,23 @@ namespace WpfUI.Renderer {
 				// Circle (Commit)
 				var color = !snapshot.IsCommitRelatedToFile ? BlueBrush : GreenBrush;
 
-				if (snapshot.IsImportantCommit) {
-					BitmapImage bmpImage = new BitmapImage();
-					bmpImage.BeginInit();
-					bmpImage.UriSource = new Uri(snapshot.AvatarUrl + "&s=" + diameter, UriKind.RelativeOrAbsolute);
-					bmpImage.EndInit();
+				BitmapImage bmpImage = new BitmapImage();
+				bmpImage.BeginInit();
+				bmpImage.UriSource = new Uri(snapshot.AvatarUrl + "&s=" + diameter, UriKind.RelativeOrAbsolute);
+				bmpImage.EndInit();
 
-					// Clipped Image
-					Image clippedImage = new Image();
-					clippedImage.Source = bmpImage;
-					EllipseGeometry clipGeometry = new EllipseGeometry(new Point(radius, radius), radius, radius);
-					clippedImage.Clip = clipGeometry;
+				// Clipped Image
+				Image clippedImage = new Image();
+				clippedImage.Source = bmpImage;
+				EllipseGeometry clipGeometry = new EllipseGeometry(new Point(radius, radius), radius, radius);
+				clippedImage.Clip = clipGeometry;
 
-					Canvas.Children.Add(clippedImage);
-					Canvas.SetLeft(clippedImage, x);
-					Canvas.SetTop(clippedImage, y);
-				}
+				Canvas.Children.Add(clippedImage);
+				Canvas.SetLeft(clippedImage, x);
+				Canvas.SetTop(clippedImage, y);
 
 				var ellipse = new Ellipse();
-				ellipse.Fill = snapshot.IsImportantCommit ? TransparentCircleBrush : SolidCircleBrush;
+				ellipse.Fill = TransparentCircleBrush;
 				ellipse.Height = diameter;
 				ellipse.Width = diameter;
 				ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
@@ -284,8 +253,6 @@ namespace WpfUI.Renderer {
 				}
 				if (textOffset < snapshot.TreeOffset) textOffset = snapshot.TreeOffset;
 
-				if (!snapshot.IsImportantCommit) continue;
-
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.DateString + " " + snapshot.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
@@ -294,7 +261,7 @@ namespace WpfUI.Renderer {
 				textBlock.MouseLeave += TextBlock_MouseLeave;
 				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;
 				Canvas.SetLeft(textBlock, 2 * SCALE_X * (textOffset + 1));
-				Canvas.SetTop(textBlock, y - SCALE_Y / 2);
+				Canvas.SetTop(textBlock, y - SCALE_Y + radius);
 				Canvas.Children.Add(textBlock);
 			}
 
@@ -310,7 +277,7 @@ namespace WpfUI.Renderer {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].VisibleIndex);
+			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].Index);
 		}
 
 		private void TextBlock_MouseLeave(object sender, MouseEventArgs e) {
@@ -348,7 +315,7 @@ namespace WpfUI.Renderer {
 			}
 
 			// Select path between two snapshots
-			var selectedSnapshots = RenderedSnapshots.Where(e => e.IsSelected).OrderBy(e => e.VisibleIndex);
+			var selectedSnapshots = RenderedSnapshots.Where(e => e.IsSelected).OrderBy(e => e.Index);
 			if (selectedSnapshots.Count() == 2) {
 				var c = selectedSnapshots.First().Sha;
 				var p = selectedSnapshots.Last().Sha;
@@ -403,7 +370,7 @@ namespace WpfUI.Renderer {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 
-			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].VisibleIndex);
+			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].Index);
 		}
 
 		#endregion
@@ -421,7 +388,7 @@ namespace WpfUI.Renderer {
 			if (p.TreeOffset != a.TreeOffset) return false;
 			if (p.BranchLineId == a.BranchLineId) return true;
 
-			for (int i = a.VisibleIndex + 1; i < p.VisibleIndex; i++) {
+			for (int i = a.Index + 1; i < p.Index; i++) {
 				if (RenderedSnapshots[i].IsCommitVisible && RenderedSnapshots[i].TreeOffset == p.TreeOffset) {
 					return false;
 				}
@@ -443,10 +410,10 @@ namespace WpfUI.Renderer {
 			if (!p.IsFirstInLine) return false;
 			if (p.TreeOffset == s.TreeOffset) return false;
 
-			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) * 0.6;
+			var requiredEmptySpace = (p.Index - s.Index) * 0.6;
 			if (RenderedSnapshots
 					.Where(e => e.IsCommitVisible)
-					.Where(e => p.ViewIndex - requiredEmptySpace < e.ViewIndex && e.ViewIndex < p.ViewIndex)
+					.Where(e => p.Index - requiredEmptySpace < e.Index && e.Index < p.Index)
 					.Any(e => e.TreeOffset == p.TreeOffset)
 				) return false;
 
@@ -466,10 +433,10 @@ namespace WpfUI.Renderer {
 			if (!s.IsLastInLine) return false;
 			if (p.TreeOffset == s.TreeOffset) return false;
 
-			var requiredEmptySpace = (p.ViewIndex - s.ViewIndex) * 0.6;
+			var requiredEmptySpace = (p.Index - s.Index) * 0.6;
 			if (RenderedSnapshots
 					.Where(e => e.IsCommitVisible)
-					.Where(e => s.ViewIndex < e.ViewIndex && e.ViewIndex < s.ViewIndex + requiredEmptySpace)
+					.Where(e => s.Index < e.Index && e.Index < s.Index + requiredEmptySpace)
 					.Any(e => e.TreeOffset == s.TreeOffset)
 				) return false;
 
