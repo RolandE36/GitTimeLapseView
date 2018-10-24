@@ -87,7 +87,7 @@ namespace WpfUI.Renderer {
 
 		public void BuildTree() {
 			var rnd = new Random();
-			var textOffset = 0;
+			var reservedArea = GetLabelsToothOffset();
 
 			foreach (var snapshot in ViewData.Snapshots) {
 				var diameter = CIRCLE;
@@ -245,15 +245,7 @@ namespace WpfUI.Renderer {
 				Canvas.SetLeft(ellipse, x);
 				Canvas.SetTop(ellipse, y);
 
-				//if (!snapshot.IsCommitRelatedToFile) continue;
-				if (snapshot.Parents.Count > 0) {
-					// TODO: Investigate how to avoid All.ContainsKey(e) for preventing KeyNotFoundException
-					var ellements = snapshot.Parents.Where(e => ViewData.ShaDictionary.ContainsKey(e));
-					var maxOffset = ellements.Count() > 0 ? ellements.Max(e => ViewData.ShaDictionary[e].TreeOffset) : 0;
-					if (textOffset < maxOffset) textOffset = maxOffset;
-				}
-				if (textOffset < snapshot.TreeOffset) textOffset = snapshot.TreeOffset;
-
+				// Add Label
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.DateString + " " + snapshot.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
@@ -261,14 +253,16 @@ namespace WpfUI.Renderer {
 				textBlock.MouseEnter += TextBlock_MouseEnter;
 				textBlock.MouseLeave += TextBlock_MouseLeave;
 				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;
-				Canvas.SetLeft(textBlock, 2 * SCALE_X * (textOffset + 1));
-				Canvas.SetTop(textBlock, y - SCALE_Y + radius);
+				Canvas.SetLeft(textBlock, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X / 4);
+				Canvas.SetTop(textBlock, y);
 				Canvas.Children.Add(textBlock);
 			}
 
 			Canvas.Width = RenderedSnapshots.Max(e => e.TreeOffset)*SCALE_X+SCALE_X;
 			Canvas.Height = RenderedSnapshots.Count* SCALE_Y * 2 + SCALE_Y;
 		}
+
+		#region Events
 
 		private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
 			// TODO: Copy / paste
@@ -304,38 +298,6 @@ namespace WpfUI.Renderer {
 			}
 			Draw();
 		}
-
-		/// <summary>
-		/// Update all elements highlighting
-		/// </summary>
-		public void Draw() {
-			foreach (var snapshot in RenderedSnapshots) {
-				if (string.IsNullOrEmpty(snapshot.Description)) continue;
-
-				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
-			}
-
-			// Select path between two snapshots
-			var selectedSnapshots = RenderedSnapshots.Where(e => e.IsSelected).OrderBy(e => e.Index);
-			if (selectedSnapshots.Count() == 2) {
-				var c = selectedSnapshots.First().Sha;
-				var p = selectedSnapshots.Last().Sha;
-				if (UiChildParentPaths.Keys.Contains(c + "|" + p)) {
-					UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
-				}
-			}
-		}
-
-		public void ClearHighlighting() {
-			foreach (var snapshot in RenderedSnapshots) {
-				UiElements[snapshot.Sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
-				foreach(var path in UiElements[snapshot.Sha].Paths) {
-					path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
-				}
-			}
-		}
-
-		#region Mouse Events
 
 		/// <summary>
 		/// Highlight paths for hovered snapshot
@@ -377,6 +339,27 @@ namespace WpfUI.Renderer {
 		#endregion
 
 		#region Tree preparation
+
+		/// <summary>
+		/// Find position for each commit label
+		/// </summary>
+		public int[] GetLabelsToothOffset() {
+			var reservedArea = new int[ViewData.Snapshots.Count];
+			for (int i = 0; i < ViewData.Snapshots.Count; i++) {
+				var snapshot = ViewData.Snapshots[i];
+				if (reservedArea[i] < snapshot.TreeOffset) reservedArea[i] = snapshot.TreeOffset;
+
+				foreach (var p in snapshot.Parents) {
+					var parent = ViewData.ShaDictionary[p];
+					var maxOfset = snapshot.TreeOffset > parent.TreeOffset ? snapshot.TreeOffset : parent.TreeOffset;
+					for (int j = i; j <= parent.Index; j++) {
+						if (reservedArea[j] < maxOfset) reservedArea[j] = maxOfset;
+					}
+				}
+			}
+
+			return reservedArea;
+		}
 
 		/// <summary>
 		/// Return true if commits in the same line in the same branch and nothing in between
@@ -445,6 +428,36 @@ namespace WpfUI.Renderer {
 		}
 
 		#endregion
+
+		/// <summary>
+		/// Update all elements highlighting
+		/// </summary>
+		public void Draw() {
+			foreach (var snapshot in RenderedSnapshots) {
+				if (string.IsNullOrEmpty(snapshot.Description)) continue;
+
+				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
+			}
+
+			// Select path between two snapshots
+			var selectedSnapshots = RenderedSnapshots.Where(e => e.IsSelected).OrderBy(e => e.Index);
+			if (selectedSnapshots.Count() == 2) {
+				var c = selectedSnapshots.First().Sha;
+				var p = selectedSnapshots.Last().Sha;
+				if (UiChildParentPaths.Keys.Contains(c + "|" + p)) {
+					UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
+				}
+			}
+		}
+
+		public void ClearHighlighting() {
+			foreach (var snapshot in RenderedSnapshots) {
+				UiElements[snapshot.Sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+				foreach (var path in UiElements[snapshot.Sha].Paths) {
+					path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Change color brightness
