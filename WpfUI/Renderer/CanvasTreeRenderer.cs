@@ -17,6 +17,7 @@ namespace WpfUI.Renderer {
 	public class SnapshotCanvasModel {
 		public Ellipse Ellipse;
 		public List<Shape> Paths = new List<Shape>();
+		public Rectangle CommitBackground;
 	}
 
 	public class CanvasTreeRenderer {
@@ -41,6 +42,9 @@ namespace WpfUI.Renderer {
 		private readonly SolidColorBrush GreenBrush = new SolidColorBrush(Color.FromRgb(0x3c, 0xb4, 0x4b));
 
 		private readonly SolidColorBrush TransparentCircleBrush = new SolidColorBrush(Color.FromArgb(0x00, 0xff, 0xff, 0xff));
+		private readonly SolidColorBrush TransparentGreenBrush1 = new SolidColorBrush(Color.FromArgb(0x3c, 0x3c, 0xb4, 0x4b));
+		private readonly SolidColorBrush TransparentGreenBrush2 = new SolidColorBrush(Color.FromArgb(0x2c, 0x3c, 0xb4, 0x4b));
+
 		private readonly SolidColorBrush SolidCircleBrush = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
 
 		private readonly List<Color> baseColors = new List<Color>() {
@@ -97,15 +101,18 @@ namespace WpfUI.Renderer {
 				var y = (SCALE_Y - radius) + 2 * SCALE_Y * snapshot.Index;
 
 				var rectangle = new Rectangle();
-				rectangle.Fill = BackgroundBrushes[snapshot.BranchLineId % LinesBrushes.Count];
+				rectangle.Fill = TransparentCircleBrush;
 				rectangle.Width = 999999;
-				rectangle.Height = SCALE_Y * 3;
+				rectangle.Height = SCALE_Y * 2;
+				rectangle.Tag = snapshot.Sha;
+				LinkCommitHoverEvents(rectangle);
 				Canvas.SetLeft(rectangle, x * 0);
 				Canvas.SetTop(rectangle, 2 * SCALE_Y * snapshot.Index);
 
+				UiElements[snapshot.Sha].CommitBackground = rectangle;
 				Canvas.Children.Add(rectangle);
 				Canvas.SetZIndex(rectangle, -2);
-
+				
 				foreach (var p in snapshot.Parents.ToList()) { // TODO: Investigate .ToList();
 					var parent = ViewData.ShaDictionary[p];
 					if (!parent.IsCommitVisible) continue;
@@ -123,7 +130,7 @@ namespace WpfUI.Renderer {
 
 					if (IsCommitsInOneLine(snapshot, parent)) {
 						var line = new Line();
-						line.Stroke = LinesBrushes[snapshot.BranchLineId % LinesBrushes.Count];
+						line.Stroke = LinesBrushes[snapshot.TreeOffset % LinesBrushes.Count];
 						line.X1 = x1;
 						line.Y1 = y1;
 						line.X2 = x2;
@@ -196,7 +203,7 @@ namespace WpfUI.Renderer {
 						}
 
 						Path path = new Path();
-						path.Stroke = LinesBrushes[parent.BranchLineId % LinesBrushes.Count];
+						path.Stroke = LinesBrushes[parent.TreeOffset % LinesBrushes.Count];
 						path.Data = new PathGeometry(new PathFigure[] { figure });
 						path.Opacity = 1;
 
@@ -210,15 +217,12 @@ namespace WpfUI.Renderer {
 					}
 				}
 
-				// Circle (Commit)
-				var color = !snapshot.IsCommitRelatedToFile ? BlueBrush : GreenBrush;
-
 				BitmapImage bmpImage = new BitmapImage();
 				bmpImage.BeginInit();
 				bmpImage.UriSource = new Uri(snapshot.AvatarUrl + "&s=" + diameter, UriKind.RelativeOrAbsolute);
 				bmpImage.EndInit();
 
-				// Clipped Image
+				// User icon
 				Image clippedImage = new Image();
 				clippedImage.Source = bmpImage;
 				EllipseGeometry clipGeometry = new EllipseGeometry(new Point(radius, radius), radius, radius);
@@ -228,33 +232,48 @@ namespace WpfUI.Renderer {
 				Canvas.SetLeft(clippedImage, x);
 				Canvas.SetTop(clippedImage, y);
 
+				// User Image border
 				var ellipse = new Ellipse();
 				ellipse.Fill = TransparentCircleBrush;
 				ellipse.Height = diameter;
 				ellipse.Width = diameter;
 				ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
-				ellipse.Stroke = color;
+				ellipse.Stroke = GreenBrush;
 				ellipse.ToolTip = snapshot.Tooltip;
 				ellipse.MouseEnter += Ellipse_OnMouseEnter;
 				ellipse.MouseLeave += Ellipse_OnMouseLeave;
 				ellipse.MouseLeftButtonDown += Ellipse_MouseLeftButtonDown;
 				ellipse.Tag = snapshot.Sha;
+				LinkArrowHandEvents(ellipse);
+				LinkCommitHoverEvents(ellipse);
 
 				UiElements[snapshot.Sha].Ellipse = ellipse;
 				Canvas.Children.Add(ellipse);
 				Canvas.SetLeft(ellipse, x);
 				Canvas.SetTop(ellipse, y);
 
-				// Add Label
+				// Circle before label
+				var branchColorCircle = new Ellipse();
+				branchColorCircle.Fill = LinesBrushes[snapshot.TreeOffset % LinesBrushes.Count];
+				branchColorCircle.Height = 8;
+				branchColorCircle.Width = 8;
+				branchColorCircle.Stroke = LinesBrushes[snapshot.TreeOffset % LinesBrushes.Count];
+				branchColorCircle.ToolTip = snapshot.Tooltip;
+				Canvas.SetLeft(branchColorCircle, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X / 4);
+				Canvas.SetTop(branchColorCircle, y+5);
+				Canvas.Children.Add(branchColorCircle);
+
+				// Commit description Label
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.DateString + " " + snapshot.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
 				textBlock.Tag = snapshot.Sha;
 				textBlock.ToolTip = snapshot.Tooltip;
-				textBlock.MouseEnter += TextBlock_MouseEnter;
-				textBlock.MouseLeave += TextBlock_MouseLeave;
 				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;
-				Canvas.SetLeft(textBlock, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X / 4);
+				LinkCommitHoverEvents(textBlock);
+				LinkArrowHandEvents(textBlock);
+
+				Canvas.SetLeft(textBlock, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X);
 				Canvas.SetTop(textBlock, y);
 				Canvas.Children.Add(textBlock);
 			}
@@ -265,10 +284,25 @@ namespace WpfUI.Renderer {
 
 		#region Events
 
+		/// <summary>
+		/// Link events for changing cursor (pointer/arrow)
+		/// </summary>
+		private void LinkArrowHandEvents(FrameworkElement element) {
+			element.MouseEnter += MouseEnterHand;
+			element.MouseLeave += MouseLeaveArrow;
+		}
+
+		private void MouseLeaveArrow(object sender, MouseEventArgs e) {
+			Mouse.OverrideCursor = Cursors.Arrow;
+		}
+
+		private void MouseEnterHand(object sender, MouseEventArgs e) {
+			Mouse.OverrideCursor = Cursors.Hand;
+		}
+
 		private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
 			// TODO: Copy / paste
 			var sha = (string)(sender as TextBlock).Tag;
-			UiElements[sha].Ellipse.StrokeThickness = 2;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
@@ -276,28 +310,34 @@ namespace WpfUI.Renderer {
 			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].Index);
 		}
 
-		private void TextBlock_MouseLeave(object sender, MouseEventArgs e) {
-			var tb = (sender as TextBlock);
-			tb.FontWeight = FontWeights.Normal;
+		/// <summary>
+		/// Link commit hover events
+		/// </summary>
+		private void LinkCommitHoverEvents(FrameworkElement element) {
+			element.MouseEnter += CommitEnter;
+			element.MouseLeave += CommitLeave;
+		}
 
-			var sha = (string)(sender as TextBlock).Tag;
-			UiElements[sha].Ellipse.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
+		private void CommitLeave(object sender, MouseEventArgs e) {
+			var tb = (sender as TextBlock);
+
+			var sha = (string)(sender as FrameworkElement).Tag;
+			UiElements[sha].CommitBackground.Fill = TransparentCircleBrush;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 			}
 			Draw();
 		}
 
-		private void TextBlock_MouseEnter(object sender, MouseEventArgs e) {
+		private void CommitEnter(object sender, MouseEventArgs e) {
 			var tb = (sender as TextBlock);
-			tb.FontWeight = FontWeights.SemiBold;
 
-			var sha = (string)(sender as TextBlock).Tag;
-			UiElements[sha].Ellipse.StrokeThickness = 2;
+			var sha = (string)(sender as FrameworkElement).Tag;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 			Draw();
+			UiElements[sha].CommitBackground.Fill = TransparentGreenBrush2;
 		}
 
 		/// <summary>
@@ -438,6 +478,7 @@ namespace WpfUI.Renderer {
 				if (string.IsNullOrEmpty(snapshot.Description)) continue;
 
 				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
+				UiElements[snapshot.Sha].CommitBackground.Fill = snapshot.IsSelected ? TransparentGreenBrush1 : TransparentCircleBrush;
 			}
 
 			// Select path between two snapshots
