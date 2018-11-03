@@ -19,7 +19,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Helper object for receiving differences between two files
 		/// </summary>
-		private static InlineDiffBuilder fileComparer = new InlineDiffBuilder(new Differ());
+		private InlineDiffBuilder fileComparer = new InlineDiffBuilder(new Differ());
 
 		/// <summary>
 		/// Path to root repository directory
@@ -636,7 +636,6 @@ namespace TimeLapseView {
 					BranchLineId = item.BranchLineId,
 					IsCommitRelatedToFile = item.IsCommitRelatedToFile,
 					IsCommitVisible = item.IsCommitVisible,
-					IsSelected = item.IsSelected,
 					IsImportantCommit = item.IsImportantCommit,
 					IsMerge = item.IsMerge,
 					IsFirstInLine = item.IsFirstInLine,

@@ -42,8 +42,6 @@ namespace TimeLapseView.Model {
 		// TODO: TBD: Rename Visible to File Changhed.
 		public bool IsCommitVisible { get; set; }
 
-		public bool IsSelected { get; set; }
-
 		public bool IsImportantCommit {
 			get { return IsCommitVisible && IsCommitRelatedToFile && Parents.Count == 1; }
 		}

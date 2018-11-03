@@ -108,6 +108,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DiffManager.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="FileHistoryManager.cs" />
     <Compile Include="Model\CodeFile.cs" />

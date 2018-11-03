@@ -22,7 +22,6 @@ namespace TimeLapseView.Model {
 		public int BranchLineId { get; set; }
 		public bool IsCommitRelatedToFile { get; set; }
 		public bool IsCommitVisible { get; set; }
-		public bool IsSelected { get; set; }
 		public bool IsImportantCommit { get; set; }
 		public bool IsMerge { get; set; }
 		public bool IsFirstInLine { get; set; }

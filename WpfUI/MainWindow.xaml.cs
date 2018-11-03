@@ -1,22 +1,10 @@
 ﻿using ICSharpCode.AvalonEdit.Highlighting;
-using ICSharpCode.AvalonEdit.Rendering;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using TimeLapseView;
-using ICSharpCode.AvalonEdit.Document;
 using Microsoft.Win32;
 using WpfUI.Renderer;
 using System.Threading;
@@ -80,7 +68,7 @@ namespace WpfUI {
 
 					var typeConverter = new HighlightingDefinitionTypeConverter();
 					var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
-					tbCode.SyntaxHighlighting = syntaxHighlighter;
+					tbCodeA.SyntaxHighlighting = tbCodeB.SyntaxHighlighting = syntaxHighlighter;
 
 					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
@@ -93,7 +81,7 @@ namespace WpfUI {
 							if (isFirstRendering) {
 								isFirstRendering = false;
 								slHistoy.Value = View.Snapshots.Count;
-								tbCode.Text = View.Snapshot.File;
+								tbCodeA.Text = View.Snapshot.File;
 
 								SetBackgroundRendererMode(RendererMode.TimeLapse);
 								lblCommitDetailsSection.Visibility = Visibility.Visible;
@@ -130,13 +118,12 @@ namespace WpfUI {
 					});
 					scanningThread.Start();
 
-
-
 					// TODO: Mediator patern????
 					// TODO: View should exist without snapshots
 					View.OnViewIndexChanged = (index, csnapshot, psnapshot) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
-							tbCode.Text = csnapshot.File;
+							tbCodeA.Text = csnapshot.File;
+							tbCodeB.Text = psnapshot?.File;
 
 							slHistoy.Value = slHistoy.Maximum - index;
 							lvVerticalHistoryPanel.SelectedIndex = index;
@@ -202,13 +189,27 @@ namespace WpfUI {
 			colBlame.Width = new GridLength(menuShowBlame.IsChecked ? 150 : 0);
 		}
 
+		private void menuShowCompare_Click(object sender, RoutedEventArgs e) {
+			colCompare.Width = new GridLength(0);
+
+			if (menuShowCompare.IsChecked) {
+				var width = (gridSources.ActualWidth - 150) / 2;
+				colCompare.Width = new GridLength(width, GridUnitType.Star);
+				colSource.Width = new GridLength(width, GridUnitType.Star);
+			} else {
+				colCompare.Width = new GridLength(0);
+			}
+		}
+
 		private void btnExit_Click(object sender, RoutedEventArgs e) {
 			Close();
 		}
 
 		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
+			return;
+
 			try {
-				if (View.SelectedSnapshotIndex == View.GetLineBirth(tbCode.TextArea.Caret.Line - 1)) {
+				if (View.SelectedSnapshotIndex == View.GetLineBirth(tbCodeA.TextArea.Caret.Line - 1)) {
 
 					View.ResetSnapshotsSelection();
 
@@ -221,19 +222,19 @@ namespace WpfUI {
 
 					slHistoy.IsSelectionRangeEnabled = false;
 				} else {
-					View.SelectedSnapshotIndex = View.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
-					View.SelectedLineLID = View.Snapshot.FileDetails[tbCode.TextArea.Caret.Line - 1].LID;
-					View.SelectedLine = tbCode.TextArea.Caret.Line - 1;
+					View.SelectedSnapshotIndex = View.GetLineBirth(tbCodeA.TextArea.Caret.Line - 1);
+					View.SelectedLineLID = View.Snapshot.FileDetails[tbCodeA.TextArea.Caret.Line - 1].LID;
+					View.SelectedLine = tbCodeA.TextArea.Caret.Line - 1;
 
 					View.SelectSnapshots(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]]);
 					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
 
 					slHistoy.IsSelectionRangeEnabled = true;
-					slHistoy.SelectionStart = slHistoy.Maximum - View.GetLineBirth(tbCode.TextArea.Caret.Line - 1);
-					slHistoy.SelectionEnd = slHistoy.Maximum - View.GetLineDeath(tbCode.TextArea.Caret.Line - 1);
+					slHistoy.SelectionStart = slHistoy.Maximum - View.GetLineBirth(tbCodeA.TextArea.Caret.Line - 1);
+					slHistoy.SelectionEnd = slHistoy.Maximum - View.GetLineDeath(tbCodeA.TextArea.Caret.Line - 1);
 				}
 
-				tbCode.TextArea.TextView.Redraw();
+				tbCodeA.TextArea.TextView.Redraw();
 			} catch (Exception ex) {
 
 			}
@@ -245,19 +246,23 @@ namespace WpfUI {
 		/// <param name="mode">Rendering mode</param>
 		private void SetBackgroundRendererMode(RendererMode mode) {
 			if (View == null) return;
-			tbCode.TextArea.TextView.BackgroundRenderers.Clear();
+			tbCodeA.TextArea.TextView.BackgroundRenderers.Clear();
 			switch (mode) {
 				case RendererMode.TimeLapse:
-					tbCode.TextArea.TextView.BackgroundRenderers.Add(new TimeLapseLineBackgroundRenderer(View));
+					tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new TimeLapseLineBackgroundRenderer(View));
 					break;
 				case RendererMode.IncrementalDiff:
-					tbCode.TextArea.TextView.BackgroundRenderers.Add(new IncrementalDiffLineBackgroundRenderer(View));
+					tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new IncrementalDiffLineBackgroundRenderer(View));
 					break;
 			}
 			
-			tbCode.TextArea.TextView.BackgroundRenderers.Add(new SelectedLineBackgroundRenderer(View));
-			tbCode.TextArea.TextView.BackgroundRenderers.Add(new LineDetailsRenderer(View, canvasBlame));
-			tbCode.TextArea.TextView.Redraw();
+			//tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new SelectedLineBackgroundRenderer(View));
+			tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new LineDetailsRenderer(View, canvasBlame));
+			tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new ChangesRenderer(View));
+			tbCodeA.TextArea.TextView.Redraw();
+
+			tbCodeB.TextArea.TextView.BackgroundRenderers.Add(new DeletionsRenderer(View));
+			tbCodeB.TextArea.TextView.Redraw();
 
 			// Set Menu Check Boxes
 			menuTimeLapseViewMode.IsChecked = false;
@@ -291,17 +296,17 @@ namespace WpfUI {
 		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
 			if (View == null) return;
 			var lines = View.Snapshot.FileDetails;
-			var i = tbCode.TextArea.Caret.Line;
+			var i = tbCodeA.TextArea.Caret.Line;
 			if (i >= lines.Count) i = lines.Count - 1;
 
 			while (i < lines.Count && lines[i].State != LineState.Unchanged) i++; // Skip current diff
 			while (i < lines.Count && lines[i].State == LineState.Unchanged) i++; // Find next diff
 			i++;
 
-			tbCode.ScrollTo(i, 0);
-			tbCode.TextArea.Caret.Line = i;
-			tbCode.TextArea.Caret.Column = 1;
-			tbCode.TextArea.Focus();
+			tbCodeA.ScrollTo(i, 0);
+			tbCodeA.TextArea.Caret.Line = i;
+			tbCodeA.TextArea.Caret.Column = 1;
+			tbCodeA.TextArea.Focus();
 		}
 
 		/// <summary>
@@ -310,17 +315,17 @@ namespace WpfUI {
 		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
 			if (View == null) return;
 			var lines = View.Snapshot.FileDetails;
-			var i = tbCode.TextArea.Caret.Line - 1;
+			var i = tbCodeA.TextArea.Caret.Line - 1;
 			if (i <= 0) i = 0;
 
 			while (i > 0 && lines[i].State != LineState.Unchanged) i--; // Skip current diff
 			while (i > 0 && lines[i].State == LineState.Unchanged) i--; // Find next diff
 			i++;
 
-			tbCode.ScrollTo(i, 0);
-			tbCode.TextArea.Caret.Line = i;
-			tbCode.TextArea.Caret.Column = 1;
-			tbCode.TextArea.Focus();
+			tbCodeA.ScrollTo(i, 0);
+			tbCodeA.TextArea.Caret.Line = i;
+			tbCodeA.TextArea.Caret.Column = 1;
+			tbCodeA.TextArea.Focus();
 		}
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {

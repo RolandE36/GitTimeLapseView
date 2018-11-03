@@ -17,7 +17,7 @@ namespace WpfUI.Renderer {
 			var brush = default(Brush);
 			var lineSnapshotsNumber = host.Snapshots.Count - host.GetLineBirth(linenum);
 			if (lineSnapshotsNumber < 0) lineSnapshotsNumber = 0; // In case if host.Snapshot not yet updated with new commits.
-			var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.SnapshotIndex)) / 100;
+			var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.Snapshot.Index)) / 100;
 			if (lineLifeTimePercent > 1) lineLifeTimePercent = 1;
 			if (host.Snapshots.Count == 1) lineLifeTimePercent = 0;
 			var byteColor = Convert.ToByte(255 - (5 + 249 * lineLifeTimePercent));

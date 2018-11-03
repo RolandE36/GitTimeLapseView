@@ -477,18 +477,16 @@ namespace WpfUI.Renderer {
 			foreach (var snapshot in RenderedSnapshots) {
 				if (string.IsNullOrEmpty(snapshot.Description)) continue;
 
-				UiElements[snapshot.Sha].Ellipse.StrokeThickness = snapshot.IsSelected ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
-				UiElements[snapshot.Sha].CommitBackground.Fill = snapshot.IsSelected ? TransparentGreenBrush1 : TransparentCircleBrush;
+				var isSelectedSnapshot = ViewData.Snapshot.Sha == snapshot.Sha || ViewData.SnapshotParent?.Sha == snapshot.Sha;
+				UiElements[snapshot.Sha].Ellipse.StrokeThickness = isSelectedSnapshot ? SELECTED_LINE_WIDTH : NOT_SELECTED_LINE_WIDTH;
+				UiElements[snapshot.Sha].CommitBackground.Fill = isSelectedSnapshot ? TransparentGreenBrush1 : TransparentCircleBrush;
 			}
 
 			// Select path between two snapshots
-			var selectedSnapshots = RenderedSnapshots.Where(e => e.IsSelected).OrderBy(e => e.Index);
-			if (selectedSnapshots.Count() == 2) {
-				var c = selectedSnapshots.First().Sha;
-				var p = selectedSnapshots.Last().Sha;
-				if (UiChildParentPaths.Keys.Contains(c + "|" + p)) {
-					UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
-				}
+			var c = ViewData.Snapshot.Sha;
+			var p = ViewData.SnapshotParent.Sha;
+			if (UiChildParentPaths.Keys.Contains(c + "|" + p)) {
+				UiChildParentPaths[c + "|" + p].StrokeThickness = SELECTED_LINE_WIDTH;
 			}
 		}
 

@@ -70,6 +70,8 @@
     </ApplicationDefinition>
     <Compile Include="Renderer\BaseBackgroundRenderer.cs" />
     <Compile Include="Renderer\CanvasTreeRenderer.cs" />
+    <Compile Include="Renderer\ChangesRenderer.cs" />
+    <Compile Include="Renderer\DeletionsRenderer.cs" />
     <Compile Include="Renderer\IncrementalDiffLineBackgroundRenderer.cs" />
     <Compile Include="Renderer\LineDetailsRenderer.cs" />
     <Compile Include="Renderer\RendererMode.cs" />

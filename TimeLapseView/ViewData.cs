@@ -1,4 +1,7 @@
-﻿using System;
+﻿using DiffPlex;
+using DiffPlex.DiffBuilder;
+using DiffPlex.DiffBuilder.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,6 +10,8 @@ using TimeLapseView.Model;
 
 namespace TimeLapseView {
 	public class ViewData {
+		public readonly DiffManager DiffManager = new DiffManager();
+
 		/// <summary>
 		/// List of all snapshots related to file
 		/// </summary>
@@ -35,16 +40,27 @@ namespace TimeLapseView {
 		/// </summary>
 		public SnapshotVM Snapshot {
 			get {
-				return Snapshots[SnapshotIndex];
+				return ShaDictionary[CurrentSnapshotSha];
+			}
+		}
+
+		public SnapshotVM SnapshotParent {
+			get {
+				if (string.IsNullOrEmpty(ParentSnapshotSha)) return null;
+				return ShaDictionary[ParentSnapshotSha];
 			}
 		}
 
 		/// <summary>
 		/// Index of current commit
 		/// </summary>
-		public int SnapshotIndex;
+		private string CurrentSnapshotSha;
+		/// <summary>
+		/// SHA of parent commit
+		/// </summary>
+		private string ParentSnapshotSha;
 
-		public int SelectedSnapshotIndex;
+		public int SelectedSnapshotIndex; // TODO: Rename to "selected line index"
 		public int SelectedLine;
 		public int SelectedLineLID;
 
@@ -114,26 +130,17 @@ namespace TimeLapseView {
 		/// Step down
 		/// </summary>
 		public void MoveToNextSnapshot() {
-			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
-			if (selected.Count() != 2) return;
-
-			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
-
-			UpdatePreferredWay(Snapshot.Sha, nextElement.Value.Sha);
-			SelectSnapshot(nextElement.Value.Index);
+			SelectSnapshot(SnapshotParent.Index);
 		}
 
 		/// <summary>
 		/// Step up
 		/// </summary
 		public void MoveToPrevSnapshot() {
-			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
-			if (selected.Count() > 2) return;
-
 			var c = FindPreferredUpWay(Snapshot);
 			if (c == null) return;
 
-			UpdatePreferredWay(c.Sha, Snapshot.Sha);
+			RememberPreferredWay(c.Sha, Snapshot.Sha);
 			SelectSnapshot(c.Index);
 		}
 
@@ -141,21 +148,13 @@ namespace TimeLapseView {
 		/// Step left
 		/// </summary
 		public void MoveToLeftSnapshot() {
-			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
-			if (selected.Count() != 2) return;
-
-			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
 			var orderedParents = Snapshot.Parents.OrderBy(e => ShaDictionary[e].TreeOffset).ToList();
-			var pIndex = orderedParents.IndexOf(nextElement.Key);
+			var pIndex = orderedParents.IndexOf(SnapshotParent.Sha);
 
 			if (pIndex > 0) {
 				var newNextElement = ShaDictionary[orderedParents[pIndex - 1]];
-
-				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
-
-				ResetSnapshotsSelection(false);
-				Snapshot.IsSelected = true;
-				newNextElement.IsSelected = true;
+				RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
+				ParentSnapshotSha = newNextElement.Sha;
 				OnSelectionChanged?.Invoke();
 			}
 		}
@@ -164,21 +163,13 @@ namespace TimeLapseView {
 		/// Step right
 		/// </summary
 		public void MoveToRightSnapshot() {
-			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
-			if (selected.Count() != 2) return;
-
-			var nextElement = selected.First(e => e.Value.Sha != Snapshot.Sha);
 			var orderedParents = Snapshot.Parents.OrderBy(e => ShaDictionary[e].TreeOffset).ToList();
-			var pIndex = orderedParents.IndexOf(nextElement.Key);
+			var pIndex = orderedParents.IndexOf(SnapshotParent.Sha);
 
 			if (pIndex < orderedParents.Count-1) {
 				var newNextElement = ShaDictionary[orderedParents[pIndex + 1]];
-
-				UpdatePreferredWay(Snapshot.Sha, newNextElement.Sha);
-
-				ResetSnapshotsSelection(false);
-				Snapshot.IsSelected = true;
-				newNextElement.IsSelected = true;
+				RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
+				ParentSnapshotSha = newNextElement.Sha;
 				OnSelectionChanged?.Invoke();
 			}
 		}
@@ -186,7 +177,8 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Remember user choices
 		/// </summary>
-		private void UpdatePreferredWay(string from, string to) {
+		private void RememberPreferredWay(string from, string to) {
+			if (string.IsNullOrEmpty(to)) return;
 			preferredDowntWay[from] = to;
 			preferredUpWay[to] = from;
 		}
@@ -195,6 +187,7 @@ namespace TimeLapseView {
 		/// Select next snapshot according to viewed history
 		/// </summary>
 		private void FindPreferredDownWay(SnapshotVM snapshot) {
+			ParentSnapshotSha = "";
 			if (Snapshot.Parents.Count > 0) {
 				string p = "";
 				// Try to find next snapshot from history
@@ -203,7 +196,8 @@ namespace TimeLapseView {
 				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.FirstOrDefault(e => ShaDictionary[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
 				if (string.IsNullOrEmpty(p)) p = Snapshot.Parents.First();
-				ShaDictionary[p].IsSelected = true;
+
+				ParentSnapshotSha = p;
 			}
 		}
 
@@ -219,7 +213,6 @@ namespace TimeLapseView {
 				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.FirstOrDefault(e => ShaDictionary[e].TreeOffset == Snapshot.TreeOffset);
 				// In other case take first snapshot
 				if (string.IsNullOrEmpty(c)) c = Snapshot.Childs.First();
-				ShaDictionary[c].IsSelected = true;
 
 				return ShaDictionary[c];
 			}
@@ -233,26 +226,26 @@ namespace TimeLapseView {
 		/// Reset selection
 		/// </summary>
 		public void ResetSnapshotsSelection(bool redraw = true) {
-			foreach (var snapshot in Snapshots) {
+			/*foreach (var snapshot in Snapshots) {
 				snapshot.IsSelected = false;
 			}
 
 			Snapshot.IsSelected = true;
 			FindPreferredDownWay(Snapshot);
 
-			if (redraw) OnSelectionChanged?.Invoke();
+			if (redraw) OnSelectionChanged?.Invoke();*/
 		}
 
 		/// <summary>
 		/// Select provided snapshots
 		/// </summary>
 		public void SelectSnapshots(HashSet<int> items) {
-			ResetSnapshotsSelection(false);
+			/*ResetSnapshotsSelection(false);
 			foreach (var sha in items) {
 				IdDictionary[sha].IsSelected = true;
 			}
 
-			OnSelectionChanged?.Invoke();
+			OnSelectionChanged?.Invoke();*/
 		}
 
 		/// <summary>
@@ -262,14 +255,11 @@ namespace TimeLapseView {
 		public void SelectSnapshot(int index) {
 			if (index < 0 || Snapshots.Count == 0) return;
 
-			SnapshotIndex = index;
-			Snapshot.IsSelected = true;
-			//FindPreferredDownWay(Snapshot);
+			CurrentSnapshotSha = Snapshots[index].Sha;
+			FindPreferredDownWay(Snapshot);
+			RememberPreferredWay(Snapshot.Sha, SnapshotParent?.Sha);
 
-			ResetSnapshotsSelection(false);
-
-			var selected = ShaDictionary.Where(e => e.Value.IsSelected);
-			OnViewIndexChanged?.Invoke(index, Snapshot, selected.Count() != 2 ? null : selected.Last().Value);
+			OnViewIndexChanged?.Invoke(index, Snapshot, SnapshotParent);
 			OnSelectionChanged?.Invoke();
 		}
 	}
