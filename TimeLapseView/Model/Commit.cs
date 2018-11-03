@@ -13,13 +13,11 @@ namespace TimeLapseView.Model {
 			get {
 				return string.Join("", Sha.Take(7));
 			}
-			set { }
 		}
 		public string AuthorInitials {
 			get {
 				return string.Join("", Author.Split(' ').Take(2).Select(e => e[0]));
 			}
-			set { }
 		}
 		public string Author { get; set; }
 		public string Email { get; set; }

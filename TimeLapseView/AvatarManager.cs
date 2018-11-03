@@ -23,6 +23,10 @@ namespace TimeLapseView {
 				dir = dir.Parent;
 			}
 
+			// Do nothing if no repository found
+			if (dir == null) return;
+
+			// Check is it github repository
 			using (var repo = new Repository(dir.FullName)) {
 				if (repo.Network.Remotes.Count() > 0) {
 					var remote = repo.Network.Remotes.First();
