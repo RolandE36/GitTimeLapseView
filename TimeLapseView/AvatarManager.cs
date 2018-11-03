@@ -11,10 +11,11 @@ using TimeLapseView.Model;
 
 namespace TimeLapseView {
 	public class AvatarManager {
-		private Dictionary<string, string> cache = new Dictionary<string, string>();
+		private Dictionary<string, string> Cache { get; set; }
 		public readonly bool isGitHubRepository;
 
 		public AvatarManager(string file) {
+			Cache = new Dictionary<string, string>();
 			var fileInfo = new FileInfo(file);
 
 			// Find repository path
@@ -28,7 +29,7 @@ namespace TimeLapseView {
 
 			// Check is it github repository
 			using (var repo = new Repository(dir.FullName)) {
-				if (repo.Network.Remotes.Count() > 0) {
+				if (repo.Network.Remotes.Any()) {
 					var remote = repo.Network.Remotes.First();
 					isGitHubRepository = remote.Url.Contains("github.com");
 				}
@@ -37,46 +38,40 @@ namespace TimeLapseView {
 
 		public string GetAvatar(string name, string email) {
 			var cacheKey = name + "_" + email;
-			if (cache.Keys.Contains(cacheKey)) {
-				return cache[cacheKey];
+			if (Cache.Keys.Contains(cacheKey)) {
+				return Cache[cacheKey];
 			}
 
-			return cache[cacheKey] = isGitHubRepository ? GetGitHubAvatar(name, email) : GetGravatar(name, email);
+			return Cache[cacheKey] = isGitHubRepository ? GetGitHubAvatar(name, email) : GetGravatar(email);
 		}
 
 		private string GetGitHubAvatar(string name, string email) {
 			var client = new RestClient("https://api.github.com/search/users?q=" + email);
 			var request = new RestRequest("", Method.GET);
 			var response = client.Execute<GitHubUserSearchResult>(request);
-			if (response.ResponseStatus == ResponseStatus.Completed) {
-				if (response.Data.total_count > 0) {
-					return response.Data.items[0].avatar_url;
-				}
+			if (response.ResponseStatus == ResponseStatus.Completed && response.Data.total_count > 0) {
+				return response.Data.items[0].avatar_url;
 			}
 
 			client = new RestClient("https://api.github.com/search/users?q=" + name);
 			request = new RestRequest("", Method.GET);
 			response = client.Execute<GitHubUserSearchResult>(request);
-			if (response.ResponseStatus == ResponseStatus.Completed) {
-				if (response.Data.total_count > 0) {
-					return response.Data.items[0].avatar_url;
-				}
+			if (response.ResponseStatus == ResponseStatus.Completed && response.Data.total_count > 0) {
+				return response.Data.items[0].avatar_url;
 			}
 
 			// Icon not found. Return default gravatar icon
-			return GetGravatar(name, email);
+			return GetGravatar(email);
 		}
 
-		private string GetGravatar(string name, string email) {
+		private string GetGravatar(string email) {
 			return $@"https://www.gravatar.com/avatar/{CalculateMD5Hash(email)}?d=identicon";
 		}
 
 
 		/// <summary>
-		/// 
+		/// Get string MD5 hash
 		/// </summary>
-		/// <param name="input"></param>
-		/// <returns></returns>
 		private string CalculateMD5Hash(string input) {
 			// step 1, calculate MD5 hash from input
 			MD5 md5 = System.Security.Cryptography.MD5.Create();
@@ -89,7 +84,7 @@ namespace TimeLapseView {
 				sb.Append(hash[i].ToString("X2"));
 			}
 
-			return sb.ToString().ToLower();
+			return sb.ToString().ToLowerInvariant();
 		}
 	}
 }
