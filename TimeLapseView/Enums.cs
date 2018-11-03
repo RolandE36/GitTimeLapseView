@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace TimeLapseView {
-	public class Constants {
+	public static class Constants {
 		// TODO: Use windows DateTime Format settings
 		public const string DATE_TIME_FORMAT = "dd.MM.yyyy hh:mm";
 		public const string DATE_FORMAT = "dd.MM.yyyy";

@@ -319,8 +319,6 @@ namespace WpfUI.Renderer {
 		}
 
 		private void CommitLeave(object sender, MouseEventArgs e) {
-			var tb = (sender as TextBlock);
-
 			var sha = (string)(sender as FrameworkElement).Tag;
 			UiElements[sha].CommitBackground.Fill = TransparentCircleBrush;
 			foreach (var path in UiElements[sha].Paths) {
@@ -330,8 +328,6 @@ namespace WpfUI.Renderer {
 		}
 
 		private void CommitEnter(object sender, MouseEventArgs e) {
-			var tb = (sender as TextBlock);
-
 			var sha = (string)(sender as FrameworkElement).Tag;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;

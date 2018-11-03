@@ -14,17 +14,15 @@ using TimeLapseView.Model;
 
 namespace TimeLapseView {
 	public class FileHistoryManager {
-		private const int PAGE_SIZE = 1000;
-
 		/// <summary>
 		/// Helper object for receiving differences between two files
 		/// </summary>
-		private InlineDiffBuilder fileComparer = new InlineDiffBuilder(new Differ());
+		private InlineDiffBuilder fileComparer { get; set; } = new InlineDiffBuilder(new Differ());
 
 		/// <summary>
 		/// Path to root repository directory
 		/// </summary>
-		private string repositoryPath;
+		private readonly string repositoryPath;
 
 		/// <summary>
 		/// Path to investigated file (based on root dir path)
@@ -77,9 +75,6 @@ namespace TimeLapseView {
 				}
 
 				var treeFile = filePath;
-				// TODO: Investigate:
-				// https://github.com/libgit2/libgit2sharp/issues/1074
-				// var commits = repo.Commits.QueryBy(parameters.FilePath.Replace(_repository, "")).ToList();
 				foreach (var commit in repo.Commits.Skip(status.ItemsProcessed).Take(status.ItemsPerPage)) {
 					status.ItemsProcessed++;
 
@@ -91,7 +86,7 @@ namespace TimeLapseView {
 					};
 
 					// Skip all commits before first changes
-					if (snapshot.IsCommitRelatedToFile || snapshots.Count() != 0) {
+					if (snapshot.IsCommitRelatedToFile || snapshots.Any()) {
 						snapshots.Add(snapshot);
 					}
 
@@ -108,7 +103,7 @@ namespace TimeLapseView {
 				}
 
 				// Do nothing in case if no changes found 
-				if (snapshots.Count(e => e.IsCommitRelatedToFile) == 0) return;
+				if (!snapshots.Any(e => e.IsCommitRelatedToFile)) return;
 
 				// Do nothing in case if no new changes found 
 				if (commitsRelatedToFile == snapshots.Count(e => e.IsCommitRelatedToFile)) return;
@@ -121,7 +116,7 @@ namespace TimeLapseView {
 				RemoveNotValuableLinks();
 				GetSnapshotsWithChanges();
 
-				if (visibleSnapshots.Count() == 0) {
+				if (!visibleSnapshots.Any()) {
 					OnSnapshotsHistoryUpdated.Invoke(MapSnapshotVM(visibleSnapshots));
 					return;
 				}
@@ -142,18 +137,6 @@ namespace TimeLapseView {
 					commitsGroup.First().IsFirstInLine = true;
 					commitsGroup.Last().IsLastInLine = true;
 				});
-				/*
-				// TODO: Probably it's not required
-				var lineGroup = snapshots.GroupBy(e => e.BranchLineId);
-				Parallel.ForEach(lineGroup, (commitsGroup) => {
-					// Hide lines without commits related to file
-					if (commitsGroup.All(e => !e.IsCommitRelatedToFile)) {
-						foreach (var commit in commitsGroup) {
-							commit.IsCommitVisible = false;
-						}
-					}
-				});
-				*/
 
 				//SimpleBranchesArchivation();
 			}
@@ -173,7 +156,7 @@ namespace TimeLapseView {
 			// TODO: File was deleted or renamed: if (commit.Tree[file] == null && commit.Parents.Count() > 0 && commit.Parents.All(e => e.Tree[file] != null)) return true;
 
 			// It's first commit so file was just created.
-			if (commit.Parents.Count() == 0) return true;
+			if (!commit.Parents.Any()) return true;
 
 			// Did not exist before
 			if (commit.Parents.All(e => e.Tree[file] == null)) return true;
@@ -402,17 +385,6 @@ namespace TimeLapseView {
 		}
 
 		/// <summary>
-		/// Read file content
-		/// </summary>
-		private string LoadFileContent(Snapshot snapshot) {
-			var blob = (Blob)snapshot.Commit.GitCommit[snapshot.FilePath].Target;
-			// TODO: probably use commit.Encoding
-			using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-				return reader.ReadToEnd();
-			}
-		}
-
-		/// <summary>
 		/// Reead files content
 		/// </summary>
 		private void ReadFilesContent() {
@@ -443,7 +415,7 @@ namespace TimeLapseView {
 		private void FindLifeTimeForEachLine() {
 			// Set default values for commits without parents
 			// visibleSnapshots => snapshots
-			foreach (var snapshot in snapshots.Where(e => e.Parents.Count() == 0)) {
+			foreach (var snapshot in snapshots.Where(e => !e.Parents.Any())) {
 				InitializeSnapshotFileDetails(snapshot);
 			};
 
@@ -451,7 +423,7 @@ namespace TimeLapseView {
 				var snapshot = visibleSnapshots[i];
 
 				if (snapshot.FileDetails != null &&  // Check is already processed
-					snapshot.Parents.Count() == 0) { // New snapshots could be added after previous loop
+					!snapshot.Parents.Any()) {       // New snapshots could be added after previous loop
 					continue;
 				}
 
@@ -575,7 +547,7 @@ namespace TimeLapseView {
 			// a new commit will be created with both commits as parents. 
 			// You can merge more than two commits in that way, so the new commit may have more than two parents.
 
-			if (commit.Parents.Count() == 0) {
+			if (!commit.Parents.Any()) {
 				// No parent commits. Stop history looping. Probably is't already last (first) commit.
 				snapshot.FilePathState = FilePathState.Unknown;
 				return string.Empty;

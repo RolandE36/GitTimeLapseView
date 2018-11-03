@@ -11,8 +11,13 @@ using TimeLapseView.Model;
 namespace TimeLapseView {
 	public class DiffManager {
 		// Parent => Child => Line => State
-		private Dictionary<int, Dictionary<int, Dictionary<int, LineState>>> DiffsDeleted = new Dictionary<int, Dictionary<int, Dictionary<int, LineState>>>();
-		private Dictionary<int, Dictionary<int, Dictionary<int, LineState>>> DiffsChanged = new Dictionary<int, Dictionary<int, Dictionary<int, LineState>>>();
+		private Dictionary<int, Dictionary<int, Dictionary<int, LineState>>> DiffsDeleted { get; set; }
+		private Dictionary<int, Dictionary<int, Dictionary<int, LineState>>> DiffsChanged { get; set; }
+
+		public DiffManager() {
+			DiffsDeleted = new Dictionary<int, Dictionary<int, Dictionary<int, LineState>>>();
+			DiffsChanged = new Dictionary<int, Dictionary<int, Dictionary<int, LineState>>>();
+		}
 
 		/// <summary>
 		/// Answer is line was deleted

@@ -30,11 +30,6 @@ namespace WpfUI {
 			InitializeComponent();
 		}
 
-		class MovieData {
-			public string Title { get; set; }
-			public string ImageData { get; set; }
-		}
-
 		protected override void OnInitialized(EventArgs e) {
 			base.OnInitialized(e);
 			// TODO: Spaces.......
@@ -72,9 +67,8 @@ namespace WpfUI {
 
 					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
-							if (snapshots.Count() == 0) return;
+							if (!snapshots.Any()) return;
 
-							//View = new ViewData();
 							var addedSnaphots = View.Snapshots == null ? 0 : snapshots.Count - View.Snapshots.Count;
 							View.Snapshots = snapshots;
 							slHistoy.Maximum = View.Snapshots.Count;
