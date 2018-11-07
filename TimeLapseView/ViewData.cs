@@ -101,8 +101,8 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Index of the first commit with provided line nuber
 		/// </summary>
-		public int GetLineBirth(int lineID) {
-			var selectedLineId = Snapshot.FileDetails.LineHistory[lineID];
+		public int GetLineBirth(SnapshotVM snapshot, int lineID) {
+			var selectedLineId = snapshot.FileDetails.LineHistory[lineID];
 
 			if (selectedLineId == 0) return 0;
 

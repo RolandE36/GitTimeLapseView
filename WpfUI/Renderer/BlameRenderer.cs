@@ -10,12 +10,12 @@ using System.Windows.Media;
 using TimeLapseView;
 
 namespace WpfUI.Renderer {
-	public class LineDetailsRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
+	public class BlameRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
 		private Canvas canvas;
 
 		private readonly SolidColorBrush BlackBrush = new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x10));
 
-		public LineDetailsRenderer(ViewData host, Canvas canvas) {
+		public BlameRenderer(ViewData host, Canvas canvas) {
 			this.canvas = canvas;
 			this.host = host;
 		}
@@ -31,14 +31,14 @@ namespace WpfUI.Renderer {
 				var linenum = textView.VisualLines[i].FirstDocumentLine.LineNumber - 1;
 				if (linenum >= host.Snapshot.FileDetails.Count) continue;
 
-				var snapshot = host.Snapshots[host.GetLineBirth(linenum)];
+				var snapshot = host.Snapshots[host.GetLineBirth(host.Snapshot, linenum)];
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, textView.VisualLines[i], 0, 1000).First();
 
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.Date.ToString(Constants.DATE_FORMAT) + " " + Truncate(snapshot.Author, 10);
 				textBlock.ToolTip = snapshot.Tooltip;
 				textBlock.Foreground = BlackBrush;
-				textBlock.Background = GetLineBackgroundBrush(linenum);
+				textBlock.Background = GetLineBackgroundBrush(host.Snapshot, linenum);
 				textBlock.Width = canvas.Width;
 				textBlock.FontFamily = new FontFamily("Consolas");
 				textBlock.Tag = snapshot.Sha;

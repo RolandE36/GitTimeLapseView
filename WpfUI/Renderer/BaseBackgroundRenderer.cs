@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using TimeLapseView;
+using TimeLapseView.Model;
 
 namespace WpfUI.Renderer {
 	public class BaseBackgroundRenderer {
@@ -13,9 +14,9 @@ namespace WpfUI.Renderer {
 		/// <summary>
 		/// Get line background color based on line birth date (index)
 		/// </summary>
-		protected Brush GetLineBackgroundBrush(int linenum) {
+		protected Brush GetLineBackgroundBrush(SnapshotVM snapshot, int linenum) {
 			var brush = default(Brush);
-			var lineSnapshotsNumber = host.Snapshots.Count - host.GetLineBirth(linenum);
+			var lineSnapshotsNumber = host.Snapshots.Count - host.GetLineBirth(snapshot, linenum);
 			if (lineSnapshotsNumber < 0) lineSnapshotsNumber = 0; // In case if host.Snapshot not yet updated with new commits.
 			var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.Snapshot.Index)) / 100;
 			if (lineLifeTimePercent > 1) lineLifeTimePercent = 1;

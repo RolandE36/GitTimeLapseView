@@ -30,16 +30,11 @@
 				<MenuItem Header="Exit" Click="btnExit_Click"></MenuItem>
 			</MenuItem>
 			<MenuItem Header="View">
-				<MenuItem Header="Mode" >
-					<MenuItem Name="menuTimeLapseViewMode" Header="Time Lapse" IsCheckable="True" IsChecked="True" Click="btnTimeLapseViewMode_Click"></MenuItem>
-					<MenuItem Name="menuIncrementalViewMode" Header="Incremental" IsCheckable="True" IsChecked="False" Click="btnIncrementalViewMode_Click"></MenuItem>
-				</MenuItem>
-				<MenuItem Name="menuShowCompare" Header="Compare with previous" IsCheckable="True" IsChecked="False" Click="menuShowCompare_Click"></MenuItem>
-				<MenuItem Name="menuShowBlame" Header="Blame" IsCheckable="True" IsChecked="True" Click="menuShowBlame_Click"></MenuItem>
-			</MenuItem>
-			<MenuItem Header="Diff">
-				<MenuItem Name="menuNextDiff" Header="Next Diff" Click="menuNextDiff_Click"></MenuItem>
-				<MenuItem Name="menuPrevDiff" Header="Previous Diff" Click="menuPrevDiff_Click"></MenuItem>
+				<MenuItem Name="menuBirthHighlight" Header="Age Highlighting" IsCheckable="True" IsChecked="True" Click="btnViewModeChanged_Click"></MenuItem>
+				<MenuItem Name="menuChangesHighlight" Header="Changes Highlighting" IsCheckable="True" IsChecked="True" Click="btnViewModeChanged_Click"></MenuItem>
+				<Separator />
+				<MenuItem Name="menuBlameHighlight" Header="Blame Mode" IsCheckable="True" IsChecked="True" Click="menuShowBlame_Click"></MenuItem>
+				<MenuItem Name="menuShowCompare" Header="Comparing Mode" IsCheckable="True" IsChecked="False" Click="menuShowCompare_Click"></MenuItem>
 			</MenuItem>
 		</Menu>
 
@@ -116,7 +111,6 @@
 					HorizontalScrollBarVisibility="Auto" 
 					VerticalScrollBarVisibility="Visible"
 					Grid.Column="0"
-					MouseDoubleClick="tbCode_MouseDoubleClick"
 				/>
 
 				<Canvas Name="canvasBlame" Grid.Column="1" Width="150px" />
@@ -132,7 +126,6 @@
 					HorizontalScrollBarVisibility="Auto" 
 					VerticalScrollBarVisibility="Visible"
 					Grid.Column="2"
-					MouseDoubleClick="tbCode_MouseDoubleClick" 
 				/>
 			</Grid>
 		</Grid>

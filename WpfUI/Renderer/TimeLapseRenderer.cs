@@ -10,21 +10,25 @@ using TimeLapseView;
 using WpfUI.Renderer;
 
 namespace WpfUI {
-
-	// TODO: Code cleanup. Move to separate folder
-	
-	public class TimeLapseLineBackgroundRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
-		static Pen pen;
+	public class TimeLapseLineRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
+		private static Pen pen;
+		private bool isParentSnapshot;
 
 		private static SolidColorBrush selectedBackground = new SolidColorBrush(Color.FromRgb(0xff, 0xd8, 0x1A));
 
-		static TimeLapseLineBackgroundRenderer() {
+		static TimeLapseLineRenderer() {
 			var blackBrush = new SolidColorBrush(Color.FromRgb(0, 0, 0)); blackBrush.Freeze();
 			pen = new Pen(blackBrush, 0.0);
 		}
 
-		public TimeLapseLineBackgroundRenderer(ViewData host) {
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="host"></param>
+		/// <param name="isParentSnapshot">Answer is renderer for current snapshot or parent</param>
+		public TimeLapseLineRenderer(ViewData host, bool isParentSnapshot) {
 			this.host = host;
+			this.isParentSnapshot = isParentSnapshot;
 		}
 
 		public KnownLayer Layer {
@@ -33,13 +37,14 @@ namespace WpfUI {
 
 		public void Draw(TextView textView, DrawingContext drawingContext) {
 			if (host == null) return;
+			var snapshot = isParentSnapshot ? host.SnapshotParent : host.Snapshot;
 
 			foreach (var v in textView.VisualLines) {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
 				var linenum = v.FirstDocumentLine.LineNumber - 1;
-				if (linenum >= host.Snapshot.FileDetails.Count) continue;
+				if (linenum >= snapshot.FileDetails.Count) continue;
 
-				drawingContext.DrawRectangle(GetLineBackgroundBrush(linenum), pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
+				drawingContext.DrawRectangle(GetLineBackgroundBrush(snapshot, linenum), pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
 			}
 		}
 	}

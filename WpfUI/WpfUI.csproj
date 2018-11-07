@@ -72,10 +72,7 @@
     <Compile Include="Renderer\CanvasTreeRenderer.cs" />
     <Compile Include="Renderer\ChangesRenderer.cs" />
     <Compile Include="Renderer\DeletionsRenderer.cs" />
-    <Compile Include="Renderer\IncrementalDiffLineBackgroundRenderer.cs" />
-    <Compile Include="Renderer\LineDetailsRenderer.cs" />
-    <Compile Include="Renderer\RendererMode.cs" />
-    <Compile Include="Renderer\SelectedLineBackgroundRenderer.cs" />
+    <Compile Include="Renderer\BlameRenderer.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -84,7 +81,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Renderer\BackgroundRenderers.cs" />
+    <Compile Include="Renderer\TimeLapseRenderer.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

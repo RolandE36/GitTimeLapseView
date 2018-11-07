@@ -77,7 +77,7 @@ namespace WpfUI {
 								slHistoy.Value = View.Snapshots.Count;
 								tbCodeA.Text = View.Snapshot.File;
 
-								SetBackgroundRendererMode(RendererMode.TimeLapse);
+								SetupBackgroundRenderers();
 								lblCommitDetailsSection.Visibility = Visibility.Visible;
 							} else {
 								slHistoy.Value += addedSnaphots;
@@ -170,17 +170,9 @@ namespace WpfUI {
 			e.Handled = true;
 		}
 
-		private void btnTimeLapseViewMode_Click(object sender, RoutedEventArgs e) {
-			SetBackgroundRendererMode(RendererMode.TimeLapse);
-		}
-
-		private void btnIncrementalViewMode_Click(object sender, RoutedEventArgs e) {
-			SetBackgroundRendererMode(RendererMode.IncrementalDiff);
-		}
-
 		private void menuShowBlame_Click(object sender, RoutedEventArgs e) {
-			canvasBlame.Visibility = menuShowBlame.IsChecked ? Visibility.Visible : Visibility.Hidden;
-			colBlame.Width = new GridLength(menuShowBlame.IsChecked ? 150 : 0);
+			canvasBlame.Visibility = menuBlameHighlight.IsChecked ? Visibility.Visible : Visibility.Hidden;
+			colBlame.Width = new GridLength(menuBlameHighlight.IsChecked ? 150 : 0);
 		}
 
 		private void menuShowCompare_Click(object sender, RoutedEventArgs e) {
@@ -199,76 +191,34 @@ namespace WpfUI {
 			Close();
 		}
 
-		private void tbCode_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-			return;
+		// <summary>
+		/// Choose background highlighting
+		/// </summary>
+		private void SetupBackgroundRenderers() {
+			if (View == null) return;
+			tbCodeA.TextArea.TextView.BackgroundRenderers.Clear();
+			tbCodeB.TextArea.TextView.BackgroundRenderers.Clear();
 
-			try {
-				if (View.SelectedSnapshotIndex == View.GetLineBirth(tbCodeA.TextArea.Caret.Line - 1)) {
+			if (menuBirthHighlight.IsChecked) {
+				tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new TimeLapseLineRenderer(View, false));
+				tbCodeB.TextArea.TextView.BackgroundRenderers.Add(new TimeLapseLineRenderer(View, true));
+			}
 
-					View.ResetSnapshotsSelection();
+			if (menuChangesHighlight.IsChecked) {
+				tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new ChangesRenderer(View));
+				tbCodeB.TextArea.TextView.BackgroundRenderers.Add(new DeletionsRenderer(View));
+			}
 
-					View.SelectedSnapshotIndex = -1;
-					View.SelectedLine = -1;
-					View.SelectedLineLID = -1;
-					int index = (int)(slHistoy.Maximum - slHistoy.Value);
-
-					UpdateCommitDetails(View.Snapshot);
-
-					slHistoy.IsSelectionRangeEnabled = false;
-				} else {
-					View.SelectedSnapshotIndex = View.GetLineBirth(tbCodeA.TextArea.Caret.Line - 1);
-					View.SelectedLineLID = View.Snapshot.FileDetails[tbCodeA.TextArea.Caret.Line - 1].LID;
-					View.SelectedLine = tbCodeA.TextArea.Caret.Line - 1;
-
-					View.SelectSnapshots(CodeFile.LineBase[View.Snapshot.FileDetails.LineHistory[View.SelectedLine]]);
-					UpdateCommitDetails(View.Snapshots[View.SelectedSnapshotIndex]);
-
-					slHistoy.IsSelectionRangeEnabled = true;
-					slHistoy.SelectionStart = slHistoy.Maximum - View.GetLineBirth(tbCodeA.TextArea.Caret.Line - 1);
-					slHistoy.SelectionEnd = slHistoy.Maximum - View.GetLineDeath(tbCodeA.TextArea.Caret.Line - 1);
-				}
-
-				tbCodeA.TextArea.TextView.Redraw();
-			} catch (Exception ex) {
-
+			if (menuBlameHighlight.IsChecked) {
+				tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new BlameRenderer(View, canvasBlame));
 			}
 		}
 
 		/// <summary>
-		/// Choose methout for code background highlighting
+		/// Background highlighting changed event
 		/// </summary>
-		/// <param name="mode">Rendering mode</param>
-		private void SetBackgroundRendererMode(RendererMode mode) {
-			if (View == null) return;
-			tbCodeA.TextArea.TextView.BackgroundRenderers.Clear();
-			switch (mode) {
-				case RendererMode.TimeLapse:
-					tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new TimeLapseLineBackgroundRenderer(View));
-					break;
-				case RendererMode.IncrementalDiff:
-					tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new IncrementalDiffLineBackgroundRenderer(View));
-					break;
-			}
-			
-			//tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new SelectedLineBackgroundRenderer(View));
-			tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new LineDetailsRenderer(View, canvasBlame));
-			tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new ChangesRenderer(View));
-			tbCodeA.TextArea.TextView.Redraw();
-
-			tbCodeB.TextArea.TextView.BackgroundRenderers.Add(new DeletionsRenderer(View));
-			tbCodeB.TextArea.TextView.Redraw();
-
-			// Set Menu Check Boxes
-			menuTimeLapseViewMode.IsChecked = false;
-			menuIncrementalViewMode.IsChecked = false;
-			switch (mode) {
-				case RendererMode.TimeLapse:
-					menuTimeLapseViewMode.IsChecked = true;
-					break;
-				case RendererMode.IncrementalDiff:
-					menuIncrementalViewMode.IsChecked = true;
-					break;
-			}
+		private void btnViewModeChanged_Click(object sender, RoutedEventArgs e) {
+			SetupBackgroundRenderers();
 		}
 
 		/// <summary>
