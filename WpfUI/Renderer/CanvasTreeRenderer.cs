@@ -47,29 +47,6 @@ namespace WpfUI.Renderer {
 
 		private readonly SolidColorBrush SolidCircleBrush = new SolidColorBrush(Color.FromRgb(0xff, 0xff, 0xff));
 
-		private readonly List<Color> baseColors = new List<Color>() {
-			Color.FromRgb(0xe6, 0x19, 0x4b),
-			Color.FromRgb(0x3c, 0xb4, 0x4b),
-			Color.FromRgb(0xff, 0xe1, 0x19),
-			Color.FromRgb(0x00, 0x82, 0xc8),
-			Color.FromRgb(0xf5, 0x82, 0x31),
-			Color.FromRgb(0x91, 0x1e, 0xb4),
-			Color.FromRgb(0x46, 0xf0, 0xf0),
-			Color.FromRgb(0xf0, 0x32, 0xe6),
-			Color.FromRgb(0xd2, 0xf5, 0x3c),
-			Color.FromRgb(0x00, 0x80, 0x80),
-			Color.FromRgb(0xaa, 0x6e, 0x28),
-			Color.FromRgb(0x80, 0x00, 0x00),
-			Color.FromRgb(0xaa, 0xff, 0xc3),
-			Color.FromRgb(0x80, 0x80, 0x00),
-			Color.FromRgb(0x00, 0x00, 0x80),
-			Color.FromRgb(0x80, 0x80, 0x80)
-		};
-
-		private readonly List<SolidColorBrush> LinesBrushes = new List<SolidColorBrush>();
-		private readonly List<SolidColorBrush> BackgroundBrushes = new List<SolidColorBrush>();
-		private readonly List<SolidColorBrush> HoverBackgroundBrushes = new List<SolidColorBrush>();
-
 		public CanvasTreeRenderer(ViewData viewData, Canvas canvas) {
 			ViewData = viewData;
 			Canvas = canvas;
@@ -80,12 +57,6 @@ namespace WpfUI.Renderer {
 
 			foreach (var snapshot in ViewData.Snapshots) {
 				UiElements[snapshot.Sha] = new SnapshotCanvasModel();
-			}
-
-			foreach (var color in baseColors) {
-				LinesBrushes.Add(new SolidColorBrush(color));
-				BackgroundBrushes.Add(new SolidColorBrush(ChangeBrightness(color, 0.9)));
-				HoverBackgroundBrushes.Add(new SolidColorBrush(ChangeBrightness(color, 0.8)));
 			}
 		}
 
@@ -130,7 +101,7 @@ namespace WpfUI.Renderer {
 
 					if (IsCommitsInOneLine(snapshot, parent)) {
 						var line = new Line();
-						line.Stroke = LinesBrushes[snapshot.TreeOffset % LinesBrushes.Count];
+						line.Stroke = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
 						line.X1 = x1;
 						line.Y1 = y1;
 						line.X2 = x2;
@@ -203,7 +174,7 @@ namespace WpfUI.Renderer {
 						}
 
 						Path path = new Path();
-						path.Stroke = LinesBrushes[parent.TreeOffset % LinesBrushes.Count];
+						path.Stroke = ColorPalette.GetBaseBrush(parent.TreeOffset);
 						path.Data = new PathGeometry(new PathFigure[] { figure });
 						path.Opacity = 1;
 
@@ -254,10 +225,10 @@ namespace WpfUI.Renderer {
 
 				// Circle before label
 				var branchColorCircle = new Ellipse();
-				branchColorCircle.Fill = LinesBrushes[snapshot.TreeOffset % LinesBrushes.Count];
+				branchColorCircle.Fill = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
 				branchColorCircle.Height = 8;
 				branchColorCircle.Width = 8;
-				branchColorCircle.Stroke = LinesBrushes[snapshot.TreeOffset % LinesBrushes.Count];
+				branchColorCircle.Stroke = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
 				branchColorCircle.ToolTip = snapshot.Tooltip;
 				Canvas.SetLeft(branchColorCircle, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X / 4);
 				Canvas.SetTop(branchColorCircle, y+5);
@@ -493,23 +464,6 @@ namespace WpfUI.Renderer {
 					path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
 				}
 			}
-		}
-
-		/// <summary>
-		/// Change color brightness
-		/// </summary>
-		/// <param name="brightness">0..1</param>
-		/// <returns>New color based on initial color and brightness</returns>
-		public static Color ChangeBrightness(Color color, double brightness) {
-			var r = (double)color.R;
-			var g = (double)color.G;
-			var b = (double)color.B;
-
-			r = (255 - r) * brightness + r;
-			g = (255 - g) * brightness + g;
-			b = (255 - b) * brightness + b;
-
-			return Color.FromArgb(color.A, (byte)r, (byte)g, (byte)b);
 		}
 	}
 }

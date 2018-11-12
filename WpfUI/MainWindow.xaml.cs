@@ -11,14 +11,15 @@ using System.Threading;
 using System.IO;
 using TimeLapseView.Model;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace WpfUI {
 	/// <summary>
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
 	public partial class MainWindow : Window {
-
 		private const string APP_TITLE = "Git Time Lapse View";
+		private const string TAG_PREFIX = "cb_";
 
 		private FileHistoryManager manager;
 		private CanvasTreeRenderer treeRenderer;
@@ -124,6 +125,30 @@ namespace WpfUI {
 							slHistoy.Value = slHistoy.Maximum - index;
 							lvVerticalHistoryPanel.SelectedIndex = index;
 							UpdateCommitDetails(csnapshot);
+
+							// Initialize parents DropDown
+							cbParentBranchesB.Items.Clear();
+							foreach (var p in csnapshot.Parents) {
+								var item = new ComboBoxItem();
+								var text = new TextBlock();
+								
+								var snapshot = View.ShaDictionary[p];
+								text.Text = "● " + snapshot.DescriptionShort;
+
+								var textEffect = new TextEffect();
+								textEffect.PositionStart = 0;
+								textEffect.PositionCount = 1;
+								textEffect.Foreground = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
+								text.TextEffects.Add(textEffect);
+
+								text.TextEffects.Add(textEffect);
+
+								item.Content = text;
+								item.Tag = TAG_PREFIX + snapshot.Sha;
+								item.IsSelected = psnapshot.Sha == p;
+								
+								cbParentBranchesB.Items.Add(item);
+							}
 						}));
 					};
 
@@ -131,6 +156,14 @@ namespace WpfUI {
 						this.Dispatcher.BeginInvoke(new Action(() => {
 							treeRenderer.ClearHighlighting();
 							treeRenderer.Draw();
+
+							tbCodeA.Text = View.Snapshot.File;
+							tbCodeB.Text = View.SnapshotParent?.File;
+
+							tbCodeA.TextArea.TextView.Redraw();
+							tbCodeB.TextArea.TextView.Redraw();
+
+							cbParentBranchesB.SelectedValue = TAG_PREFIX + View.SnapshotParent?.Sha;
 						}));
 					};
 
@@ -272,6 +305,14 @@ namespace WpfUI {
 					}
 				);
 			}
+		}
+
+		/// <summary>
+		/// On parents DropDown changed
+		/// </summary>
+		private void cbParentBranchesB_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+			if (cbParentBranchesB.SelectedItem == null) return;
+			View.ChangeParentSnapshot(((ComboBoxItem)cbParentBranchesB.SelectedItem).Tag.ToString().Replace(TAG_PREFIX, ""));
 		}
 
 		private void menuSyncWindowB_Click(object sender, RoutedEventArgs e) {

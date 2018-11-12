@@ -145,10 +145,7 @@ namespace TimeLapseView {
 			var pIndex = orderedParents.IndexOf(SnapshotParent.Sha);
 
 			if (pIndex > 0) {
-				var newNextElement = ShaDictionary[orderedParents[pIndex - 1]];
-				RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
-				ParentSnapshotSha = newNextElement.Sha;
-				OnSelectionChanged?.Invoke();
+				ChangeParentSnapshot(orderedParents[pIndex - 1]);
 			}
 		}
 
@@ -160,11 +157,18 @@ namespace TimeLapseView {
 			var pIndex = orderedParents.IndexOf(SnapshotParent.Sha);
 
 			if (pIndex < orderedParents.Count-1) {
-				var newNextElement = ShaDictionary[orderedParents[pIndex + 1]];
-				RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
-				ParentSnapshotSha = newNextElement.Sha;
-				OnSelectionChanged?.Invoke();
+				ChangeParentSnapshot(orderedParents[pIndex + 1]);
 			}
+		}
+
+		/// <summary>
+		/// Change parent snapshot selection without changing current snapshot
+		/// </summary>
+		public void ChangeParentSnapshot(string sha) {
+			var newNextElement = ShaDictionary[sha];
+			RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
+			ParentSnapshotSha = newNextElement.Sha;
+			OnSelectionChanged?.Invoke();
 		}
 
 		/// <summary>

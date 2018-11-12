@@ -103,7 +103,12 @@
 					<ColumnDefinition Width="150" Name="colBlame" />
 					<ColumnDefinition Width="*" Name="colSource" />
 				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="23"></RowDefinition>
+					<RowDefinition Height="*"></RowDefinition>
+				</Grid.RowDefinitions>
 
+				<ComboBox Name="cbParentBranchesB" Grid.Column="0" Grid.Row="0" SelectedValuePath="Tag" SelectionChanged="cbParentBranchesB_SelectionChanged"></ComboBox>
 				<avalonEdit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
 					Name="tbCodeB" 
 					FontFamily="Consolas"
@@ -114,10 +119,11 @@
 					HorizontalScrollBarVisibility="Auto" 
 					VerticalScrollBarVisibility="Visible"
 					Grid.Column="0"
+					Grid.Row="1"
 				/>
 
-				<Canvas Name="canvasBlame" Grid.Column="1" Width="150px" />
-				<GridSplitter Grid.Column="1" ShowsPreview="false" Width="3" Opacity="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Name="splitterBlame" />
+				<Canvas Name="canvasBlame" Grid.Column="1" Width="150px" Grid.Row="1" />
+				<GridSplitter Grid.Column="1" ShowsPreview="false" Width="3" Opacity="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Name="splitterBlame" Grid.Row="1"/>
 
 				<avalonEdit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
 					Name="tbCodeA" 
@@ -129,6 +135,7 @@
 					HorizontalScrollBarVisibility="Auto" 
 					VerticalScrollBarVisibility="Visible"
 					Grid.Column="2"
+					Grid.Row="1"
 				/>
 			</Grid>
 		</Grid>

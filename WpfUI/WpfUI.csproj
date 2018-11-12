@@ -71,6 +71,7 @@
     <Compile Include="Renderer\BaseBackgroundRenderer.cs" />
     <Compile Include="Renderer\CanvasTreeRenderer.cs" />
     <Compile Include="Renderer\ChangesRenderer.cs" />
+    <Compile Include="Renderer\ColorPalette.cs" />
     <Compile Include="Renderer\DeletionsRenderer.cs" />
     <Compile Include="Renderer\BlameRenderer.cs" />
     <Page Include="MainWindow.xaml">

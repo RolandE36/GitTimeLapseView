@@ -8,7 +8,7 @@ using TimeLapseView;
 using TimeLapseView.Model;
 
 namespace WpfUI.Renderer {
-	public class BaseBackgroundRenderer {
+	public abstract class BaseBackgroundRenderer {
 		protected ViewData host;
 
 		/// <summary>
