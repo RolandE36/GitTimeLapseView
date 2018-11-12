@@ -36,6 +36,9 @@
 				<MenuItem Name="menuBlameHighlight" Header="Blame Mode" IsCheckable="True" IsChecked="True" Click="menuShowBlame_Click"></MenuItem>
 				<MenuItem Name="menuShowCompare" Header="Comparing Mode" IsCheckable="True" IsChecked="False" Click="menuShowCompare_Click"></MenuItem>
 			</MenuItem>
+			<Separator />
+			<MenuItem Name="menuPrevDiff" Header="&lt;" ToolTip="Previous difference" Click="menuPrevDiff_Click"></MenuItem>
+			<MenuItem Name="menuNextDiff" Header="&gt;" ToolTip="Next difference" Click="menuNextDiff_Click"></MenuItem>
 		</Menu>
 
 		<Slider 

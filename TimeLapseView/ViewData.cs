@@ -60,10 +60,6 @@ namespace TimeLapseView {
 		/// </summary>
 		private string ParentSnapshotSha;
 
-		public int SelectedSnapshotIndex; // TODO: Rename to "selected line index"
-		public int SelectedLine;
-		public int SelectedLineLID;
-
 		public CommitsAnalyzingStatus SeekStatus { get; set; }
 
 		/// <summary>
@@ -88,9 +84,6 @@ namespace TimeLapseView {
 		#endregion
 
 		public ViewData() {
-			SelectedSnapshotIndex = -1;
-			SelectedLine = -1;
-			SelectedLineLID = -1;
 			preferredDowntWay = new Dictionary<string, string>();
 			preferredUpWay = new Dictionary<string, string>();
 			ShaDictionary = new Dictionary<string, SnapshotVM>();
@@ -221,32 +214,6 @@ namespace TimeLapseView {
 		}
 
 		#endregion
-
-		/// <summary>
-		/// Reset selection
-		/// </summary>
-		public void ResetSnapshotsSelection(bool redraw = true) {
-			/*foreach (var snapshot in Snapshots) {
-				snapshot.IsSelected = false;
-			}
-
-			Snapshot.IsSelected = true;
-			FindPreferredDownWay(Snapshot);
-
-			if (redraw) OnSelectionChanged?.Invoke();*/
-		}
-
-		/// <summary>
-		/// Select provided snapshots
-		/// </summary>
-		public void SelectSnapshots(HashSet<int> items) {
-			/*ResetSnapshotsSelection(false);
-			foreach (var sha in items) {
-				IdDictionary[sha].IsSelected = true;
-			}
-
-			OnSelectionChanged?.Invoke();*/
-		}
 
 		/// <summary>
 		/// Change selected sanpshot

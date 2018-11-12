@@ -78,6 +78,51 @@ namespace TimeLapseView {
 		}
 
 		/// <summary>
+		/// Find line of next diff
+		/// </summary>
+		/// <param name="line">cursor line</param>
+		/// <returns>true if diffs found</returns>
+		public bool TryGetNextDiff(SnapshotVM currrent, SnapshotVM parent, int line, ref int nextLine) {
+			var parentLine = GetParentLineNumber(currrent, parent, line);
+
+			var nextUpdatesLine = DiffsChanged[currrent.Index][parent.Index].Keys.FirstOrDefault(e => e > line);
+			var nextDeletedLine = DiffsDeleted[currrent.Index][parent.Index].Keys.FirstOrDefault(e => e > parentLine);
+
+			if (nextUpdatesLine == 0 && nextDeletedLine == 0) return false;
+
+			var isChanges = true;
+			if (nextUpdatesLine == 0) isChanges = false;
+			if (nextDeletedLine != 0 && nextUpdatesLine < nextDeletedLine) isChanges = false;
+
+			nextLine = isChanges ? nextUpdatesLine : GetParentLineNumber(parent, currrent, nextDeletedLine);
+
+			return true;
+		}
+
+		/// <summary>
+		/// Find line of prev diff
+		/// </summary>
+		/// <param name="line">cursor line</param>
+		/// <returns>true if diffs found</returns>
+		public bool TryGetPrevtDiff(SnapshotVM currrent, SnapshotVM parent, int line, ref int nextLine) {
+			var parentLine = GetParentLineNumber(currrent, parent, line);
+
+			var prevUpdatesLine = DiffsChanged[currrent.Index][parent.Index].Keys.LastOrDefault(e => e < line);
+			var prevDeletedLine = DiffsDeleted[currrent.Index][parent.Index].Keys.LastOrDefault(e => e < parentLine);
+
+			if (prevUpdatesLine == 0 && prevDeletedLine == 0) return false;
+
+			// TODO: Unit tests...
+			var isChanges = true;
+			if (prevUpdatesLine == 0) isChanges = false;
+			if (prevDeletedLine != 0 && prevUpdatesLine > prevDeletedLine) isChanges = false;
+
+			nextLine = isChanges ? prevUpdatesLine : GetParentLineNumber(parent, currrent, prevDeletedLine);
+
+			return true;
+		}
+
+		/// <summary>
 		/// Compare changes between snapshots and add to cache
 		/// </summary>
 		private void Compare(SnapshotVM currrent, SnapshotVM parent) {
@@ -112,8 +157,6 @@ namespace TimeLapseView {
 					case ChangeType.Deleted:
 						DiffsDeleted[currrent.Index][parent.Index][deletedLines] = LineState.Deleted;
 						updatedLines--;
-						break;
-					case ChangeType.Unchanged:
 						break;
 					default:
 						break;

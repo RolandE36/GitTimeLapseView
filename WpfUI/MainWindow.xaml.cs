@@ -10,6 +10,7 @@ using WpfUI.Renderer;
 using System.Threading;
 using System.IO;
 using TimeLapseView.Model;
+using System.Threading.Tasks;
 
 namespace WpfUI {
 	/// <summary>
@@ -63,11 +64,12 @@ namespace WpfUI {
 
 					var typeConverter = new HighlightingDefinitionTypeConverter();
 					var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
-					tbCodeA.SyntaxHighlighting = tbCodeB.SyntaxHighlighting = syntaxHighlighter;
+					tbCodeA.SyntaxHighlighting = syntaxHighlighter;
+					tbCodeB.SyntaxHighlighting = syntaxHighlighter;
 
 					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
 						this.Dispatcher.BeginInvoke(new Action(() => {
-							if (!snapshots.Any()) return;
+							if (!snapshots.Any()) return;// TODO: < 2
 
 							var addedSnaphots = View.Snapshots == null ? 0 : snapshots.Count - View.Snapshots.Count;
 							View.Snapshots = snapshots;
@@ -100,7 +102,7 @@ namespace WpfUI {
 							manager.GetCommitsHistory(View.SeekStatus);
 							View.SeekStatus.ItemsPerPage *= 2;
 							this.Dispatcher.BeginInvoke(new Action(() => {
-								statusProgressBar.Value = (int)View.SeekStatus.ItemsProcessed * 100.0 / View.SeekStatus.ItemsTotal;
+								statusProgressBar.Value = View.SeekStatus.ItemsProcessed * 100.0 / View.SeekStatus.ItemsTotal;
 								statusTbProgressBar.Text = View.SeekStatus.ItemsProcessed + "/" + View.SeekStatus.ItemsTotal;
 							}));
 						}
@@ -239,18 +241,18 @@ namespace WpfUI {
 		/// </summary>
 		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
 			if (View == null) return;
-			var lines = View.Snapshot.FileDetails;
 			var i = tbCodeA.TextArea.Caret.Line;
-			if (i >= lines.Count) i = lines.Count - 1;
+			if (View.DiffManager.TryGetNextDiff(View.Snapshot, View.SnapshotParent, tbCodeA.TextArea.Caret.Line, ref i)) {
+				tbCodeA.ScrollTo(i, 0);
+				tbCodeA.TextArea.Caret.Line = i;
+				tbCodeA.TextArea.Caret.Column = 1;
+				tbCodeA.TextArea.Focus();
 
-			while (i < lines.Count && lines[i].State != LineState.Unchanged) i++; // Skip current diff
-			while (i < lines.Count && lines[i].State == LineState.Unchanged) i++; // Find next diff
-			i++;
-
-			tbCodeA.ScrollTo(i, 0);
-			tbCodeA.TextArea.Caret.Line = i;
-			tbCodeA.TextArea.Caret.Column = 1;
-			tbCodeA.TextArea.Focus();
+				Task.Delay(100).ContinueWith(_ => {
+						menuSyncWindowB_Click(sender, e);
+					}
+				);
+			}
 		}
 
 		/// <summary>
@@ -258,18 +260,30 @@ namespace WpfUI {
 		/// </summary>
 		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
 			if (View == null) return;
-			var lines = View.Snapshot.FileDetails;
-			var i = tbCodeA.TextArea.Caret.Line - 1;
-			if (i <= 0) i = 0;
+			var i = tbCodeA.TextArea.Caret.Line;
+			if (View.DiffManager.TryGetPrevtDiff(View.Snapshot, View.SnapshotParent, tbCodeA.TextArea.Caret.Line, ref i)) {
+				tbCodeA.ScrollTo(i, 0);
+				tbCodeA.TextArea.Caret.Line = i;
+				tbCodeA.TextArea.Caret.Column = 1;
+				tbCodeA.TextArea.Focus();
 
-			while (i > 0 && lines[i].State != LineState.Unchanged) i--; // Skip current diff
-			while (i > 0 && lines[i].State == LineState.Unchanged) i--; // Find next diff
-			i++;
+				Task.Delay(100).ContinueWith(_ => {
+						menuSyncWindowB_Click(sender, e);
+					}
+				);
+			}
+		}
 
-			tbCodeA.ScrollTo(i, 0);
-			tbCodeA.TextArea.Caret.Line = i;
-			tbCodeA.TextArea.Caret.Column = 1;
-			tbCodeA.TextArea.Focus();
+		private void menuSyncWindowB_Click(object sender, RoutedEventArgs e) {
+			if (!tbCodeA.TextArea.TextView.VisualLinesValid) return;
+			if (!tbCodeB.TextArea.TextView.VisualLinesValid) return;
+			var line = tbCodeA.TextArea.TextView.VisualLines[0].FirstDocumentLine.LineNumber;
+			
+			this.Dispatcher.BeginInvoke(new Action(() => {
+				var parentLine = View.DiffManager.GetParentLineNumber(View.Snapshot, View.SnapshotParent, line);
+				var offset = tbCodeA.TextArea.TextView.VisualLines[0].Height * parentLine;
+				tbCodeB.ScrollToVerticalOffset(offset);
+			}));
 		}
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
