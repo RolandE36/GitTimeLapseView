@@ -26,6 +26,7 @@ namespace WpfUI {
 		private ViewData View;
 
 		private SearchWindow searchWindow;
+		private GoToLineWindow goToLineWindow;
 
 		private bool isFirstRendering;
 		private Thread scanningThread;
@@ -45,11 +46,6 @@ namespace WpfUI {
 			if (View == null || View.Snapshots == null || View.Snapshots.Count == 0) return;
 			View.SelectSnapshot((int)(slHistoy.Maximum - slHistoy.Value));
 		}
-
-		private void lvVerticalHistoryPanel_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-			View.SelectSnapshot(lvVerticalHistoryPanel.SelectedIndex);
-		}
-
 
 		private void btnBrowseFile_Click(object sender, RoutedEventArgs e) {
 			OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -125,7 +121,6 @@ namespace WpfUI {
 							tbCodeB.Text = psnapshot?.File;
 
 							slHistoy.Value = slHistoy.Maximum - index;
-							lvVerticalHistoryPanel.SelectedIndex = index;
 							UpdateCommitDetails(csnapshot);
 
 							// Initialize parents DropDown
@@ -171,7 +166,6 @@ namespace WpfUI {
 
 					// TODO: Implement Search by commits
 					// TODO: Highlight code on hover
-					lvVerticalHistoryPanel.ItemsSource = View.Snapshots;
 				} catch (OutOfMemoryException ex) {
 					// TODO: "Try to change end date." - add abilty to choose end dates or commits count.
 					MessageBox.Show("File history too large.");
@@ -210,6 +204,14 @@ namespace WpfUI {
 				if (!searchWindow.IsLoaded) searchWindow = new SearchWindow(this);
 				if (!searchWindow.IsVisible) searchWindow.Show();
 				if (!searchWindow.IsActive) searchWindow.Activate();
+			}
+
+			// Open GoToLine window
+			if (e.Key == Key.G && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
+				if (goToLineWindow == null) goToLineWindow = new GoToLineWindow(this);
+				if (!goToLineWindow.IsLoaded) goToLineWindow = new GoToLineWindow(this);
+				if (!goToLineWindow.IsVisible) goToLineWindow.Show();
+				if (!goToLineWindow.IsActive) goToLineWindow.Activate();
 			}
 
 			e.Handled = true;
