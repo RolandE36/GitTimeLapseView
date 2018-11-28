@@ -214,6 +214,13 @@ namespace WpfUI {
 				if (!goToLineWindow.IsActive) goToLineWindow.Activate();
 			}
 
+			// Diff navigation
+			if (e.Key == Key.F8 && (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift) {
+				goToPrevDiff();
+			} else if (e.Key == Key.F8) {
+				goToNextDiff();
+			}
+
 			e.Handled = true;
 		}
 
@@ -281,10 +288,14 @@ namespace WpfUI {
 			// TODO: Multiline description not working
 		}
 
+		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
+			goToNextDiff();
+		}
+
 		/// <summary>
 		/// Go to the next file diff
 		/// </summary>
-		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
+		private void goToNextDiff() {
 			if (View == null) return;
 			var i = tbCodeA.TextArea.Caret.Line;
 			if (View.DiffManager.TryGetNextDiff(View.Snapshot, View.SnapshotParent, tbCodeA.TextArea.Caret.Line, ref i)) {
@@ -294,16 +305,20 @@ namespace WpfUI {
 				tbCodeA.TextArea.Focus();
 
 				Task.Delay(100).ContinueWith(_ => {
-						menuSyncWindowB_Click(sender, e);
+						syncWindowB();
 					}
 				);
 			}
 		}
 
+		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
+			goToPrevDiff();
+		}
+
 		/// <summary>
 		/// Go to the previous file diff
 		/// </summary>
-		private void menuPrevDiff_Click(object sender, RoutedEventArgs e) {
+		private void goToPrevDiff() {
 			if (View == null) return;
 			var i = tbCodeA.TextArea.Caret.Line;
 			if (View.DiffManager.TryGetPrevtDiff(View.Snapshot, View.SnapshotParent, tbCodeA.TextArea.Caret.Line, ref i)) {
@@ -313,7 +328,7 @@ namespace WpfUI {
 				tbCodeA.TextArea.Focus();
 
 				Task.Delay(100).ContinueWith(_ => {
-						menuSyncWindowB_Click(sender, e);
+						syncWindowB();
 					}
 				);
 			}
@@ -327,7 +342,7 @@ namespace WpfUI {
 			View.ChangeParentSnapshot(((ComboBoxItem)cbParentBranchesB.SelectedItem).Tag.ToString().Replace(TAG_PREFIX, ""));
 		}
 
-		private void menuSyncWindowB_Click(object sender, RoutedEventArgs e) {
+		private void syncWindowB() {
 			if (!tbCodeA.TextArea.TextView.VisualLinesValid) return;
 			if (!tbCodeB.TextArea.TextView.VisualLinesValid) return;
 			var line = tbCodeA.TextArea.TextView.VisualLines[0].FirstDocumentLine.LineNumber;
