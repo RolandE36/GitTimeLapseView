@@ -449,6 +449,8 @@ namespace WpfUI.Renderer {
 				UiElements[snapshot.Sha].CommitBackground.Fill = isSelectedSnapshot ? TransparentGreenBrush1 : TransparentCircleBrush;
 			}
 
+			if (ViewData.SnapshotParent == null) return;
+
 			// Select path between two snapshots
 			var c = ViewData.Snapshot.Sha;
 			var p = ViewData.SnapshotParent.Sha;

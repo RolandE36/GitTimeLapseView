@@ -38,6 +38,7 @@ namespace WpfUI {
 		public void Draw(TextView textView, DrawingContext drawingContext) {
 			if (host == null) return;
 			var snapshot = isParentSnapshot ? host.SnapshotParent : host.Snapshot;
+			if (snapshot == null) return;
 
 			foreach (var v in textView.VisualLines) {
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();

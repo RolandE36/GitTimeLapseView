@@ -34,6 +34,10 @@ namespace WpfUI.Renderer {
 				var snapshot = host.Snapshots[host.GetLineBirth(host.Snapshot, linenum)];
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, textView.VisualLines[i], 0, 1000).First();
 
+				// Prevent drawing not fully visible lines
+				if (rc.Top < -5) continue;
+				if (textView.ActualHeight - rc.Top < 10) continue;
+
 				TextBlock textBlock = new TextBlock();
 				textBlock.Text = snapshot.Date.ToString(Constants.DATE_FORMAT) + " " + Truncate(snapshot.Author, 10);
 				textBlock.ToolTip = snapshot.Tooltip;

@@ -15,7 +15,6 @@ namespace WpfUI.Renderer {
 		/// Get line background color based on line birth date (index)
 		/// </summary>
 		protected Brush GetLineBackgroundBrush(SnapshotVM snapshot, int linenum) {
-			var brush = default(Brush);
 			var lineSnapshotsNumber = host.Snapshots.Count - host.GetLineBirth(snapshot, linenum);
 			if (lineSnapshotsNumber < 0) lineSnapshotsNumber = 0; // In case if host.Snapshot not yet updated with new commits.
 			var lineLifeTimePercent = (lineSnapshotsNumber * 100.0 / (host.Snapshots.Count - host.Snapshot.Index)) / 100;
@@ -23,8 +22,7 @@ namespace WpfUI.Renderer {
 			if (host.Snapshots.Count == 1) lineLifeTimePercent = 0;
 			var byteColor = Convert.ToByte(255 - (5 + 249 * lineLifeTimePercent));
 
-			brush = new SolidColorBrush(Color.FromRgb(byteColor, 0xff, byteColor));
-			return brush;
+			return new SolidColorBrush(Color.FromRgb(byteColor, 0xff, byteColor));
 		}
 	}
 }
