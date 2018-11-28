@@ -25,6 +25,8 @@ namespace WpfUI {
 		private CanvasTreeRenderer treeRenderer;
 		private ViewData View;
 
+		private SearchWindow searchWindow;
+
 		private bool isFirstRendering;
 		private Thread scanningThread;
 
@@ -202,6 +204,14 @@ namespace WpfUI {
 				case Key.Right: View.MoveToRightSnapshot(); break;
 			}
 
+			// Open search window
+			if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
+				if (searchWindow == null) searchWindow = new SearchWindow(this);
+				if (!searchWindow.IsLoaded) searchWindow = new SearchWindow(this);
+				if (!searchWindow.IsVisible) searchWindow.Show();
+				if (!searchWindow.IsActive) searchWindow.Activate();
+			}
+
 			e.Handled = true;
 		}
 
@@ -332,6 +342,8 @@ namespace WpfUI {
 				if (View.SeekStatus.PauseProcessing) scanningThread.Resume();
 				scanningThread.Abort();
 			}
+
+			Application.Current.Shutdown();
 		}
 
 		private const string XML = "XML";
