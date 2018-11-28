@@ -12,6 +12,7 @@ using System.IO;
 using TimeLapseView.Model;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace WpfUI {
 	/// <summary>
@@ -156,6 +157,13 @@ namespace WpfUI {
 
 							tbCodeA.Text = View.Snapshot.File;
 							tbCodeB.Text = View.SnapshotParent?.File;
+
+							// TODO: BitmapImage cache
+							BitmapImage bmpImage = new BitmapImage();
+							bmpImage.BeginInit();
+							bmpImage.UriSource = new Uri(View.Snapshot.AvatarUrl + "&s=" + 40, UriKind.RelativeOrAbsolute);
+							bmpImage.EndInit();
+							imgAuthor.Source = bmpImage;
 
 							tbCodeA.TextArea.TextView.Redraw();
 							tbCodeB.TextArea.TextView.Redraw();
