@@ -30,6 +30,7 @@ namespace WpfUI {
 		private GoToLineWindow goToLineWindow;
 
 		private bool isFirstRendering;
+		private bool isApplicationShutdownRequired;
 		private Thread scanningThread;
 
 		public MainWindow() {
@@ -41,6 +42,22 @@ namespace WpfUI {
 			// TODO: Spaces.......
 			lblCommitMessageLabel.Text = "\nMessage ";
 			lblFilePathLabel.Text = "\nFile         ";
+
+			CheckCommandLineParameters();
+		}
+
+		private void CheckCommandLineParameters() {
+			string[] args = Environment.GetCommandLineArgs();
+			if (args.Length <= 1) return;
+
+			for (int i = 1; i < args.Length; i++) {
+				var fi = new FileInfo(args[i]);
+				if (!fi.Exists) continue;
+				OpenFile(fi.FullName);
+				return;
+			}
+
+			MessageBox.Show("Invalid arguments.");
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
@@ -53,134 +70,143 @@ namespace WpfUI {
 			openFileDialog.Multiselect = false;
 			openFileDialog.RestoreDirectory = true;
 			if (openFileDialog.ShowDialog() == true) {
-				try {
-					var filename = openFileDialog.FileNames.FirstOrDefault();
+				var filename = openFileDialog.FileNames.FirstOrDefault();
+				OpenFile(filename);
+			}
+		}
 
-					manager = new FileHistoryManager(filename);
-					Title = APP_TITLE + ": " + manager.filePath;
-					statusTbPausePlay.Text = "⏸";
-					View = new ViewData();
-					isFirstRendering = true;
+		/// <summary>
+		/// Start file processing
+		/// </summary>
+		/// <param name="filename">File name</param>
+		/// <param name="appShutdown">Is mandatory application shutdown call required</param>
+		public void OpenFile(string filename, bool appShutdown = true) {
+			try {
+				isApplicationShutdownRequired = appShutdown;
+				manager = new FileHistoryManager(filename);
+				Title = APP_TITLE + ": " + manager.filePath;
+				statusTbPausePlay.Text = "⏸";
+				View = new ViewData();
+				isFirstRendering = true;
 
-					var typeConverter = new HighlightingDefinitionTypeConverter();
-					var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
-					tbCodeA.SyntaxHighlighting = syntaxHighlighter;
-					tbCodeB.SyntaxHighlighting = syntaxHighlighter;
+				var typeConverter = new HighlightingDefinitionTypeConverter();
+				var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
+				tbCodeA.SyntaxHighlighting = syntaxHighlighter;
+				tbCodeB.SyntaxHighlighting = syntaxHighlighter;
 
-					manager.OnSnapshotsHistoryUpdated = (snapshots) => {
-						this.Dispatcher.BeginInvoke(new Action(() => {
-							if (!snapshots.Any()) return;// TODO: < 2
+				manager.OnSnapshotsHistoryUpdated = (snapshots) => {
+					this.Dispatcher.BeginInvoke(new Action(() => {
+						if (!snapshots.Any()) return;// TODO: < 2
 
-							var addedSnaphots = View.Snapshots == null ? 0 : snapshots.Count - View.Snapshots.Count;
-							View.Snapshots = snapshots;
-							slHistoy.Maximum = View.Snapshots.Count;
-							if (isFirstRendering) {
-								isFirstRendering = false;
-								slHistoy.Value = View.Snapshots.Count;
-								tbCodeA.Text = View.Snapshot.File;
+						var addedSnaphots = View.Snapshots == null ? 0 : snapshots.Count - View.Snapshots.Count;
+						View.Snapshots = snapshots;
+						slHistoy.Maximum = View.Snapshots.Count;
+						if (isFirstRendering) {
+							isFirstRendering = false;
+							slHistoy.Value = View.Snapshots.Count;
+							tbCodeA.Text = View.Snapshot.File;
 
-								SetupBackgroundRenderers();
-								lblCommitDetailsSection.Visibility = Visibility.Visible;
-							} else {
-								slHistoy.Value += addedSnaphots;
-							}
-
-							Canvas1.Children.Clear();
-							var crt = new CanvasTreeRenderer(View, Canvas1);
-
-							crt.BuildTree();
-							crt.Draw();
-
-							treeRenderer = crt;
-						}));
-					};
-
-
-					if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
-					scanningThread = new Thread(() => {
-						while (!View.SeekStatus.IsSeekCompleted) {
-							manager.GetCommitsHistory(View.SeekStatus);
-							View.SeekStatus.ItemsPerPage *= 2;
-							this.Dispatcher.BeginInvoke(new Action(() => {
-								statusProgressBar.Value = View.SeekStatus.ItemsProcessed * 100.0 / View.SeekStatus.ItemsTotal;
-								statusTbProgressBar.Text = View.SeekStatus.ItemsProcessed + "/" + View.SeekStatus.ItemsTotal;
-							}));
+							SetupBackgroundRenderers();
+							lblCommitDetailsSection.Visibility = Visibility.Visible;
+						} else {
+							slHistoy.Value += addedSnaphots;
 						}
 
+						Canvas1.Children.Clear();
+						var crt = new CanvasTreeRenderer(View, Canvas1);
+
+						crt.BuildTree();
+						crt.Draw();
+
+						treeRenderer = crt;
+					}));
+				};
+
+
+				if (scanningThread != null && scanningThread.IsAlive) scanningThread.Abort();
+				scanningThread = new Thread(() => {
+					while (!View.SeekStatus.IsSeekCompleted) {
+						manager.GetCommitsHistory(View.SeekStatus);
+						View.SeekStatus.ItemsPerPage *= 2;
 						this.Dispatcher.BeginInvoke(new Action(() => {
-							statusTbPausePlay.Text = "";
-							statusTbProgressBar.Text = "Done";
+							statusProgressBar.Value = View.SeekStatus.ItemsProcessed * 100.0 / View.SeekStatus.ItemsTotal;
+							statusTbProgressBar.Text = View.SeekStatus.ItemsProcessed + "/" + View.SeekStatus.ItemsTotal;
 						}));
-					});
-					scanningThread.Start();
+					}
 
-					// TODO: Mediator patern????
-					// TODO: View should exist without snapshots
-					View.OnViewIndexChanged = (index, csnapshot, psnapshot) => {
-						this.Dispatcher.BeginInvoke(new Action(() => {
-							tbCodeA.Text = csnapshot.File;
-							tbCodeB.Text = psnapshot?.File;
+					this.Dispatcher.BeginInvoke(new Action(() => {
+						statusTbPausePlay.Text = "";
+						statusTbProgressBar.Text = "Done";
+					}));
+				});
+				scanningThread.Start();
 
-							slHistoy.Value = slHistoy.Maximum - index;
-							UpdateCommitDetails(csnapshot);
+				// TODO: Mediator patern????
+				// TODO: View should exist without snapshots
+				View.OnViewIndexChanged = (index, csnapshot, psnapshot) => {
+					this.Dispatcher.BeginInvoke(new Action(() => {
+						tbCodeA.Text = csnapshot.File;
+						tbCodeB.Text = psnapshot?.File;
 
-							// Initialize parents DropDown
-							cbParentBranchesB.Items.Clear();
-							foreach (var p in csnapshot.Parents) {
-								var item = new ComboBoxItem();
-								var text = new TextBlock();
-								
-								var snapshot = View.ShaDictionary[p];
-								text.Text = "● " + snapshot.DescriptionShort;
+						slHistoy.Value = slHistoy.Maximum - index;
+						UpdateCommitDetails(csnapshot);
 
-								var textEffect = new TextEffect();
-								textEffect.PositionStart = 0;
-								textEffect.PositionCount = 1;
-								textEffect.Foreground = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
-								text.TextEffects.Add(textEffect);
+						// Initialize parents DropDown
+						cbParentBranchesB.Items.Clear();
+						foreach (var p in csnapshot.Parents) {
+							var item = new ComboBoxItem();
+							var text = new TextBlock();
 
-								text.TextEffects.Add(textEffect);
+							var snapshot = View.ShaDictionary[p];
+							text.Text = "● " + snapshot.DescriptionShort;
 
-								item.Content = text;
-								item.Tag = TAG_PREFIX + snapshot.Sha;
-								item.IsSelected = psnapshot.Sha == p;
-								
-								cbParentBranchesB.Items.Add(item);
-							}
-						}));
-					};
+							var textEffect = new TextEffect();
+							textEffect.PositionStart = 0;
+							textEffect.PositionCount = 1;
+							textEffect.Foreground = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
+							text.TextEffects.Add(textEffect);
 
-					View.OnSelectionChanged = () => {
-						this.Dispatcher.BeginInvoke(new Action(() => {
-							treeRenderer.ClearHighlighting();
-							treeRenderer.Draw();
+							text.TextEffects.Add(textEffect);
 
-							tbCodeA.Text = View.Snapshot.File;
-							tbCodeB.Text = View.SnapshotParent?.File;
+							item.Content = text;
+							item.Tag = TAG_PREFIX + snapshot.Sha;
+							item.IsSelected = psnapshot.Sha == p;
 
-							// TODO: BitmapImage cache
-							BitmapImage bmpImage = new BitmapImage();
-							bmpImage.BeginInit();
-							bmpImage.UriSource = new Uri(View.Snapshot.AvatarUrl + "&s=" + 40, UriKind.RelativeOrAbsolute);
-							bmpImage.EndInit();
-							imgAuthor.Source = bmpImage;
+							cbParentBranchesB.Items.Add(item);
+						}
+					}));
+				};
 
-							tbCodeA.TextArea.TextView.Redraw();
-							tbCodeB.TextArea.TextView.Redraw();
+				View.OnSelectionChanged = () => {
+					this.Dispatcher.BeginInvoke(new Action(() => {
+						treeRenderer.ClearHighlighting();
+						treeRenderer.Draw();
 
-							cbParentBranchesB.SelectedValue = TAG_PREFIX + View.SnapshotParent?.Sha;
-						}));
-					};
+						tbCodeA.Text = View.Snapshot.File;
+						tbCodeB.Text = View.SnapshotParent?.File;
 
-					// TODO: Implement Search by commits
-					// TODO: Highlight code on hover
-				} catch (OutOfMemoryException ex) {
-					// TODO: "Try to change end date." - add abilty to choose end dates or commits count.
-					MessageBox.Show("File history too large.");
-				} catch (Exception ex) {
-					File.AppendAllText(string.Format("ERROR_{0}_.txt", DateTime.Now.ToString()), ex.Message + Environment.NewLine + ex.StackTrace + Environment.NewLine);
-					MessageBox.Show("Oops! Something went wrong.");
-				}
+						// TODO: BitmapImage cache
+						BitmapImage bmpImage = new BitmapImage();
+						bmpImage.BeginInit();
+						bmpImage.UriSource = new Uri(View.Snapshot.AvatarUrl + "&s=" + 40, UriKind.RelativeOrAbsolute);
+						bmpImage.EndInit();
+						imgAuthor.Source = bmpImage;
+
+						tbCodeA.TextArea.TextView.Redraw();
+						tbCodeB.TextArea.TextView.Redraw();
+
+						cbParentBranchesB.SelectedValue = TAG_PREFIX + View.SnapshotParent?.Sha;
+					}));
+				};
+
+				// TODO: Implement Search by commits
+				// TODO: Highlight code on hover
+			} catch (OutOfMemoryException ex) {
+				// TODO: "Try to change end date." - add abilty to choose end dates or commits count.
+				MessageBox.Show("File history too large.");
+			} catch (Exception ex) {
+				File.AppendAllText(string.Format("ERROR_{0}_.txt", DateTime.Now.ToString()), ex.Message + Environment.NewLine + ex.StackTrace + Environment.NewLine);
+				MessageBox.Show("Oops! Something went wrong.");
 			}
 		}
 
@@ -367,8 +393,8 @@ namespace WpfUI {
 				if (View.SeekStatus.PauseProcessing) scanningThread.Resume();
 				scanningThread.Abort();
 			}
-
-			Application.Current.Shutdown();
+			
+			if (isApplicationShutdownRequired) Application.Current.Shutdown();
 		}
 
 		private const string XML = "XML";
