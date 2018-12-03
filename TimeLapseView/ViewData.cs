@@ -40,6 +40,7 @@ namespace TimeLapseView {
 		/// </summary>
 		public SnapshotVM Snapshot {
 			get {
+				if (string.IsNullOrEmpty(CurrentSnapshotSha)) CurrentSnapshotSha = Snapshots[0].Sha;
 				return ShaDictionary[CurrentSnapshotSha];
 			}
 		}
@@ -164,9 +165,10 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Change parent snapshot selection without changing current snapshot
 		/// </summary>
-		public void ChangeParentSnapshot(string sha) {
+		/// <param name="isParent">Is commit parent or any existing one</param>
+		public void ChangeParentSnapshot(string sha, bool isParent = true) {
 			var newNextElement = ShaDictionary[sha];
-			RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
+			if (isParent) RememberPreferredWay(Snapshot.Sha, newNextElement.Sha);
 			ParentSnapshotSha = newNextElement.Sha;
 			OnSelectionChanged?.Invoke();
 		}

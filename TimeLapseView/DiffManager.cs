@@ -83,6 +83,8 @@ namespace TimeLapseView {
 		/// <param name="line">cursor line</param>
 		/// <returns>true if diffs found</returns>
 		public bool TryGetNextDiff(SnapshotVM currrent, SnapshotVM parent, int line, ref int nextLine) {
+			if (parent == null) return false;
+
 			var parentLine = GetParentLineNumber(currrent, parent, line);
 
 			var nextUpdatesLine = DiffsChanged[currrent.Index][parent.Index].Keys.FirstOrDefault(e => e > line);
@@ -105,6 +107,8 @@ namespace TimeLapseView {
 		/// <param name="line">cursor line</param>
 		/// <returns>true if diffs found</returns>
 		public bool TryGetPrevtDiff(SnapshotVM currrent, SnapshotVM parent, int line, ref int nextLine) {
+			if (parent == null) return false;
+
 			var parentLine = GetParentLineNumber(currrent, parent, line);
 
 			var prevUpdatesLine = DiffsChanged[currrent.Index][parent.Index].Keys.LastOrDefault(e => e < line);

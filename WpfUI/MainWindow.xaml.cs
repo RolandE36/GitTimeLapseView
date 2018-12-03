@@ -258,6 +258,12 @@ namespace WpfUI {
 			e.Handled = true;
 		}
 
+		private void MenuItem_CompareCommitClick(object sender, RoutedEventArgs e) {
+			var mi = sender as MenuItem;
+			var sha = (string)(mi.Parent as ContextMenu).Tag;
+			View.ChangeParentSnapshot(sha, false);
+		}
+
 		private void menuShowBlame_Click(object sender, RoutedEventArgs e) {
 			canvasBlame.Visibility = menuBlameHighlight.IsChecked ? Visibility.Visible : Visibility.Hidden;
 			colBlame.Width = new GridLength(menuBlameHighlight.IsChecked ? 150 : 0);

@@ -241,6 +241,7 @@ namespace WpfUI.Renderer {
 				textBlock.Tag = snapshot.Sha;
 				textBlock.ToolTip = snapshot.Tooltip;
 				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;
+				textBlock.MouseRightButtonDown += TextBlock_MouseRightButtonDown;
 				LinkCommitHoverEvents(textBlock);
 				LinkArrowHandEvents(textBlock);
 
@@ -279,6 +280,16 @@ namespace WpfUI.Renderer {
 			}
 
 			ViewData.SelectSnapshot(ViewData.ShaDictionary[sha].Index);
+		}
+
+		/// <summary>
+		/// Open tree item context menu
+		/// </summary>
+		private void TextBlock_MouseRightButtonDown(object sender, MouseButtonEventArgs e) {
+			var cm = Canvas.FindName("cmTreeItem") as ContextMenu;
+			cm.Tag = (string)(sender as TextBlock).Tag;
+			cm.PlacementTarget = sender as TextBlock;
+			cm.IsOpen = true;
 		}
 
 		/// <summary>
