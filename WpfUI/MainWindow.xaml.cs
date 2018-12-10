@@ -80,7 +80,7 @@ namespace WpfUI {
 		/// </summary>
 		/// <param name="filename">File name</param>
 		/// <param name="appShutdown">Is mandatory application shutdown call required</param>
-		public void OpenFile(string filename, bool appShutdown = true) {
+		public async void OpenFile(string filename, bool appShutdown = true) {
 			try {
 				isApplicationShutdownRequired = appShutdown;
 				manager = new FileHistoryManager(filename);
@@ -143,8 +143,8 @@ namespace WpfUI {
 
 				// TODO: Mediator patern????
 				// TODO: View should exist without snapshots
-				View.OnViewIndexChanged = (index, csnapshot, psnapshot) => {
-					this.Dispatcher.BeginInvoke(new Action(() => {
+				View.OnViewIndexChanged = async (index, csnapshot, psnapshot) => {
+					await this.Dispatcher.BeginInvoke(new Action(() => {
 						tbCodeA.Text = csnapshot.File;
 						tbCodeB.Text = psnapshot?.File;
 
@@ -175,6 +175,8 @@ namespace WpfUI {
 							cbParentBranchesB.Items.Add(item);
 						}
 					}));
+
+					await CompareCommitsTree();
 				};
 
 				View.OnSelectionChanged = () => {
@@ -465,5 +467,137 @@ namespace WpfUI {
 				scanningThread.Resume();
 			}
 		}
+
+		#region TreeView
+
+		private async Task CompareCommitsTree() {
+			if (!tiTree.IsSelected) return;
+
+			twTreeDiffs.Items.Clear();
+			twTreeDiffs.Items.Add("Processing...");
+
+			await Task.Run(() => {
+				// Get changess
+				var patch = manager.CompareCommitTree(View.SnapshotParent?.Sha, View.Snapshot?.Sha);
+				this.Dispatcher.BeginInvoke(new Action(() => {
+					twTreeDiffs.Items.Clear();
+					if (patch == null) return;
+					twTreeDiffs.Items.Clear();
+
+					// Populate tree
+					foreach (var item in patch) {
+						var tItems = twTreeDiffs.Items;
+
+						// Split path in to parts
+						var parts = item.Path.Split('\\');
+						foreach (var part in parts) {
+							// Check is part already exist
+							var isPartAlreadyAdded = false;
+							for (int i = 0; i < tItems.Count; i++) {
+								if ((string)((TreeViewItem)tItems[i]).Tag == part) {
+									tItems = ((TreeViewItem)tItems[i]).Items;
+									isPartAlreadyAdded = true;
+									break;
+								}
+							}
+
+							if (isPartAlreadyAdded) continue;
+
+							var child = GetTreeViewItem(item, part);
+							tItems.Add(child);
+							tItems = child.Items;
+						}
+					}
+				}));
+			});
+		}
+
+		private TreeViewItem GetTreeViewItem(LibGit2Sharp.PatchEntryChanges item, string part) {
+			// Create new TreeViewItem
+			var child = new TreeViewItem();
+			child.Tag = part;
+			child.IsExpanded = true;
+
+			// Create image
+			var icon = "Folder_16x.png";
+			if (item.Path.EndsWith(part)) {
+				switch (item.Status) {
+					case LibGit2Sharp.ChangeKind.Deleted:
+						icon = "FileError_16x.png";
+						break;
+					case LibGit2Sharp.ChangeKind.Modified:
+						icon = "EditPage_16x.png";
+						break;
+					case LibGit2Sharp.ChangeKind.Renamed:
+					case LibGit2Sharp.ChangeKind.TypeChanged:
+						icon = "Rename_hidden_16x.png";
+						break;
+					case LibGit2Sharp.ChangeKind.Added:
+					case LibGit2Sharp.ChangeKind.Unmodified:
+					case LibGit2Sharp.ChangeKind.Copied:
+						icon = "AddFile_16x.png";
+						break;
+					case LibGit2Sharp.ChangeKind.Ignored:
+					case LibGit2Sharp.ChangeKind.Untracked:
+					case LibGit2Sharp.ChangeKind.Unreadable:
+					case LibGit2Sharp.ChangeKind.Conflicted:
+						icon = "FileWarning_16x.png";
+						break;
+					default:
+						icon = "FileWarning_16x.png";
+						break;
+				}
+			}
+
+			Image image = new Image();
+			image.Source = new BitmapImage(new Uri("pack://application:,,/Resources/" + icon));
+			image.Width = 16;
+			image.Height = 16;
+
+			// Create label
+			Label lblFile = new Label();
+			lblFile.Content = part;
+
+			// Populate StackPanel
+			StackPanel stack = new StackPanel();
+			stack.Orientation = Orientation.Horizontal;
+			stack.Children.Add(image);
+			stack.Children.Add(lblFile);
+			child.Header = stack;
+
+			// Add ToolTip
+			if (item.Path.EndsWith(part)) {
+				child.ToolTip += item.Path;
+				child.ToolTip += " +" + item.LinesAdded + " -" + item.LinesDeleted;
+				child.ToolTip += "\n" + item.Status.ToString();
+				if (item.Status == LibGit2Sharp.ChangeKind.Renamed || item.Status == LibGit2Sharp.ChangeKind.TypeChanged || item.Status == LibGit2Sharp.ChangeKind.Copied) {
+					child.ToolTip += ": " + item.OldPath;
+				}
+			}
+
+			return child;
+		}
+
+		private void FillTreeView(TreeViewItem parentItem, string path) {
+			foreach (string str in Directory.EnumerateDirectories(path)) {
+				TreeViewItem item = new TreeViewItem();
+				item.Header = str.Substring(str.LastIndexOf('\\') + 1);
+				item.Tag = str;
+				item.FontWeight = FontWeights.Normal;
+				parentItem.Items.Add(item);
+				FillTreeView(item, str);
+			}
+		}
+
+		private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+			await CompareCommitsTree();
+		}
+
+		private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) {
+			twTreeDiffs.VerticalAlignment = VerticalAlignment.Stretch;
+			twTreeDiffs.Height = Double.NaN;
+		}
+
+		#endregion
 	}
 }

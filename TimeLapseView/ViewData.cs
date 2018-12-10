@@ -40,6 +40,7 @@ namespace TimeLapseView {
 		/// </summary>
 		public SnapshotVM Snapshot {
 			get {
+				if (Snapshots == null) return null;
 				if (string.IsNullOrEmpty(CurrentSnapshotSha)) CurrentSnapshotSha = Snapshots[0].Sha;
 				return ShaDictionary[CurrentSnapshotSha];
 			}
@@ -124,6 +125,7 @@ namespace TimeLapseView {
 		/// Step down
 		/// </summary>
 		public void MoveToNextSnapshot() {
+			if (SnapshotParent == null) return;
 			SelectSnapshot(SnapshotParent.Index);
 		}
 

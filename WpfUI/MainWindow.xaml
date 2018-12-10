@@ -127,14 +127,16 @@
 			</Grid>
 		</Grid>
 
-		<GridSplitter Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" ShowsPreview="False" Height="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Cursor="SizeNS" />
+		<GridSplitter Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" ShowsPreview="False" Height="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Cursor="SizeNS" DragCompleted="GridSplitter_DragCompleted" />
 
-		<StackPanel Orientation="Horizontal" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2">
-			<Image Name="imgAuthor" Width="40" Height="40" Margin="5" VerticalAlignment="Top" />
-			<Label 
+		<TabControl Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" SelectionChanged="TabControl_SelectionChanged" VerticalAlignment="Top">
+			<TabItem Header="Details">
+				<StackPanel Orientation="Horizontal">
+					<Image Name="imgAuthor" Width="40" Height="40" Margin="5" VerticalAlignment="Top" />
+					<Label 
 				Name="lblCommitDetailsSection"
 				Visibility="Hidden" >
-				<TextBlock>
+						<TextBlock>
 					<Run Text="Commit   " Foreground="Gray"/>
 					<Run Name="lblCommitSha" Text=""/>
 					<Run Text="at" Foreground="Gray"/>
@@ -145,9 +147,16 @@
 					<Run Name="lblFilePath" Text=""/>
 					<Run Name="lblCommitMessageLabel" Text="Message" Foreground="Gray"/>
 					<Run Name="lblCommitMessageText" Text=""/>
-				</TextBlock>
-			</Label>
-		</StackPanel>
+						</TextBlock>
+					</Label>
+				</StackPanel>
+			</TabItem>
+			<TabItem Header="Tree" x:Name="tiTree" VerticalAlignment="Stretch">
+				<Grid>
+					<TreeView Name="twTreeDiffs" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" Height="100" />
+				</Grid>
+			</TabItem>
+		</TabControl>
 
 		<StatusBar 
 			Grid.Column="0"

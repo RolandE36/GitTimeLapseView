@@ -58,6 +58,24 @@ namespace TimeLapseView {
 			Snapshot.All.Clear();
 		}
 
+		/// <summary>
+		/// Compare commit changes tree
+		/// </summary>
+		/// <param name="sha1">Parent SHA</param>
+		/// <param name="sha2">Current SHA</param>
+		/// <returns></returns>
+		public Patch CompareCommitTree(string shaP, string shaC) {
+			if (string.IsNullOrEmpty(shaP)) return null;
+			if (string.IsNullOrEmpty(shaC)) return null;
+
+			using (var repo = new Repository(repositoryPath)) {
+				var c = repo.Lookup<LibGit2Sharp.Commit>(shaP);
+				var p = repo.Lookup<LibGit2Sharp.Commit>(shaC);
+
+				return repo.Diff.Compare<Patch>(c.Tree, p.Tree);
+			}
+		}
+
 		public void GetCommitsHistory(CommitsAnalyzingStatus status) {
 			if (snapshots == null) snapshots = new List<Snapshot>();
 			visibleSnapshots = new List<Snapshot>();
