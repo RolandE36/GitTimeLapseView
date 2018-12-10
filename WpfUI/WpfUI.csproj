@@ -186,6 +186,16 @@
   <ItemGroup>
     <Resource Include="Resources\Rename_hidden_16x.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\OpenFile_16x.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Exit_16x.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Next_grey_16xSM.png" />
+    <Resource Include="Resources\Previous_grey_16xSM.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

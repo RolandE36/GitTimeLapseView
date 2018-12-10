@@ -26,9 +26,17 @@
 			Grid.Row="0"
 			Grid.ColumnSpan="2">
 			<MenuItem Header="File">
-				<MenuItem Header="Open File" Click="btnBrowseFile_Click"></MenuItem>
+				<MenuItem Header="Open File" Click="btnBrowseFile_Click">
+					<MenuItem.Icon>
+						<Image Source="pack://application:,,/Resources/OpenFile_16x.png" Width="16" Height="16" />
+					</MenuItem.Icon>
+				</MenuItem>
 				<Separator />
-				<MenuItem Header="Exit" Click="btnExit_Click"></MenuItem>
+				<MenuItem Header="Exit" Click="btnExit_Click">
+					<MenuItem.Icon>
+						<Image Source="pack://application:,,/Resources/Exit_16x.png" Width="16" Height="16" />
+					</MenuItem.Icon>
+				</MenuItem>
 			</MenuItem>
 			<MenuItem Header="View">
 				<MenuItem Name="menuBirthHighlight" Header="Age Highlighting" IsCheckable="True" IsChecked="True" Click="btnViewModeChanged_Click"></MenuItem>
@@ -38,8 +46,16 @@
 				<MenuItem Name="menuShowCompare" Header="Comparing Mode" IsCheckable="True" IsChecked="False" Click="menuShowCompare_Click"></MenuItem>
 			</MenuItem>
 			<Separator />
-			<MenuItem Name="menuPrevDiff" Header="&lt;" ToolTip="Previous difference (Shift+F8)" Click="menuPrevDiff_Click"></MenuItem>
-			<MenuItem Name="menuNextDiff" Header="&gt;" ToolTip="Next difference (F8)" Click="menuNextDiff_Click"></MenuItem>
+			<MenuItem Name="menuPrevDiff" ToolTip="Previous difference (Shift+F8)" Click="menuPrevDiff_Click">
+				<MenuItem.Icon>
+					<Image Source="pack://application:,,/Resources/Previous_grey_16xSM.png" />
+				</MenuItem.Icon>
+			</MenuItem>
+			<MenuItem Name="menuNextDiff" ToolTip="Next difference (F8)" Click="menuNextDiff_Click">
+				<MenuItem.Icon>
+					<Image Source="pack://application:,,/Resources/Next_grey_16xSM.png" />
+				</MenuItem.Icon>
+			</MenuItem>
 		</Menu>
 
 		<Slider 
