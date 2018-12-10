@@ -94,7 +94,7 @@ namespace TimeLapseView {
 
 			var isChanges = true;
 			if (nextUpdatesLine == 0) isChanges = false;
-			if (nextDeletedLine != 0 && nextUpdatesLine < nextDeletedLine) isChanges = false;
+			if (nextDeletedLine != 0 && nextUpdatesLine > nextDeletedLine) isChanges = false;
 
 			nextLine = isChanges ? nextUpdatesLine : GetParentLineNumber(parent, currrent, nextDeletedLine);
 
@@ -119,7 +119,7 @@ namespace TimeLapseView {
 			// TODO: Unit tests...
 			var isChanges = true;
 			if (prevUpdatesLine == 0) isChanges = false;
-			if (prevDeletedLine != 0 && prevUpdatesLine > prevDeletedLine) isChanges = false;
+			if (prevDeletedLine != 0 && prevUpdatesLine < prevDeletedLine) isChanges = false;
 
 			nextLine = isChanges ? prevUpdatesLine : GetParentLineNumber(parent, currrent, prevDeletedLine);
 
