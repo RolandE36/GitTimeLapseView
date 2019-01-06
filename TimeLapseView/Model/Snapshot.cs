@@ -25,6 +25,7 @@ namespace TimeLapseView.Model {
 		}
 
 		public int Id { get; set; }
+		// TODO: Move file to separate class
 		public string FilePath { get; set; }
 		public FilePathState FilePathState { get; set; }
 		public string PreviousFilePath { get; set; }
@@ -68,6 +69,8 @@ namespace TimeLapseView.Model {
 				return file;
 			}
 		}
+
+		public int FileLinesCount { get; set; }
 
 		/// <summary>
 		/// Read file content

@@ -27,6 +27,7 @@ namespace TimeLapseView.Model {
 		public bool IsFirstInLine { get; set; }
 		public bool IsLastInLine { get; set; }
 		public string File { get; set; }
+		public int FileLinesCount { get; set; }
 		public string Author { get; set; }
 		public string Email { get; set; }
 		public string AvatarUrl { get; set; }

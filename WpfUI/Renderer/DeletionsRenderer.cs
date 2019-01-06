@@ -10,7 +10,6 @@ using TimeLapseView;
 
 namespace WpfUI.Renderer {
 	public class DeletionsRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
-		private SolidColorBrush deletedBackground = new SolidColorBrush(Color.FromRgb(0xff, 0xdd, 0xdd));
 		private Pen pen;
 
 		public DeletionsRenderer(ViewData host) {
@@ -34,7 +33,7 @@ namespace WpfUI.Renderer {
 				if (!host.DiffManager.IsDeleted(host.Snapshot, host.SnapshotParent, linenum)) continue;
 
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
-				drawingContext.DrawRectangle(deletedBackground, pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
+				drawingContext.DrawRectangle(ColorPalette.DELETED, pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
 			}
 		}
 	}

@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using TimeLapseView.Model;
 
@@ -146,6 +145,7 @@ namespace TimeLapseView {
 				AdvancedBranchesArchivation();
 
 				ReadFilesContent();
+				CountLines();
 				FindLifeTimeForEachLine();
 
 				// TODO: Related only to rendering. Move to other place
@@ -411,12 +411,19 @@ namespace TimeLapseView {
 			});
 		}
 
-		private void InitializeSnapshotFileDetails(Snapshot snapshot) {
-			// TODO: Calculate file size after read
-			var fileLinesCount = snapshot.File.Split('\n').Count();
+		/// <summary>
+		/// Count number of lines in each file
+		/// </summary>
+		/// <param name="snapshot"></param>
+		private void CountLines() {
+			Parallel.ForEach(visibleSnapshots, (snapshot) => {
+				snapshot.FileLinesCount = snapshot.File.Count(e => e == '\n') + 1;
+			});
+		}
 
-			snapshot.FileDetails = new CodeFile(fileLinesCount);
-			for (var i = 0; i < fileLinesCount; i++) {
+		private void InitializeSnapshotFileDetails(Snapshot snapshot) {
+			snapshot.FileDetails = new CodeFile(snapshot.FileLinesCount);
+			for (var i = 0; i < snapshot.FileLinesCount; i++) {
 				snapshot.FileDetails.State[i] = LineState.Inserted;
 
 				// new aproach
@@ -445,8 +452,7 @@ namespace TimeLapseView {
 					continue;
 				}
 
-				// TODO: Calculate file size after read
-				snapshot.FileDetails = new CodeFile(snapshot.File.Split('\n').Count());
+				snapshot.FileDetails = new CodeFile(snapshot.FileLinesCount);
 
 				foreach (var p in visibleSnapshots[i].Parents) {
 					var parent = Snapshot.All[p];
@@ -631,6 +637,7 @@ namespace TimeLapseView {
 					IsFirstInLine = item.IsFirstInLine,
 					IsLastInLine = item.IsLastInLine,
 					File = item.File,
+					FileLinesCount = item.FileLinesCount,
 					Author = item.Commit.Author,
 					Email = item.Commit.Email,
 					AvatarUrl = avatarManager.GetAvatar(item.Commit.Author, item.Commit.Email),

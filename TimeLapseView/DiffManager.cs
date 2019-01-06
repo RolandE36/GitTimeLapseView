@@ -35,26 +35,32 @@ namespace TimeLapseView {
 		/// Answer is line was deleted
 		/// </summary>
 		public bool IsDeleted(SnapshotVM currrent, SnapshotVM parent, int line) {
-			// return false if it's last commit
-			if (parent == null) return false;
-			// Check is child commit analysed
-			if (!DiffsDeleted.Keys.Contains(currrent.Index)) Compare(currrent, parent);
-			// Check is parent commit analysed
-			if (!DiffsDeleted[currrent.Index].Keys.Contains(parent.Index)) Compare(currrent, parent);
-
+			if (!IsCompared(DiffsDeleted, currrent, parent)) return false;
 			return DiffsDeleted[currrent.Index][parent.Index].Keys.Contains(line);
+		}
+
+		/// <summary>
+		/// Get list of changes
+		/// </summary>
+		public Dictionary<int, LineState> GetChanges(SnapshotVM currrent, SnapshotVM parent) {
+			if (!IsCompared(DiffsChanged, currrent, parent)) return null;
+			return DiffsChanged[currrent.Index][parent.Index];
+		}
+
+		/// <summary>
+		/// Get list of deletions
+		/// </summary>
+		public Dictionary<int, LineState> GetDeletions(SnapshotVM currrent, SnapshotVM parent) {
+			if (!IsCompared(DiffsDeleted, currrent, parent)) return null;
+			return DiffsDeleted[currrent.Index][parent.Index];
 		}
 
 		/// <summary>
 		/// Return type of changes (if any)
 		/// </summary>
 		public LineState GetChangesType(SnapshotVM currrent, SnapshotVM parent, int line) {
-			// return false if it's last commit
-			if (parent == null) return LineState.Unknown;
-			// Check is child commit analysed
-			if (!DiffsChanged.Keys.Contains(currrent.Index)) Compare(currrent, parent);
-			// Check is parent commit analysed
-			if (!DiffsChanged[currrent.Index].Keys.Contains(parent.Index)) Compare(currrent, parent);
+			if (!IsCompared(DiffsChanged, currrent, parent)) return LineState.Unknown;
+
 			// Check line mentions 
 			if (!DiffsChanged[currrent.Index][parent.Index].Keys.Contains(line)) return LineState.Unchanged;
 
@@ -123,6 +129,19 @@ namespace TimeLapseView {
 
 			nextLine = isChanges ? prevUpdatesLine : GetParentLineNumber(parent, currrent, prevDeletedLine);
 
+			return true;
+		}
+
+		/// <summary>
+		/// Check is commits already compared
+		/// </summary>
+		private bool IsCompared(Dictionary<int, Dictionary<int, Dictionary<int, LineState>>> dictionary, SnapshotVM currrent, SnapshotVM parent) {
+			// return false if it's last commit
+			if (parent == null) return false;
+			// Check is child commit analysed
+			if (!dictionary.Keys.Contains(currrent.Index)) Compare(currrent, parent);
+			// Check is parent commit analysed
+			if (!dictionary[currrent.Index].Keys.Contains(parent.Index)) Compare(currrent, parent);
 			return true;
 		}
 

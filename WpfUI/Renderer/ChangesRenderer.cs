@@ -10,7 +10,6 @@ using TimeLapseView;
 
 namespace WpfUI.Renderer {
 	public class ChangesRenderer : BaseBackgroundRenderer, IBackgroundRenderer {
-		private SolidColorBrush selectedBackground = new SolidColorBrush(Color.FromRgb(0xFF, 0xFB, 0x19));
 		private Pen pen;
 
 		public ChangesRenderer(ViewData host) {
@@ -35,7 +34,7 @@ namespace WpfUI.Renderer {
 				if (val != LineState.Inserted && val != LineState.Modified) continue;
 
 				var rc = BackgroundGeometryBuilder.GetRectsFromVisualSegment(textView, v, 0, 1000).First();
-				drawingContext.DrawRectangle(selectedBackground, pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
+				drawingContext.DrawRectangle(ColorPalette.CHANGES, pen, new Rect(0, rc.Top, textView.ActualWidth, rc.Height));
 			}
 		}
 	}

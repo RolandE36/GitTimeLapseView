@@ -88,7 +88,7 @@
 
 			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Name="CanvasScrollViewer" Focusable="False" PreviewKeyDown="CanvasScrollViewer_PreviewKeyDown" >
 				<Grid x:Name="drawingGrid">
-					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown" Focusable="True">
+					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown" Focusable="True" VerticalAlignment="Top">
 						<Canvas.ContextMenu>
 							<ContextMenu Name="cmTreeItem">
 								<MenuItem Header="Compare" Click="MenuItem_CompareCommitClick" />
@@ -105,6 +105,7 @@
 					<ColumnDefinition Width="0" Name="colCompare" />
 					<ColumnDefinition Width="150" Name="colBlame" />
 					<ColumnDefinition Width="*" Name="colSource" />
+					<ColumnDefinition Width="20" Name="colScroll" />
 				</Grid.ColumnDefinitions>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="23"></RowDefinition>
@@ -119,7 +120,7 @@
 					ShowLineNumbers="True"
 					Text="" 
 					IsReadOnly="True" 
-					HorizontalScrollBarVisibility="Auto" 
+					HorizontalScrollBarVisibility="Visible" 
 					VerticalScrollBarVisibility="Visible"
 					Grid.Column="0"
 					Grid.Row="1"
@@ -135,11 +136,14 @@
 					ShowLineNumbers="True"
 					Text="" 
 					IsReadOnly="True" 
-					HorizontalScrollBarVisibility="Auto" 
+					HorizontalScrollBarVisibility="Visible" 
 					VerticalScrollBarVisibility="Visible"
 					Grid.Column="2"
 					Grid.Row="1"
+					ScrollViewer.ScrollChanged="tbCodeA_ScrollChanged"
 				/>
+
+				<Canvas Name="canvasScroll" Grid.Column="3" Grid.Row="1" Margin="0,0,5,17" />
 			</Grid>
 		</Grid>
 

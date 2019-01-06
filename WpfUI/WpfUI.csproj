@@ -96,6 +96,7 @@
     <Compile Include="Renderer\ColorPalette.cs" />
     <Compile Include="Renderer\DeletionsRenderer.cs" />
     <Compile Include="Renderer\BlameRenderer.cs" />
+    <Compile Include="Renderer\ScrollRenderer.cs" />
     <Compile Include="SearchWindow.xaml.cs">
       <DependentUpon>SearchWindow.xaml</DependentUpon>
     </Compile>

@@ -308,6 +308,8 @@ namespace WpfUI {
 			if (menuBlameHighlight.IsChecked) {
 				tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new BlameRenderer(View, canvasBlame));
 			}
+
+			tbCodeA.TextArea.TextView.BackgroundRenderers.Add(new ScrollRenderer(View, canvasScroll));
 		}
 
 		/// <summary>
@@ -327,11 +329,14 @@ namespace WpfUI {
 			lblCommitDate.Text        = snapshot.Date.ToString();
 			lblCommitMessageText.Text = snapshot.Description;
 			lblFilePath.Text          = snapshot.FilePath;
-			// TODO: Multiline description not working
 		}
 
 		private void menuNextDiff_Click(object sender, RoutedEventArgs e) {
 			goToNextDiff();
+		}
+
+		private void tbCodeA_ScrollChanged(object sender, ScrollChangedEventArgs e) {
+			syncWindowB();
 		}
 
 		/// <summary>
@@ -385,6 +390,7 @@ namespace WpfUI {
 		}
 
 		private void syncWindowB() {
+			if (View == null) return;
 			if (!tbCodeA.TextArea.TextView.VisualLinesValid) return;
 			if (!tbCodeB.TextArea.TextView.VisualLinesValid) return;
 			var line = tbCodeA.TextArea.TextView.VisualLines[0].FirstDocumentLine.LineNumber;
@@ -471,6 +477,7 @@ namespace WpfUI {
 		#region TreeView
 
 		private async Task CompareCommitsTree() {
+			if (View == null) return;
 			if (!tiTree.IsSelected) return;
 
 			twTreeDiffs.Items.Clear();
@@ -556,6 +563,7 @@ namespace WpfUI {
 
 			// Create label
 			Label lblFile = new Label();
+			lblFile.Padding = new Thickness(2);
 			lblFile.Content = part;
 
 			// Populate StackPanel

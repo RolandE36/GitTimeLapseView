@@ -30,6 +30,9 @@ namespace WpfUI.Renderer {
 		private static readonly List<SolidColorBrush> BackgroundBrushes = new List<SolidColorBrush>();
 		private static readonly List<SolidColorBrush> HoveredBackgroundBrushes = new List<SolidColorBrush>();
 
+		public static SolidColorBrush DELETED = new SolidColorBrush(Color.FromRgb(255, 153, 153));
+		public static SolidColorBrush CHANGES = new SolidColorBrush(Color.FromRgb(244, 167, 33));
+
 		static ColorPalette() {
 			foreach (var color in baseColors) {
 				BaseBrushes.Add(new SolidColorBrush(color));
