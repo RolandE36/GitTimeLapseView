@@ -21,7 +21,7 @@ namespace TimeLapseView {
 		/// <summary>
 		/// Path to root repository directory
 		/// </summary>
-		private readonly string repositoryPath;
+		public readonly string repositoryPath;
 
 		/// <summary>
 		/// Path to investigated file (based on root dir path)
@@ -36,7 +36,8 @@ namespace TimeLapseView {
 
 		public FileHistoryManager(string file) {
 			var fileInfo = new FileInfo(file);
-			if (!fileInfo.Exists) throw new FileNotFoundException($"File '{file}' not found.");
+			
+			//if (!fileInfo.Exists) throw new FileNotFoundException($"File '{file}' not found.");
 
 			// Find repository path
 			var dir = fileInfo.Directory;

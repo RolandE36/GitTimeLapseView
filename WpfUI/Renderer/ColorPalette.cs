@@ -32,6 +32,7 @@ namespace WpfUI.Renderer {
 
 		public static SolidColorBrush DELETED = new SolidColorBrush(Color.FromRgb(255, 153, 153));
 		public static SolidColorBrush CHANGES = new SolidColorBrush(Color.FromRgb(244, 167, 33));
+		public static SolidColorBrush ADDED = new SolidColorBrush(Color.FromRgb(126, 0xff, 126));
 
 		static ColorPalette() {
 			foreach (var color in baseColors) {

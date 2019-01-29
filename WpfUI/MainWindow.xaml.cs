@@ -57,7 +57,7 @@ namespace WpfUI {
 				return;
 			}
 
-			MessageBox.Show("Invalid arguments.");
+			//MessageBox.Show("Invalid arguments.");
 		}
 
 		private void slHistoyValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
@@ -82,10 +82,15 @@ namespace WpfUI {
 		/// <param name="appShutdown">Is mandatory application shutdown call required</param>
 		public async void OpenFile(string filename, bool appShutdown = true) {
 			try {
+				if (Directory.Exists(filename)) {
+					MessageBox.Show("Can't analyse directory!");
+					return;
+				}
+
 				isApplicationShutdownRequired = appShutdown;
 				manager = new FileHistoryManager(filename);
 				Title = APP_TITLE + ": " + manager.filePath;
-				statusTbPausePlay.Text = "⏸";
+				statusTbPausePlay.Text = "Pause";
 				View = new ViewData();
 				isFirstRendering = true;
 
@@ -464,12 +469,12 @@ namespace WpfUI {
 			if (View.SeekStatus.ItemsProcessed == View.SeekStatus.ItemsTotal) return;
 
 			View.SeekStatus.PauseProcessing = !View.SeekStatus.PauseProcessing;
-			statusTbPausePlay.Text = View.SeekStatus.PauseProcessing ? "⏵" : "⏸";
+			statusTbPausePlay.Text = View.SeekStatus.PauseProcessing ? "Continue" : "Pause";
 			if (View.SeekStatus.PauseProcessing) {
-				statusTbPausePlay.Text = "⏵";
+				statusTbPausePlay.Text = "Continue";
 				scanningThread.Suspend();
 			} else {
-				statusTbPausePlay.Text = "⏸";
+				statusTbPausePlay.Text = "Pause";
 				scanningThread.Resume();
 			}
 		}
@@ -497,11 +502,14 @@ namespace WpfUI {
 
 						// Split path in to parts
 						var parts = item.Path.Split('\\');
+						var pathPart = "";
 						foreach (var part in parts) {
+							if (!string.IsNullOrEmpty(pathPart)) pathPart += "\\";
+							pathPart += part;
 							// Check is part already exist
 							var isPartAlreadyAdded = false;
 							for (int i = 0; i < tItems.Count; i++) {
-								if ((string)((TreeViewItem)tItems[i]).Tag == part) {
+								if ((string)((TreeViewItem)tItems[i]).Tag == pathPart) {
 									tItems = ((TreeViewItem)tItems[i]).Items;
 									isPartAlreadyAdded = true;
 									break;
@@ -510,20 +518,23 @@ namespace WpfUI {
 
 							if (isPartAlreadyAdded) continue;
 
-							var child = GetTreeViewItem(item, part);
+							var child = GetTreeViewItem(item, pathPart, part);
 							tItems.Add(child);
 							tItems = child.Items;
 						}
 					}
 				}));
+
+				// TODO: Add deleted item
 			});
 		}
 
-		private TreeViewItem GetTreeViewItem(LibGit2Sharp.PatchEntryChanges item, string part) {
+		private TreeViewItem GetTreeViewItem(LibGit2Sharp.PatchEntryChanges item, string path, string part) {
 			// Create new TreeViewItem
 			var child = new TreeViewItem();
-			child.Tag = part;
+			child.Tag = path;
 			child.IsExpanded = true;
+			child.MouseRightButtonDown += FilesTreeItem_MouseRightButtonDown;
 
 			// Create image
 			var icon = "Folder_16x.png";
@@ -571,6 +582,26 @@ namespace WpfUI {
 			stack.Orientation = Orientation.Horizontal;
 			stack.Children.Add(image);
 			stack.Children.Add(lblFile);
+
+			if (item.Path == path) {
+				// +?
+				if (item.LinesAdded != 0) {
+					Label lblAdded = new Label();
+					lblAdded.Padding = new Thickness(2);
+					lblAdded.Content = " +" + item.LinesAdded;
+					lblAdded.Foreground = ColorPalette.ADDED;
+					stack.Children.Add(lblAdded);
+				}
+
+				// -?
+				if (item.LinesDeleted != 0) {
+					Label lblDeleted = new Label();
+					lblDeleted.Padding = new Thickness(2);
+					lblDeleted.Content = " -" + item.LinesDeleted;
+					lblDeleted.Foreground = ColorPalette.DELETED;
+					stack.Children.Add(lblDeleted);
+				}
+			}
 			child.Header = stack;
 
 			// Add ToolTip
@@ -586,15 +617,24 @@ namespace WpfUI {
 			return child;
 		}
 
-		private void FillTreeView(TreeViewItem parentItem, string path) {
-			foreach (string str in Directory.EnumerateDirectories(path)) {
-				TreeViewItem item = new TreeViewItem();
-				item.Header = str.Substring(str.LastIndexOf('\\') + 1);
-				item.Tag = str;
-				item.FontWeight = FontWeights.Normal;
-				parentItem.Items.Add(item);
-				FillTreeView(item, str);
-			}
+		/// <summary>
+		/// Open tree item context menu
+		/// </summary>
+		private void FilesTreeItem_MouseRightButtonDown(object sender, MouseButtonEventArgs e) {
+			var cm = twTreeDiffs.FindName("cmTree") as ContextMenu;
+			cm.Tag = (string)(sender as TreeViewItem).Tag;
+			cm.PlacementTarget = sender as TextBlock;
+			cm.IsOpen = true;
+			e.Handled = true;
+		}
+
+		private void TreeMenuItem_Click(object sender, RoutedEventArgs e) {
+			var mi = sender as MenuItem;
+			var path = (string)(mi.Parent as ContextMenu).Tag;
+			var window = new MainWindow();
+			window.OpenFile(manager.repositoryPath + "\\" + path, false);
+			window.Show();
+			//View.ChangeParentSnapshot(sha, false);
 		}
 
 		private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) {

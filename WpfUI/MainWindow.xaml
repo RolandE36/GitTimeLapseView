@@ -173,7 +173,13 @@
 			</TabItem>
 			<TabItem Header="Tree" x:Name="tiTree" VerticalAlignment="Stretch">
 				<Grid>
-					<TreeView Name="twTreeDiffs" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" Height="100" />
+					<TreeView Name="twTreeDiffs" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" Height="100">
+						<TreeView.ContextMenu>
+							<ContextMenu Name="cmTree">
+								<MenuItem Header="Show History" Click="TreeMenuItem_Click" />
+							</ContextMenu>
+						</TreeView.ContextMenu>
+					</TreeView>
 				</Grid>
 			</TabItem>
 		</TabControl>
