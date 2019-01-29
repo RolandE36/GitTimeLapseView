@@ -44,6 +44,11 @@ namespace WpfUI {
 			lblFilePathLabel.Text = "\nFile         ";
 
 			CheckCommandLineParameters();
+
+			splTree.MouseEnter += (s, v) => { Mouse.OverrideCursor = Cursors.SizeNS; };
+			splTree.MouseLeave += (s, c) => { Mouse.OverrideCursor = Cursors.Arrow; };
+			splChart.MouseEnter += (s, v) => { Mouse.OverrideCursor = Cursors.SizeWE; };
+			splChart.MouseLeave += (s, c) => { Mouse.OverrideCursor = Cursors.Arrow; };
 		}
 
 		private void CheckCommandLineParameters() {
@@ -93,6 +98,7 @@ namespace WpfUI {
 				statusTbPausePlay.Text = "Pause";
 				View = new ViewData();
 				isFirstRendering = true;
+				tiCodeCompare.Header = manager.filePath.Split('\\').Last();
 
 				var typeConverter = new HighlightingDefinitionTypeConverter();
 				var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(filename));
@@ -612,6 +618,46 @@ namespace WpfUI {
 				if (item.Status == LibGit2Sharp.ChangeKind.Renamed || item.Status == LibGit2Sharp.ChangeKind.TypeChanged || item.Status == LibGit2Sharp.ChangeKind.Copied) {
 					child.ToolTip += ": " + item.OldPath;
 				}
+				child.ToolTip += "\n" + View.Snapshot.Tooltip;
+
+				BindArrowEvents(child);
+
+				// Create new tab with file content
+				child.MouseDoubleClick += (s, e) => {
+					var file = (string)(s as TreeViewItem).Tag;
+					var aedit = new ICSharpCode.AvalonEdit.TextEditor();
+					aedit.Text = manager.GetFile(View.Snapshot.Sha, file);
+					aedit.FontFamily = tbCodeA.FontFamily;
+					aedit.FontSize = tbCodeA.FontSize;
+					aedit.ShowLineNumbers = true;
+					aedit.IsReadOnly = true;
+					var typeConverter = new HighlightingDefinitionTypeConverter();
+					var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(GetSyntax(file));
+					aedit.SyntaxHighlighting = syntaxHighlighter;
+
+					var lblHeader = new Label();
+					lblHeader.Padding = new Thickness(2);
+					lblHeader.Content = file.Split('\\').Last();
+
+					// TODO: <Image Source="PathToFile\close.png" Width="20" Height="20" MouseDown="Image_MouseDown"/>
+					var lblClose = new Label();
+					lblClose.Padding = new Thickness(2);
+					lblClose.Content = " X";
+					lblClose.MouseLeftButtonUp += (ss, ee) => { tcSources.Items.RemoveAt(tcSources.SelectedIndex); };
+					BindArrowEvents(lblClose);
+
+					var sp = new StackPanel();
+					sp.Orientation = Orientation.Horizontal;
+					sp.Children.Add(lblHeader);
+					sp.Children.Add(lblClose);
+					sp.ToolTip = child.ToolTip;
+
+					var ti = new TabItem();
+					ti.Header = sp;
+					ti.IsSelected = true;
+					ti.Content = aedit;
+					tcSources.Items.Add(ti);
+				};
 			}
 
 			return child;
@@ -644,6 +690,11 @@ namespace WpfUI {
 		private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) {
 			twTreeDiffs.VerticalAlignment = VerticalAlignment.Stretch;
 			twTreeDiffs.Height = Double.NaN;
+		}
+
+		private void BindArrowEvents(Control control) {
+			control.MouseEnter += (s, e) => { Mouse.OverrideCursor = Cursors.Hand; };
+			control.MouseLeave += (s, e) => { Mouse.OverrideCursor = Cursors.Arrow; };
 		}
 
 		#endregion

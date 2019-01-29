@@ -76,25 +76,9 @@ namespace TimeLapseView.Model {
 		/// Read file content
 		/// </summary>
 		public void LoadFileContent() {
-			try {
-				if (!string.IsNullOrEmpty(file)) return;
-
-				var gitFile = Commit.GitCommit[FilePath];
-
-				if (gitFile == null || !(gitFile.Target is Blob)) {
-					// TODO: Compare with previous file path/name
-					// File was renamed or moved.
-					file = string.Empty;
-				} else {
-					var blob = (Blob)gitFile.Target;
-					// TODO: probably use commit.Encoding
-					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
-						file = reader.ReadToEnd();
-					}
-				}
-			} catch (Exception ex) {
-				file = string.Empty;
-			}
+			// TODO: Remove file loading from model
+			if (!string.IsNullOrEmpty(file)) return;
+			file = FileHistoryManager.GetFileFromCommit(Commit.GitCommit, FilePath);
 		}
 
 		private bool disposed = false;

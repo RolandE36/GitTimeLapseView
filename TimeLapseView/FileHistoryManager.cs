@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using TimeLapseView.Model;
 
@@ -650,6 +651,41 @@ namespace TimeLapseView {
 			}
 
 			return result;
+		}
+
+		/// <summary>
+		/// Load file cotent from specified commit
+		/// </summary>
+		public string GetFile(string sha, string file) {
+			using (var repo = new Repository(repositoryPath)) {
+				var c = repo.Commits.First(e => e.Sha == sha);
+				return GetFileFromCommit(c, file);
+			}
+		}
+
+		/// <summary>
+		/// Load file cotent from specified commit
+		/// </summary>
+		public static string GetFileFromCommit(LibGit2Sharp.Commit commit, string path) {
+			try {
+				var gitFile = commit[path];
+
+				if (gitFile == null || !(gitFile.Target is Blob)) {
+					// TODO: Compare with previous file path/name
+					// File was renamed or moved.
+					return string.Empty;
+				} else {
+					var blob = (Blob)gitFile.Target;
+					// TODO: probably use commit.Encoding
+					using (var reader = new StreamReader(blob.GetContentStream(), Encoding.UTF8)) {
+						return reader.ReadToEnd();
+					}
+				}
+			} catch (Exception ex) {
+				return string.Empty;
+			}
+
+			return string.Empty;
 		}
 	}
 }
