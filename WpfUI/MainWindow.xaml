@@ -45,6 +45,26 @@
 				<MenuItem Name="menuBlameHighlight" Header="Blame Mode" IsCheckable="True" IsChecked="True" Click="menuShowBlame_Click"></MenuItem>
 				<MenuItem Name="menuShowCompare" Header="Comparing Mode" IsCheckable="True" IsChecked="False" Click="menuShowCompare_Click"></MenuItem>
 			</MenuItem>
+			<MenuItem Header="Syntax">
+				<MenuItem Header="XML"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="VB"          Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="TeX"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="SQL"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="Python"      Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="PowerShell"  Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="Patch"       Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="PHP"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="MarkDown"    Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="JavaScript"  Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="Java"        Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="HTML"        Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="Coco"        Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="C#"          Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="CSS"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="C++"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="Boo"         Click="MenuItemChangeSyntax_Click" ></MenuItem>
+				<MenuItem Header="ASP/XHTML"   Click="MenuItemChangeSyntax_Click" ></MenuItem>
+			</MenuItem>
 			<Separator />
 			<MenuItem Name="menuPrevDiff" ToolTip="Previous difference (Shift+F8)" Click="menuPrevDiff_Click">
 				<MenuItem.Icon>

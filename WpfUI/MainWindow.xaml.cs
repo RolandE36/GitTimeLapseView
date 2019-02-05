@@ -444,6 +444,8 @@ namespace WpfUI {
 			if (isApplicationShutdownRequired) Application.Current.Shutdown();
 		}
 
+		#region Syntax
+
 		private const string XML = "XML";
 		private const string VB = "VB";
 		private const string TEX = "TeX";
@@ -488,6 +490,19 @@ namespace WpfUI {
 
 			return "";
 		}
+
+		/// <summary>
+		/// Change document syntax highlighting
+		/// </summary>
+		private void MenuItemChangeSyntax_Click(object sender, RoutedEventArgs e) {
+			var editor = GetActiveTextEditor();
+			if (editor == null) return;
+			var typeConverter = new HighlightingDefinitionTypeConverter();
+			var syntaxHighlighter = (IHighlightingDefinition)typeConverter.ConvertFrom(((MenuItem)sender).Header);
+			editor.SyntaxHighlighting = syntaxHighlighter;
+		}
+
+		#endregion
 
 		/// <summary>
 		/// Suspend/Resume scanning thread and update UI controls 
