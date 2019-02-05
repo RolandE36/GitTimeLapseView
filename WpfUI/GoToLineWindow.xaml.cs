@@ -25,11 +25,10 @@ namespace WpfUI {
 			MainWindow = mainWindow;
 			InitializeComponent();
 			tbLineNumber.Focus();
-			rbCurrent.IsChecked = true;
 		}
 
 		private TextEditor GetSelectedTextEditor() {
-			return rbCurrent.IsChecked.Value ? MainWindow.tbCodeA : MainWindow.tbCodeB;
+			return MainWindow.GetActiveTextEditor();
 		}
 
 		private void btnGoToLineClick(object sender, RoutedEventArgs e) {
@@ -47,6 +46,10 @@ namespace WpfUI {
 			if (!int.TryParse(tbLineNumber.Text, out line)) return;
 			if (line < 0) return;
 			textEditor.ScrollTo(line, 0);
+		}
+
+		private void Window_KeyDown(object sender, KeyEventArgs e) {
+			if (e.Key == Key.Escape) this.Close();
 		}
 	}
 }

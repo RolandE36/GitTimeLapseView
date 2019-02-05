@@ -24,16 +24,15 @@ namespace WpfUI {
 			MainWindow = mainWindow;
 			InitializeComponent();
 			tbSearchText.Focus();
-			rbCurrent.IsChecked = true;
 		}
 
 		private TextEditor GetSelectedTextEditor() {
-			return rbCurrent.IsChecked.Value ? MainWindow.tbCodeA : MainWindow.tbCodeB;
+			return MainWindow.GetActiveTextEditor();
 		}
 
 		private void btnNextClick(object sender, RoutedEventArgs e) {
 			var textEditor = GetSelectedTextEditor();
-			var index = MainWindow.tbCodeA.Text.IndexOf(tbSearchText.Text, textEditor.CaretOffset, StringComparison.OrdinalIgnoreCase);
+			var index = textEditor.Text.IndexOf(tbSearchText.Text, textEditor.CaretOffset, StringComparison.OrdinalIgnoreCase);
 			SelectSearch(index);
 		}
 
@@ -41,7 +40,7 @@ namespace WpfUI {
 			var textEditor = GetSelectedTextEditor();
 			var offset = textEditor.CaretOffset - tbSearchText.Text.Length;
 			var index = -1;
-			if (offset > 0) index = MainWindow.tbCodeA.Text.LastIndexOf(tbSearchText.Text, textEditor.CaretOffset - tbSearchText.Text.Length, StringComparison.OrdinalIgnoreCase);
+			if (offset > 0) index = textEditor.Text.LastIndexOf(tbSearchText.Text, textEditor.CaretOffset - tbSearchText.Text.Length, StringComparison.OrdinalIgnoreCase);
 			SelectSearch(index);
 		}
 
@@ -62,6 +61,10 @@ namespace WpfUI {
 			textEditor.CaretOffset = index;
 			textEditor.ScrollTo(textEditor.TextArea.Caret.Line, 0);
 			textEditor.Select(index, tbSearchText.Text.Length);
+		}
+
+		private void Window_KeyDown(object sender, KeyEventArgs e) {
+			if (e.Key == Key.Escape) this.Close();
 		}
 	}
 }

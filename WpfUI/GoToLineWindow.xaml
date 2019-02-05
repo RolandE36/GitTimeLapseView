@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfUI"
         mc:Ignorable="d"
-        Title="Go To Line" Height="124" Width="249">
+        Title="Go To Line" Height="124" Width="249"
+		KeyDown="Window_KeyDown">
     <Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="*"></ColumnDefinition>
@@ -22,8 +23,9 @@
 		</StackPanel>
 
 		<StackPanel Orientation="Vertical" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Left" Margin="10,5">
-			<RadioButton Name="rbCurrent" HorizontalAlignment="Left" Grid.Column="0" Grid.Row="1">Current File</RadioButton>
-			<RadioButton Name="rbParrent" HorizontalAlignment="Left" Grid.Column="0" Grid.Row="1">Parent File</RadioButton>
+			<ComboBox Name="cbSearchType" SelectedIndex="0" VerticalAlignment="Top">
+				<TextBlock>Active File</TextBlock>
+			</ComboBox>
 		</StackPanel>
 
 		<StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Right" Margin="10,5">

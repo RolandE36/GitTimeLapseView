@@ -13,6 +13,7 @@ using TimeLapseView.Model;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ICSharpCode.AvalonEdit;
 
 namespace WpfUI {
 	/// <summary>
@@ -28,6 +29,7 @@ namespace WpfUI {
 
 		private SearchWindow searchWindow;
 		private GoToLineWindow goToLineWindow;
+		private TextEditor lastFocusedEditor;
 
 		private bool isFirstRendering;
 		private bool isApplicationShutdownRequired;
@@ -237,13 +239,33 @@ namespace WpfUI {
 			Canvas1.Focus();
 		}
 
-		private void MainWindow_KeyUp(object sender, KeyEventArgs e) {
+		/// <summary>
+		/// Remember last active text editor
+		/// </summary>
+		private void tbCode_LostFocus(object sender, RoutedEventArgs e) {
+			lastFocusedEditor = (TextEditor) sender;
+		}
+
+		/// <summary>
+		/// Return current active text editor
+		/// </summary>
+		public TextEditor GetActiveTextEditor() {
+			if (tcSources.SelectedContent is TextEditor) return (TextEditor) tcSources.SelectedContent;
+			if (tcSources.SelectedIndex == 0 && lastFocusedEditor != null) return lastFocusedEditor;
+			if (tcSources.SelectedIndex == 0) return tbCodeA;
+			return null;
+		}
+
+		private void MainWindow_KeyDown(object sender, KeyEventArgs e) {
 			switch (e.Key) {
 				case Key.Down: View.MoveToNextSnapshot(); break;
 				case Key.Up: View.MoveToPrevSnapshot(); break;
 				case Key.Left: View.MoveToLeftSnapshot(); break;
 				case Key.Right: View.MoveToRightSnapshot(); break;
 			}
+
+			var editor = GetActiveTextEditor();
+			if (editor == null) return;
 
 			// Open search window
 			if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
