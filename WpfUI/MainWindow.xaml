@@ -86,17 +86,30 @@
 				<ColumnDefinition Width="4*" />
 			</Grid.ColumnDefinitions>
 
-			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Name="CanvasScrollViewer" Focusable="False" PreviewKeyDown="CanvasScrollViewer_PreviewKeyDown" >
-				<Grid x:Name="drawingGrid">
-					<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown" Focusable="True" VerticalAlignment="Top">
-						<Canvas.ContextMenu>
-							<ContextMenu Name="cmTreeItem">
-								<MenuItem Header="Compare" Click="MenuItem_CompareCommitClick" />
+			<TabControl Grid.Column="0" Grid.Row="0" SelectionChanged="TabControl_SelectionChanged" VerticalAlignment="Top" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="{Binding Path=ActualHeight, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Grid}}}">
+				<TabItem Header="Tree">
+					<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Name="CanvasScrollViewer" Focusable="False" PreviewKeyDown="CanvasScrollViewer_PreviewKeyDown" >
+						<Grid x:Name="drawingGrid">
+							<Canvas Name="Canvas1" Grid.Column="0" HorizontalAlignment="Left" MouseDown="Canvas_MouseDown" Focusable="True" VerticalAlignment="Top">
+								<Canvas.ContextMenu>
+									<ContextMenu Name="cmTreeItem">
+										<MenuItem Header="Compare" Click="MenuItem_CompareCommitClick" />
+									</ContextMenu>
+								</Canvas.ContextMenu>
+							</Canvas>
+						</Grid>
+					</ScrollViewer>
+				</TabItem>
+				<TabItem Header="Changed Files" x:Name="tiTree">
+					<TreeView Name="twTreeDiffs" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" BorderThickness="0">
+						<TreeView.ContextMenu>
+							<ContextMenu Name="cmTree">
+								<MenuItem Header="Show History" Click="TreeMenuItem_Click" />
 							</ContextMenu>
-						</Canvas.ContextMenu>
-					</Canvas>
-				</Grid>
-			</ScrollViewer>
+						</TreeView.ContextMenu>
+					</TreeView>
+				</TabItem>
+			</TabControl>
 
 			<GridSplitter Grid.Column="1" ShowsPreview="False" Width="3" HorizontalAlignment="Center" VerticalAlignment="Stretch" Cursor="SizeWE" Name="splChart" />
 
@@ -154,14 +167,12 @@
 
 		<GridSplitter Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" ShowsPreview="False" Height="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Cursor="SizeNS" DragCompleted="GridSplitter_DragCompleted" Name="splTree" />
 
-		<TabControl Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" SelectionChanged="TabControl_SelectionChanged" VerticalAlignment="Top">
-			<TabItem Header="Details">
-				<StackPanel Orientation="Horizontal">
-					<Image Name="imgAuthor" Width="40" Height="40" Margin="5" VerticalAlignment="Top" />
-					<Label 
+		<StackPanel Orientation="Horizontal" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" VerticalAlignment="Top">
+			<Image Name="imgAuthor" Width="40" Height="40" Margin="5" VerticalAlignment="Top" />
+			<Label 
 				Name="lblCommitDetailsSection"
 				Visibility="Hidden" >
-						<TextBlock>
+				<TextBlock>
 					<Run Text="Commit   " Foreground="Gray"/>
 					<Run Name="lblCommitSha" Text=""/>
 					<Run Text="at" Foreground="Gray"/>
@@ -172,22 +183,9 @@
 					<Run Name="lblFilePath" Text=""/>
 					<Run Name="lblCommitMessageLabel" Text="Message" Foreground="Gray"/>
 					<Run Name="lblCommitMessageText" Text=""/>
-						</TextBlock>
-					</Label>
-				</StackPanel>
-			</TabItem>
-			<TabItem Header="Tree" x:Name="tiTree" VerticalAlignment="Stretch">
-				<Grid>
-					<TreeView Name="twTreeDiffs" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" Height="100" BorderThickness="0">
-						<TreeView.ContextMenu>
-							<ContextMenu Name="cmTree">
-								<MenuItem Header="Show History" Click="TreeMenuItem_Click" />
-							</ContextMenu>
-						</TreeView.ContextMenu>
-					</TreeView>
-				</Grid>
-			</TabItem>
-		</TabControl>
+				</TextBlock>
+			</Label>
+		</StackPanel>
 
 		<StatusBar 
 			Grid.Column="0"
