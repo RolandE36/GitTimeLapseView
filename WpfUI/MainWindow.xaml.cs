@@ -546,9 +546,9 @@ namespace WpfUI {
 						// Split path in to parts
 						var parts = item.Path.Split('\\');
 						var pathPart = "";
-						foreach (var part in parts) {
+						for (var j = 0; j < parts.Count(); j++) {
 							if (!string.IsNullOrEmpty(pathPart)) pathPart += "\\";
-							pathPart += part;
+							pathPart += parts[j];
 							// Check is part already exist
 							var isPartAlreadyAdded = false;
 							for (int i = 0; i < tItems.Count; i++) {
@@ -561,7 +561,8 @@ namespace WpfUI {
 
 							if (isPartAlreadyAdded) continue;
 
-							var child = GetTreeViewItem(item, pathPart, part);
+							var isLastItem = j == parts.Count() - 1;
+							var child = GetTreeViewItem(item, pathPart, parts[j], isLastItem);
 							tItems.Add(child);
 							tItems = child.Items;
 						}
@@ -572,7 +573,7 @@ namespace WpfUI {
 			});
 		}
 
-		private TreeViewItem GetTreeViewItem(LibGit2Sharp.PatchEntryChanges item, string path, string part) {
+		private TreeViewItem GetTreeViewItem(LibGit2Sharp.PatchEntryChanges item, string path, string part, bool isLastPart) {
 			// Create new TreeViewItem
 			var child = new TreeViewItem();
 			child.Tag = path;
@@ -581,7 +582,7 @@ namespace WpfUI {
 
 			// Create image
 			var icon = "Folder_16x.png";
-			if (item.Path.EndsWith(part)) {
+			if (isLastPart) {
 				switch (item.Status) {
 					case LibGit2Sharp.ChangeKind.Deleted:
 						icon = "FileError_16x.png";
@@ -648,7 +649,7 @@ namespace WpfUI {
 			child.Header = stack;
 
 			// Add ToolTip
-			if (item.Path.EndsWith(part)) {
+			if (isLastPart) {
 				child.ToolTip += item.Path;
 				child.ToolTip += " +" + item.LinesAdded + " -" + item.LinesDeleted;
 				child.ToolTip += "\n" + item.Status.ToString();
