@@ -124,7 +124,8 @@
 					<TreeView Name="twTreeDiffs" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" BorderThickness="0">
 						<TreeView.ContextMenu>
 							<ContextMenu Name="cmTree">
-								<MenuItem Header="Show History" Click="TreeMenuItem_Click" />
+								<MenuItem Header="Show file history" Click="TreeMenuItem_Click" Name="cmiTreeCurrent"/>
+								<MenuItem Header="Show renamed file history" Click="TreeMenuItem_Click" IsEnabled="False" Name="cmiTreeRenamed"/>
 							</ContextMenu>
 						</TreeView.ContextMenu>
 					</TreeView>

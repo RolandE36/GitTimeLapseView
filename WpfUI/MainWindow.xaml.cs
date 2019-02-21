@@ -553,7 +553,7 @@ namespace WpfUI {
 							// Check is part already exist
 							var isPartAlreadyAdded = false;
 							for (int i = 0; i < tItems.Count; i++) {
-								if ((string)((TreeViewItem)tItems[i]).Tag == pathPart) {
+								if (((FileChanges)((TreeViewItem)tItems[i]).Tag).Path == pathPart) {
 									tItems = ((TreeViewItem)tItems[i]).Items;
 									isPartAlreadyAdded = true;
 									break;
@@ -577,7 +577,13 @@ namespace WpfUI {
 		private TreeViewItem GetTreeViewItem(LibGit2Sharp.PatchEntryChanges item, string path, string part, bool isLastPart) {
 			// Create new TreeViewItem
 			var child = new TreeViewItem();
-			child.Tag = path;
+
+			child.Tag = new FileChanges() {
+				Path = path,
+				OldPath = item.OldPath,
+				IsRenamed = item.Status == LibGit2Sharp.ChangeKind.Renamed || item.Status == LibGit2Sharp.ChangeKind.TypeChanged
+			};
+
 			child.IsExpanded = true;
 			child.MouseRightButtonDown += FilesTreeItem_MouseRightButtonDown;
 
@@ -663,7 +669,7 @@ namespace WpfUI {
 
 				// Create new tab with file content
 				child.MouseDoubleClick += (s, e) => {
-					var file = (string)(s as TreeViewItem).Tag;
+					var file = ((FileChanges)(s as TreeViewItem).Tag).Path;
 					var aedit = new ICSharpCode.AvalonEdit.TextEditor();
 					aedit.Text = manager.GetFile(View.Snapshot.Sha, file);
 					aedit.FontFamily = tbCodeA.FontFamily;
@@ -707,19 +713,25 @@ namespace WpfUI {
 		/// </summary>
 		private void FilesTreeItem_MouseRightButtonDown(object sender, MouseButtonEventArgs e) {
 			var cm = twTreeDiffs.FindName("cmTree") as ContextMenu;
-			cm.Tag = (string)(sender as TreeViewItem).Tag;
+			var treeViewItem = sender as TreeViewItem;
+			treeViewItem.IsSelected = true;
+			var fileChanges = (FileChanges)treeViewItem.Tag;
+
 			cm.PlacementTarget = sender as TextBlock;
+			cmiTreeRenamed.IsEnabled = fileChanges.IsRenamed;
+			cmiTreeRenamed.Tag = fileChanges.OldPath;
+			cmiTreeCurrent.Tag = fileChanges.Path;
+
 			cm.IsOpen = true;
 			e.Handled = true;
 		}
 
 		private void TreeMenuItem_Click(object sender, RoutedEventArgs e) {
 			var mi = sender as MenuItem;
-			var path = (string)(mi.Parent as ContextMenu).Tag;
+			var path = (string)mi.Tag;
 			var window = new MainWindow();
 			window.OpenFile(manager.repositoryPath + "\\" + path, false);
 			window.Show();
-			//View.ChangeParentSnapshot(sha, false);
 		}
 
 		private async void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e) {

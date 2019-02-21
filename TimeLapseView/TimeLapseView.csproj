@@ -115,6 +115,7 @@
     <Compile Include="Model\CodeLine.cs" />
     <Compile Include="Model\Commit.cs" />
     <Compile Include="Model\CommitsAnalyzingStatus.cs" />
+    <Compile Include="Model\FileChanges.cs" />
     <Compile Include="Model\GitHubUserSearch.cs" />
     <Compile Include="Model\Snapshot.cs" />
     <Compile Include="Model\SnapshotVM.cs" />
