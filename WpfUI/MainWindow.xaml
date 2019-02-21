@@ -217,7 +217,7 @@
 				<ProgressBar Value="0" Minimum="0" Maximum="100" Width="100" Height="16" Name="statusProgressBar" />
 			</StatusBarItem>
 			<StatusBarItem>
-				<TextBlock Name="statusTbPausePlay" MouseUp="statusTbPausePlay_MouseUp" />
+				<Image Width="16" Height="16" Name="statusTbPausePlay" MouseUp="statusTbPausePlay_MouseUp" ToolTip="Pause/Resume history processing" />
 			</StatusBarItem>
 			<StatusBarItem>
 				<TextBlock Name="statusTbProgressBar" />

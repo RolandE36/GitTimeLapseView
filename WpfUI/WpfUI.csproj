@@ -197,6 +197,10 @@
     <Resource Include="Resources\Next_grey_16xSM.png" />
     <Resource Include="Resources\Previous_grey_16xSM.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Run_16x.png" />
+    <Resource Include="Resources\Stop_16x.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

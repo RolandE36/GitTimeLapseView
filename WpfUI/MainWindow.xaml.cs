@@ -97,7 +97,7 @@ namespace WpfUI {
 				isApplicationShutdownRequired = appShutdown;
 				manager = new FileHistoryManager(filename);
 				Title = APP_TITLE + ": " + manager.filePath;
-				statusTbPausePlay.Text = "Pause";
+				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,/Resources/Stop_16x.png"));
 				View = new ViewData();
 				isFirstRendering = true;
 				tiCodeCompare.Header = manager.filePath.Split('\\').Last();
@@ -148,7 +148,6 @@ namespace WpfUI {
 					}
 
 					this.Dispatcher.BeginInvoke(new Action(() => {
-						statusTbPausePlay.Text = "";
 						statusTbProgressBar.Text = "Done";
 					}));
 				});
@@ -512,12 +511,14 @@ namespace WpfUI {
 			if (View.SeekStatus.ItemsProcessed == View.SeekStatus.ItemsTotal) return;
 
 			View.SeekStatus.PauseProcessing = !View.SeekStatus.PauseProcessing;
-			statusTbPausePlay.Text = View.SeekStatus.PauseProcessing ? "Continue" : "Pause";
+			statusTbPausePlay.Source = View.SeekStatus.PauseProcessing ? 
+				new BitmapImage(new Uri("pack://application:,,/Resources/Run_16x.png")) :
+				new BitmapImage(new Uri("pack://application:,,/Resources/Stop_16x.png"));
 			if (View.SeekStatus.PauseProcessing) {
-				statusTbPausePlay.Text = "Continue";
+				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,/Resources/Run_16x.png"));
 				scanningThread.Suspend();
 			} else {
-				statusTbPausePlay.Text = "Pause";
+				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,/Resources/Stop_16x.png"));
 				scanningThread.Resume();
 			}
 		}
