@@ -236,7 +236,7 @@ namespace WpfUI.Renderer {
 
 				// Commit description Label
 				TextBlock textBlock = new TextBlock();
-				textBlock.Text = snapshot.DateString + " " + snapshot.DescriptionShort;
+				textBlock.Text = /*snapshot.DateString + " " + */snapshot.DescriptionShort;
 				textBlock.Foreground = BlackBrush;
 				textBlock.Tag = snapshot.Sha;
 				textBlock.ToolTip = snapshot.Tooltip;
