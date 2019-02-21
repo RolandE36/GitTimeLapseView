@@ -66,12 +66,12 @@
 				<MenuItem Header="ASP/XHTML"   Click="MenuItemChangeSyntax_Click" ></MenuItem>
 			</MenuItem>
 			<Separator />
-			<MenuItem Name="menuPrevDiff" ToolTip="Previous difference (Shift+F8)" Click="menuPrevDiff_Click">
+			<MenuItem Name="menuPrevDiff" ToolTip="Previous difference (Shift+F8)" Click="menuPrevDiff_Click" Visibility="Hidden">
 				<MenuItem.Icon>
 					<Image Source="pack://application:,,/Resources/Previous_grey_16xSM.png" />
 				</MenuItem.Icon>
 			</MenuItem>
-			<MenuItem Name="menuNextDiff" ToolTip="Next difference (F8)" Click="menuNextDiff_Click">
+			<MenuItem Name="menuNextDiff" ToolTip="Next difference (F8)" Click="menuNextDiff_Click"  Visibility="Hidden">
 				<MenuItem.Icon>
 					<Image Source="pack://application:,,/Resources/Next_grey_16xSM.png" />
 				</MenuItem.Icon>
