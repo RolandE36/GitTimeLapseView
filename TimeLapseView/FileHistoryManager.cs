@@ -261,6 +261,7 @@ namespace TimeLapseView {
 					foreach (var sha in snapshot.Parents) {
 						if (!child.Parents.Contains(sha)) child.Parents.Add(sha);
 					}
+					child.Parents.Remove(snapshot.Sha);
 				}
 
 				foreach (var p in snapshot.Parents) {
@@ -268,6 +269,7 @@ namespace TimeLapseView {
 					foreach (var sha in snapshot.Childs) {
 						if (!parent.Childs.Contains(sha)) parent.Childs.Add(sha);
 					}
+					parent.Childs.Remove(snapshot.Sha);
 				}
 
 				snapshot.IsCommitVisible = false;
