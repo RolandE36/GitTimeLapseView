@@ -94,8 +94,11 @@ namespace TimeLapseView {
 				}
 
 				var treeFile = filePath;
-				foreach (var commit in repo.Commits.Skip(status.ItemsProcessed).Take(status.ItemsPerPage)) {
+				var processed = 0;
+				foreach (var commit in repo.Commits.Skip(status.ItemsProcessed)) {
+					if (processed >= status.ItemsPerPage && snapshots.Count > 0) break;
 					status.ItemsProcessed++;
+					processed++;
 
 					// Observable commit
 					var snapshot = new Snapshot(commit.Sha) {
