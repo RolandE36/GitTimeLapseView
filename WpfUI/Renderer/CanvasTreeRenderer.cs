@@ -265,7 +265,7 @@ namespace WpfUI.Renderer {
 		}
 
 		private void MouseLeaveArrow(object sender, MouseEventArgs e) {
-			Mouse.OverrideCursor = Cursors.Arrow;
+			Mouse.OverrideCursor = null;
 		}
 
 		private void MouseEnterHand(object sender, MouseEventArgs e) {

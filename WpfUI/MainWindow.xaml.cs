@@ -49,9 +49,9 @@ namespace WpfUI {
 			CheckCommandLineParameters();
 
 			splTree.MouseEnter += (s, v) => { Mouse.OverrideCursor = Cursors.SizeNS; };
-			splTree.MouseLeave += (s, c) => { Mouse.OverrideCursor = Cursors.Arrow; };
+			splTree.MouseLeave += (s, c) => { Mouse.OverrideCursor = null; };
 			splChart.MouseEnter += (s, v) => { Mouse.OverrideCursor = Cursors.SizeWE; };
-			splChart.MouseLeave += (s, c) => { Mouse.OverrideCursor = Cursors.Arrow; };
+			splChart.MouseLeave += (s, c) => { Mouse.OverrideCursor = null; };
 		}
 
 		private void CheckCommandLineParameters() {
@@ -748,7 +748,7 @@ namespace WpfUI {
 
 		private void BindArrowEvents(Control control) {
 			control.MouseEnter += (s, e) => { Mouse.OverrideCursor = Cursors.Hand; };
-			control.MouseLeave += (s, e) => { Mouse.OverrideCursor = Cursors.Arrow; };
+			control.MouseLeave += (s, e) => { Mouse.OverrideCursor = null; };
 		}
 
 		#endregion
