@@ -20,7 +20,7 @@ namespace WpfUI {
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
 	public partial class MainWindow : Window {
-		private const string APP_TITLE = "Git Time Lapse View";
+		private const string APP_TITLE = "Git Archaeology";
 		private const string TAG_PREFIX = "cb_";
 
 		private FileHistoryManager manager;
@@ -41,6 +41,7 @@ namespace WpfUI {
 
 		protected override void OnInitialized(EventArgs e) {
 			base.OnInitialized(e);
+			Title = APP_TITLE;
 			// TODO: Spaces.......
 			lblCommitMessageLabel.Text = "\nMessage ";
 			lblFilePathLabel.Text = "\nFile         ";
@@ -87,17 +88,17 @@ namespace WpfUI {
 		/// </summary>
 		/// <param name="filename">File name</param>
 		/// <param name="appShutdown">Is mandatory application shutdown call required</param>
-		public async void OpenFile(string filename, bool appShutdown = true) {
+		public bool OpenFile(string filename, bool appShutdown = true) {
 			try {
 				if (Directory.Exists(filename)) {
 					MessageBox.Show("Can't analyse directory!");
-					return;
+					return false;
 				}
 
 				isApplicationShutdownRequired = appShutdown;
 				manager = new FileHistoryManager(filename);
 				Title = APP_TITLE + ": " + manager.filePath;
-				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,/Resources/Stop_16x.png"));
+				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,,/GitArchaeology;component/Resources/Stop_16x.png"));
 				View = new ViewData();
 				isFirstRendering = true;
 				tiCodeCompare.Header = manager.filePath.Split('\\').Last();
@@ -222,6 +223,8 @@ namespace WpfUI {
 				File.AppendAllText(string.Format("ERROR_{0}_.txt", DateTime.Now.ToString()), ex.Message + Environment.NewLine + ex.StackTrace + Environment.NewLine);
 				MessageBox.Show("Oops! Something went wrong.");
 			}
+
+			return true;
 		}
 
 		/// <summary>
@@ -512,13 +515,13 @@ namespace WpfUI {
 
 			View.SeekStatus.PauseProcessing = !View.SeekStatus.PauseProcessing;
 			statusTbPausePlay.Source = View.SeekStatus.PauseProcessing ? 
-				new BitmapImage(new Uri("pack://application:,,/Resources/Run_16x.png")) :
-				new BitmapImage(new Uri("pack://application:,,/Resources/Stop_16x.png"));
+				new BitmapImage(new Uri("pack://application:,,,/GitArchaeology;component/Resources/Run_16x.png")) :
+				new BitmapImage(new Uri("pack://application:,,,/GitArchaeology;component/Resources/Stop_16x.png"));
 			if (View.SeekStatus.PauseProcessing) {
-				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,/Resources/Run_16x.png"));
+				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,,/GitArchaeology;component/Resources/Run_16x.png"));
 				scanningThread.Suspend();
 			} else {
-				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,/Resources/Stop_16x.png"));
+				statusTbPausePlay.Source = new BitmapImage(new Uri("pack://application:,,,/GitArchaeology;component/Resources/Stop_16x.png"));
 				scanningThread.Resume();
 			}
 		}
@@ -619,7 +622,7 @@ namespace WpfUI {
 			}
 
 			Image image = new Image();
-			image.Source = new BitmapImage(new Uri("pack://application:,,/Resources/" + icon));
+			image.Source = new BitmapImage(new Uri("pack://application:,,,/GitArchaeology;component/Resources/" + icon));
 			image.Width = 16;
 			image.Height = 16;
 

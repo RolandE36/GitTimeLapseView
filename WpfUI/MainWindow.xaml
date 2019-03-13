@@ -28,13 +28,13 @@
 			<MenuItem Header="File">
 				<MenuItem Header="Open File" Click="btnBrowseFile_Click">
 					<MenuItem.Icon>
-						<Image Source="pack://application:,,/Resources/OpenFile_16x.png" Width="16" Height="16" />
+						<Image Source="pack://application:,,,/GitArchaeology;component/Resources/OpenFile_16x.png" Width="16" Height="16" />
 					</MenuItem.Icon>
 				</MenuItem>
 				<Separator />
 				<MenuItem Header="Exit" Click="btnExit_Click">
 					<MenuItem.Icon>
-						<Image Source="pack://application:,,/Resources/Exit_16x.png" Width="16" Height="16" />
+						<Image Source="pack://application:,,,/GitArchaeology;component/Resources/Exit_16x.png" Width="16" Height="16" />
 					</MenuItem.Icon>
 				</MenuItem>
 			</MenuItem>
