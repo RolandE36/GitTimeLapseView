@@ -77,6 +77,7 @@ namespace WpfUI.Renderer {
 				rectangle.Height = SCALE_Y * 2;
 				rectangle.Tag = snapshot.Sha;
 				LinkCommitHoverEvents(rectangle);
+				rectangle.MouseLeftButtonDown += FrameworkElement_MouseLeftButtonDown;
 				Canvas.SetLeft(rectangle, x * 0);
 				Canvas.SetTop(rectangle, 2 * SCALE_Y * snapshot.Index);
 
@@ -230,6 +231,8 @@ namespace WpfUI.Renderer {
 				branchColorCircle.Width = 8;
 				branchColorCircle.Stroke = ColorPalette.GetBaseBrush(snapshot.TreeOffset);
 				branchColorCircle.ToolTip = snapshot.Tooltip;
+				LinkCommitHoverEvents(branchColorCircle);
+				LinkArrowHandEvents(branchColorCircle);
 				Canvas.SetLeft(branchColorCircle, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X / 4);
 				Canvas.SetTop(branchColorCircle, y+5);
 				Canvas.Children.Add(branchColorCircle);
@@ -240,11 +243,10 @@ namespace WpfUI.Renderer {
 				textBlock.Foreground = BlackBrush;
 				textBlock.Tag = snapshot.Sha;
 				textBlock.ToolTip = snapshot.Tooltip;
-				textBlock.MouseLeftButtonDown += TextBlock_MouseLeftButtonDown;
+				textBlock.MouseLeftButtonDown += FrameworkElement_MouseLeftButtonDown;
 				textBlock.MouseRightButtonDown += TextBlock_MouseRightButtonDown;
 				LinkCommitHoverEvents(textBlock);
 				LinkArrowHandEvents(textBlock);
-
 				Canvas.SetLeft(textBlock, 2 * SCALE_X * (reservedArea[snapshot.Index] + 1) + SCALE_X);
 				Canvas.SetTop(textBlock, y);
 				Canvas.Children.Add(textBlock);
@@ -272,9 +274,10 @@ namespace WpfUI.Renderer {
 			Mouse.OverrideCursor = Cursors.Hand;
 		}
 
-		private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+		private void FrameworkElement_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
 			// TODO: Copy / paste
-			var sha = (string)(sender as TextBlock).Tag;
+			var sha = (string)(sender as FrameworkElement).Tag;
+			if (string.IsNullOrEmpty(sha)) return;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
@@ -302,6 +305,7 @@ namespace WpfUI.Renderer {
 
 		private void CommitLeave(object sender, MouseEventArgs e) {
 			var sha = (string)(sender as FrameworkElement).Tag;
+			if (string.IsNullOrEmpty(sha)) return;
 			UiElements[sha].CommitBackground.Fill = TransparentCircleBrush;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = NOT_SELECTED_LINE_WIDTH;
@@ -311,6 +315,7 @@ namespace WpfUI.Renderer {
 
 		private void CommitEnter(object sender, MouseEventArgs e) {
 			var sha = (string)(sender as FrameworkElement).Tag;
+			if (string.IsNullOrEmpty(sha)) return;
 			foreach (var path in UiElements[sha].Paths) {
 				path.StrokeThickness = SELECTED_LINE_WIDTH;
 			}
